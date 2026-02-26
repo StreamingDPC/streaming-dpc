@@ -24,14 +24,23 @@ if (!products || products.length === 0) {
         { id: 10, name: "Apple Tv Premium 1️⃣ Pantalla", price: 18000, category: "individual", brand: "Apple TV", image: "https://img.icons8.com/color/96/apple-tv.png" },
 
         // COMBOS (Incluyo algunos representativos, el admin puede agregar más)
-        { id: 11, name: "Netflix Premium + Disney Premium", price: 27000, category: "combos2", brand: "Combo", image: "https://img.icons8.com/color/96/group-objects.png" },
-        { id: 12, name: "Netflix Privada + Disney Premium", price: 28000, category: "combos2", brand: "Combo", image: "https://img.icons8.com/color/96/group-objects.png" },
-        { id: 39, name: "NF Prem + Disney + HBO Max", price: 39000, category: "combos3", brand: "Combo", image: "https://img.icons8.com/color/96/group-objects.png" },
-        { id: 49, name: "NF Prem + Disney + HBO + Prime", price: 47000, category: "combos4", brand: "Combo", image: "https://img.icons8.com/color/96/group-objects.png" },
-        { id: 54, name: "NF Prem + Dis + HBO + Par + Prime", price: 55000, category: "combos5", brand: "Combo", image: "https://img.icons8.com/color/96/group-objects.png" }
+        { id: 11, name: "Netflix Premium + Disney Premium", price: 27000, category: "combos2", brand: "Combo", image: "logo_combo.jpg" },
+        { id: 12, name: "Netflix Privada + Disney Premium", price: 28000, category: "combos2", brand: "Combo", image: "logo_combo.jpg" },
+        { id: 39, name: "NF Prem + Disney + HBO Max", price: 39000, category: "combos3", brand: "Combo", image: "logo_combo.jpg" },
+        { id: 49, name: "NF Prem + Disney + HBO + Prime", price: 47000, category: "combos4", brand: "Combo", image: "logo_combo.jpg" },
+        { id: 54, name: "NF Prem + Dis + HBO + Par + Prime", price: 55000, category: "combos5", brand: "Combo", image: "logo_combo.jpg" }
     ];
     localStorage.setItem('products', JSON.stringify(products));
 }
+
+// Migración: Si el usuario ya tiene productos en localStorage, actualizar el logo de los combos
+products = products.map(p => {
+    if (p.brand === 'Combo' && (!p.image || p.image.includes('icons8'))) {
+        return { ...p, image: 'logo_combo.jpg' };
+    }
+    return p;
+});
+localStorage.setItem('products', JSON.stringify(products));
 
 let cart = [];
 
