@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Streaming DPC - Premium Screens</title>
+    <meta name="description" content="Venta de pantallas y combos de streaming: Netflix, Disney+, HBO Max y más.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <span class="dpc">STREAMING</span>
+                <span class="brand">DPC</span>
+            </div>
+            <div class="cart-icon" id="open-cart">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="cart-badge" id="cart-count">0</span>
+            </div>
+        </header>
+
+        <!-- Search & Filter -->
+        <div class="hero">
+            <h1>Tus pantallas favoritas en un solo lugar</h1>
+            <p>Disfruta del mejor contenido premium con los mejores precios.</p>
+        </div>
+
+        <!-- Tabs Section -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="all">Todos</button>
+            <button class="tab-btn" data-tab="individual">Individual</button>
+            <button class="tab-btn" data-tab="combos2">Combos 2</button>
+            <button class="tab-btn" data-tab="combos3">Combos 3</button>
+            <button class="tab-btn" data-tab="combos4">Combos 4</button>
+            <button class="tab-btn" data-tab="combos5">Combos 5</button>
+        </div>
+
+        <!-- Products Grid -->
+        <main id="products-grid" class="products-grid">
+            <!-- Products will be injected by JavaScript -->
+        </main>
+
+        <!-- Payment Info Section -->
+        <section class="payment-methods">
+            <h3>Métodos de Pago</h3>
+            <div class="methods-grid">
+                <div class="method-card">
+                    <img src="https://img.icons8.com/color/48/bank-app.png" alt="Nequi">
+                    <span>Nequi / Daviplata</span>
+                </div>
+                <div class="method-card">
+                    <img src="https://img.icons8.com/color/48/bank-cards.png" alt="Card">
+                    <span>Nu / Be</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2026 Streaming DPC. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Cart Sidebar/Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Tu Pedido</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <!-- Cart items will be injected here -->
+            </div>
+            <div class="cart-footer">
+                <div class="total-row">
+                    <span>Total:</span>
+                    <span id="cart-total">$0</span>
+                </div>
+                <button id="checkout-btn" class="checkout-btn">
+                    <i class="fa-brands fa-whatsapp"></i> Realizar Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración | Streaming DPC</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        .admin-layout {
+            padding: 2rem 1rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .logout-btn {
+            background: #ff4d4d;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .admin-form {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            color: white;
+            font-family: inherit;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            border: none;
+            background: var(--text-primary);
+            color: var(--bg-dark);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .admin-list {
+            margin-top: 2rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .admin-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #ff4d4d;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <div class="admin-header">
+            <h1>Panel de Control</h1>
+            <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="admin-form">
+            <h3>Agregar Nuevo Producto</h3>
+            <div class="form-grid">
+                <input type="text" id="new-name" placeholder="Nombre (Ej: Netflix Premium)">
+                <input type="number" id="new-price" placeholder="Precio (Ej: 16000)">
+                <select id="new-category">
+                    <option value="individual">Individual</option>
+                    <option value="combos2">Combo 2</option>
+                    <option value="combos3">Combo 3</option>
+                    <option value="combos4">Combo 4</option>
+                    <option value="combos5">Combo 5</option>
+                </select>
+                <input type="text" id="new-brand" placeholder="Marca (Ej: Netflix)">
+            </div>
+            <p style="font-size: 0.8rem; color: #a0a0a0; margin-bottom: 1rem;">
+                *Nota: Las imágenes se asocian por la Marca automáticamente.
+            </p>
+            <button class="save-btn" onclick="saveProduct()">Guardar Producto</button>
+        </div>
+
+        <div class="admin-form">
+            <h3>Productos Existentes</h3>
+            <div id="admin-list" class="admin-list">
+                <!-- Se llenará con JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Protcción de página
+        if (localStorage.getItem('adminLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        // Cargar productos de localStorage o del archivo base si no hay en storage
+        let dynamicProducts = JSON.parse(localStorage.getItem('products')) || [];
+
+        function renderAdminList() {
+            const listDiv = document.getElementById('admin-list');
+            listDiv.innerHTML = '';
+            dynamicProducts.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.innerHTML = `
+                    <div>
+                        <strong>${p.name}</strong> - $${p.price.toLocaleString()} (${p.category})
+                    </div>
+                    <button class="btn-delete" onclick="deleteProduct(${index})">Eliminar</button>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('new-name').value;
+            const price = parseInt(document.getElementById('new-price').value);
+            const category = document.getElementById('new-category').value;
+            const brand = document.getElementById('new-brand').value;
+
+            if (!name || isNaN(price)) return alert('Completa los campos');
+
+            const newProduct = {
+                id: Date.now(),
+                name,
+                price,
+                category,
+                brand
+            };
+
+            dynamicProducts.push(newProduct);
+            localStorage.setItem('products', JSON.stringify(dynamicProducts));
+            renderAdminList();
+
+            // Limpiar campos
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-price').value = '';
+            alert('Producto Guardado! Recuerda que en este modo local, los cambios se guardan solo en este navegador.');
+        }
+
+        function deleteProduct(index) {
+            dynamicProducts.splice(index, 1);
+            localStorage.setItem('products', JSON.stringify(dynamicProducts));
+            renderAdminList();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLoggedIn');
+            window.location.href = 'login.html';
+        }
+
+        renderAdminList();
+    </script>
+</body>
+
+</html>
