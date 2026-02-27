@@ -108,6 +108,7 @@
                     <option value="combos3">Combo 3</option>
                     <option value="combos4">Combo 4</option>
                     <option value="combos5">Combo 5</option>
+                    <option value="promociones">Promociones del mes</option>
                 </select>
                 <input type="text" id="new-brand" placeholder="Marca (Ej: Netflix)">
             </div>
@@ -133,6 +134,7 @@
 
         // Cargar productos de localStorage o del archivo base si no hay en storage
         let dynamicProducts = JSON.parse(localStorage.getItem('products')) || [];
+        let editIndex = -1;
 
         function renderAdminList() {
             const listDiv = document.getElementById('admin-list');
@@ -144,10 +146,23 @@
                     <div>
                         <strong>${p.name}</strong> - $${p.price.toLocaleString()} (${p.category})
                     </div>
-                    <button class="btn-delete" onclick="deleteProduct(${index})">Eliminar</button>
+                    <div>
+                        <button class="btn-edit" onclick="editProduct(${index})" style="background:none; border:none; color:#4cd137; cursor:pointer; margin-right:1rem; font-weight:600;">Editar</button>
+                        <button class="btn-delete" onclick="deleteProduct(${index})">Eliminar</button>
+                    </div>
                 `;
                 listDiv.appendChild(div);
             });
+        }
+
+        function editProduct(index) {
+            editIndex = index;
+            const p = dynamicProducts[index];
+            document.getElementById('new-name').value = p.name;
+            document.getElementById('new-price').value = p.price;
+            document.getElementById('new-category').value = p.category;
+            document.getElementById('new-brand').value = p.brand;
+            document.querySelector('.save-btn').innerText = "Actualizar Producto";
         }
 
         function saveProduct() {
@@ -158,22 +173,32 @@
 
             if (!name || isNaN(price)) return alert('Completa los campos');
 
-            const newProduct = {
-                id: Date.now(),
-                name,
-                price,
-                category,
-                brand
-            };
+            if (editIndex === -1) {
+                const newProduct = {
+                    id: Date.now(),
+                    name,
+                    price,
+                    category,
+                    brand
+                };
+                dynamicProducts.push(newProduct);
+            } else {
+                dynamicProducts[editIndex].name = name;
+                dynamicProducts[editIndex].price = price;
+                dynamicProducts[editIndex].category = category;
+                dynamicProducts[editIndex].brand = brand;
+                editIndex = -1;
+                document.querySelector('.save-btn').innerText = "Guardar Producto";
+            }
 
-            dynamicProducts.push(newProduct);
             localStorage.setItem('products', JSON.stringify(dynamicProducts));
             renderAdminList();
 
             // Limpiar campos
             document.getElementById('new-name').value = '';
             document.getElementById('new-price').value = '';
-            alert('Producto Guardado! Recuerda que en este modo local, los cambios se guardan solo en este navegador.');
+            document.getElementById('new-brand').value = '';
+            alert(editIndex === -1 ? 'Producto Guardado con éxito!' : 'Producto Actualizado con éxito!');
         }
 
         function deleteProduct(index) {
