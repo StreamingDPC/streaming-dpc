@@ -263,7 +263,8 @@ function processCartDiscounts() {
     let promoDiscount = isClientPromoActive ? storeConfig.clientPromoDiscount : (isSellerPromoActive ? storeConfig.sellerPromoDiscount : 0);
 
     let promoCount = 0;
-    let totalDiscountAmount = 0;
+    let promoDiscountTotal = 0;
+    let genericDiscountTotal = 0;
     let total = 0;
     let processedCart = [];
 
@@ -284,7 +285,7 @@ function processCartDiscounts() {
                     finalPrice -= promoDiscount;
                     promoCount++;
                     discountNote = `<span style="color:${isSellerMode ? '#c48dfc' : '#ff416c'}; font-size:0.7rem">(-$${promoDiscount.toLocaleString()} PROMO)</span>`;
-                    totalDiscountAmount += promoDiscount;
+                    promoDiscountTotal += promoDiscount;
                     appliedPromo = true;
                 }
             }
@@ -295,11 +296,11 @@ function processCartDiscounts() {
                 if (!isSellerMode && storeConfig.discountEnabled && storeConfig.discountAmount > 0) {
                     finalPrice -= storeConfig.discountAmount;
                     discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
-                    totalDiscountAmount += storeConfig.discountAmount;
+                    genericDiscountTotal += storeConfig.discountAmount;
                 } else if (isSellerMode && storeConfig.sellerDiscountEnabled && storeConfig.sellerDiscountAmount > 0) {
                     finalPrice -= storeConfig.sellerDiscountAmount;
                     discountNote = `<span style="color:#2ab7ca; font-size:0.7rem">(-$${storeConfig.sellerDiscountAmount.toLocaleString()} Dcto Mayorista)</span>`;
-                    totalDiscountAmount += storeConfig.sellerDiscountAmount;
+                    genericDiscountTotal += storeConfig.sellerDiscountAmount;
                 }
             }
         }
@@ -312,7 +313,7 @@ function processCartDiscounts() {
         });
     });
 
-    return { processedCart, total, totalDiscountAmount, isPromoActive: isClientPromoActive || isSellerPromoActive };
+    return { processedCart, total, promoDiscountTotal, genericDiscountTotal, actualPromoCount: promoCount };
 }
 
 function updateCartUI() {
@@ -821,13 +822,15 @@ function setupEventListeners() {
             message += `${i + 1}. *${item.name}* - $${item.finalPrice.toLocaleString()}\n`;
         });
 
-        if (stats.totalDiscountAmount > 0) {
-            if (stats.isPromoActive) {
-                message += `\n✨ _Descuento Especial Promocional de -$${stats.totalDiscountAmount.toLocaleString()} aplicado._\n`;
-            } else if (!isSellerMode) {
-                message += `\n✨ _Descuento de -$${stats.totalDiscountAmount.toLocaleString()} aplicado por combo personalizado._\n`;
+        if (stats.promoDiscountTotal > 0) {
+            message += `\n✨ _Descuento Especial Promocional de -$${stats.promoDiscountTotal.toLocaleString()} aplicado._\n`;
+        }
+
+        if (stats.genericDiscountTotal > 0) {
+            if (!isSellerMode) {
+                message += `\n✨ _Descuento de -$${stats.genericDiscountTotal.toLocaleString()} aplicado por combo personalizado._\n`;
             } else {
-                message += `\n✨ _Descuento Mayorista de -$${stats.totalDiscountAmount.toLocaleString()} aplicado._\n`;
+                message += `\n✨ _Descuento Mayorista de -$${stats.genericDiscountTotal.toLocaleString()} aplicado._\n`;
             }
         }
 
