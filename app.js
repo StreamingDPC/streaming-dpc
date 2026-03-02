@@ -130,6 +130,24 @@ function setupConfigUI() {
         openVendedoresBtn.style.display = 'none';
         if (openClientBtn) openClientBtn.style.display = 'none';
     }
+
+    // Floating Banners Handling
+    const bannerDiv = document.getElementById('floating-banner');
+    const bannerText = document.getElementById('banner-text');
+    if (bannerDiv && bannerText) {
+        if (isSellerMode && storeConfig.sellerBannerEnabled && storeConfig.sellerBannerText) {
+            bannerDiv.style.display = 'block';
+            bannerText.innerText = storeConfig.sellerBannerText;
+            bannerDiv.style.background = 'linear-gradient(90deg, #c48dfc, #8a2be2)';
+            bannerDiv.style.boxShadow = '0 4px 15px rgba(138,43,226, 0.4)';
+        } else if (!isSellerMode && !publicSellerRef && storeConfig.clientBannerEnabled && storeConfig.clientBannerText) {
+            // General Clients view
+            bannerDiv.style.display = 'block';
+            bannerText.innerText = storeConfig.clientBannerText;
+        } else {
+            bannerDiv.style.display = 'none';
+        }
+    }
 }
 
 function getPrice(product) {
@@ -239,9 +257,16 @@ function updateCartUI() {
 
     cart.forEach(item => {
         let itemPrice = getPrice(item);
-        // Aplicar descuento por pantalla si está habilitado en configuración Y es individual Y hay más de una en el carrito Y NO es modo vendedor
-        if (!isSellerMode && storeConfig.discountEnabled && item.category === 'individual' && individualCount >= 2) {
+        let isPromo = item.category === 'individual' && individualCount >= 2;
+        // Aplicar descuento clientes
+        if (!isSellerMode && storeConfig.discountEnabled && isPromo && !publicSellerRef) {
             itemPrice -= storeConfig.discountAmount;
+        } else if (!isSellerMode && storeConfig.discountEnabled && isPromo && publicSellerRef) {
+            // Clients of public seller could also receive the discount conceptually if we don't disable it. Keep it as was.
+            itemPrice -= storeConfig.discountAmount;
+        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
+            // Descuento a vendedores
+            itemPrice -= storeConfig.sellerDiscountAmount;
         }
         total += itemPrice;
     });
@@ -256,10 +281,14 @@ function renderCartItems() {
     cart.forEach((item, index) => {
         let finalPrice = getPrice(item);
         let discountNote = "";
+        let isPromo = item.category === 'individual' && individualCount >= 2;
 
-        if (!isSellerMode && storeConfig.discountEnabled && item.category === 'individual' && individualCount >= 2) {
+        if (!isSellerMode && storeConfig.discountEnabled && isPromo) {
             finalPrice -= storeConfig.discountAmount;
             discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
+        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
+            finalPrice -= storeConfig.sellerDiscountAmount;
+            discountNote = `<span style="color:#2ab7ca; font-size:0.7rem">(-$${storeConfig.sellerDiscountAmount.toLocaleString()} Dcto Mayorista)</span>`;
         }
 
         const div = document.createElement('div');
@@ -754,15 +783,22 @@ function setupEventListeners() {
 
         cart.forEach((item, i) => {
             let finalPrice = getPrice(item);
-            if (!isSellerMode && storeConfig.discountEnabled && item.category === 'individual' && individualCount >= 2) {
+            let isPromo = item.category === 'individual' && individualCount >= 2;
+
+            if (!isSellerMode && storeConfig.discountEnabled && isPromo) {
                 finalPrice -= storeConfig.discountAmount;
+            } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
+                finalPrice -= storeConfig.sellerDiscountAmount;
             }
+
             total += finalPrice;
             message += `${i + 1}. *${item.name}* - $${finalPrice.toLocaleString()}\n`;
         });
 
         if (!isSellerMode && storeConfig.discountEnabled && individualCount >= 2) {
             message += `\n✨ _Descuento de $${(individualCount * storeConfig.discountAmount).toLocaleString()} aplicado por combo personalizado._\n`;
+        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && individualCount >= 2) {
+            message += `\n✨ _Descuento Mayorista de $${(individualCount * storeConfig.sellerDiscountAmount).toLocaleString()} aplicado._\n`;
         }
 
         message += `\n💰 *Total a pagar:* $${total.toLocaleString()}\n\n`;

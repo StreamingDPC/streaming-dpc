@@ -290,7 +290,7 @@
         <!-- TAB ESTRENOS -->
         <div id="tab-estrenos" class="tab-content">
             <div class="admin-form">
-                <h3>Agregar Película / Estreno</h3>
+                <h3 id="estreno-form-title">Agregar Película / Estreno</h3>
                 <div class="form-col" style="margin-bottom: 1rem;">
                     <label>Título de la Película</label>
                     <input type="text" id="new-estreno-title" placeholder="Ej: Deadpool 3">
@@ -299,7 +299,12 @@
                     <label>Enlace del Tráiler (YouTube URL embed o link de video Mp4)</label>
                     <input type="text" id="new-estreno-url" placeholder="Ej: https://www.youtube.com/embed/... ">
                 </div>
-                <button class="save-btn" onclick="saveEstreno()">Guardar Estreno</button>
+                <div style="display:flex; gap:1rem; align-items:center;">
+                    <button class="save-btn" id="btn-save-estreno" onclick="saveEstreno()" style="flex:1;">Guardar
+                        Estreno</button>
+                    <button class="save-btn" id="btn-cancel-estreno" onclick="cancelEditEstreno()"
+                        style="flex:1; background:#ff4d4d; display:none;">Cancelar Edición</button>
+                </div>
             </div>
             <div class="admin-form">
                 <h3>Estrenos Actuales</h3>
@@ -321,11 +326,20 @@
                         <input type="text" id="new-seller-pass" placeholder="Ej: pWd123">
                     </div>
                 </div>
-                <button class="save-btn" onclick="saveSeller()">Añadir Vendedor</button>
+                <div style="display:flex; gap:1rem; align-items:center;">
+                    <button class="save-btn" id="btn-save-seller" onclick="saveSeller()" style="flex:1;">Añadir
+                        Vendedor</button>
+                    <button class="save-btn" id="btn-cancel-seller" onclick="cancelEditSeller()"
+                        style="flex:1; background:#ff4d4d; display:none;">Cancelar Edición</button>
+                </div>
             </div>
             <div class="admin-form">
                 <h3>Vendedores Autorizados</h3>
                 <div id="admin-list-sellers" class="admin-list"></div>
+            </div>
+            <div class="admin-form">
+                <h3>Estadísticas de Ventas por Vendedor (Histórico)</h3>
+                <div id="admin-list-sellers-stats" class="admin-list"></div>
             </div>
         </div>
 
@@ -370,6 +384,12 @@
                 </div>
             </div>
             <div class="admin-form">
+                <h3>Lista de Todos los Clientes Registrados</h3>
+                <input type="text" id="filter-clients-text" placeholder="Buscar por número o nombre..."
+                    class="input-modern" style="margin-bottom:1rem;" oninput="renderAllClientsList()">
+                <div id="admin-list-all-clients" class="admin-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="admin-form">
                 <h3>Lista de Celulares Bloqueados</h3>
                 <div id="admin-list-blocked" class="admin-list"></div>
             </div>
@@ -391,15 +411,60 @@
 
                 <div class="form-grid" style="margin-bottom: 1rem;">
                     <div class="form-col">
-                        <label>Descuento por múltiples pantallas</label>
+                        <label>Descuento CLIENTES FINALES (Múltiples pantallas)</label>
                         <select id="conf-discountEnabled">
                             <option value="true">Activo / Habilitado</option>
                             <option value="false">Inactivo / Apagado</option>
                         </select>
                     </div>
                     <div class="form-col">
-                        <label>Valor a descontar ($)</label>
+                        <label>Valor a descontar ($) Clientes</label>
                         <input type="number" id="conf-discountAmount">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Descuento EXCLUSIVO VENDEDORES (Múltiples pantallas)</label>
+                        <select id="conf-sellerDiscountEnabled">
+                            <option value="true">Activo / Habilitado</option>
+                            <option value="false">Inactivo / Apagado</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Valor a descontar ($) Vendedores</label>
+                        <input type="number" id="conf-sellerDiscountAmount">
+                    </div>
+                </div>
+
+                <div class="form-grid"
+                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                    <div class="form-col">
+                        <label>Anuncio Flotante para CLIENTES</label>
+                        <select id="conf-clientBannerEnabled">
+                            <option value="true">Activo / Visible</option>
+                            <option value="false">Inactivo / Oculto</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Texto Anuncio Clientes</label>
+                        <input type="text" id="conf-clientBannerText"
+                            placeholder="Ej: ¡Lleva 2 pantallas y ahorra $1000!">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Anuncio Flotante EXCLUSIVO VENDEDORES</label>
+                        <select id="conf-sellerBannerEnabled">
+                            <option value="true">Activo / Visible</option>
+                            <option value="false">Inactivo / Oculto</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Texto Anuncio Vendedores</label>
+                        <input type="text" id="conf-sellerBannerText"
+                            placeholder="Ej: ¡Aprovecha el descuento mayorista hoy!">
                     </div>
                 </div>
 
@@ -425,8 +490,7 @@
                     <label>Mensaje Recordatorio Renovación (Usa {cliente} y {pantallas} para autocompletar)</label>
                     <textarea id="conf-reminderTemplate" style="height: 250px; padding: 10px;"></textarea>
                     <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Este mensaje se mandará por
-                        WhatsApp cuando tú o los vendedores den clic en "Enviar Recordatorio" desde el Menú de Ventas.
-                    </p>
+                        WhatsApp cuando den clic en "Enviar Recordatorio".</p>
                 </div>
 
                 <div class="form-col" style="margin-bottom: 1rem;">
@@ -462,6 +526,9 @@
             reminderTemplate: "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*"
         };
         let adminInitialized = false;
+        let editEstrenoIndex = -1;
+        let editSellerIndex = -1;
+        let allClientSalesMap = {}; // local copy for history
 
         // Firebase Initialization
         const firebaseConfig = {
@@ -512,10 +579,19 @@
                 document.getElementById('conf-reminderTemplate').value = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
             }
 
-            // New config variables
             if (document.getElementById('conf-netflixEnabled')) document.getElementById('conf-netflixEnabled').value = storeConfig.netflixEnabled !== false ? 'true' : 'false';
             if (document.getElementById('conf-disneyEnabled')) document.getElementById('conf-disneyEnabled').value = storeConfig.disneyEnabled !== false ? 'true' : 'false';
             if (document.getElementById('conf-sellerPassword')) document.getElementById('conf-sellerPassword').value = storeConfig.sellerPassword || 'admin';
+
+            if (document.getElementById('conf-sellerDiscountEnabled')) document.getElementById('conf-sellerDiscountEnabled').value = storeConfig.sellerDiscountEnabled === true ? 'true' : 'false';
+            if (document.getElementById('conf-sellerDiscountAmount')) document.getElementById('conf-sellerDiscountAmount').value = storeConfig.sellerDiscountAmount || 0;
+            if (document.getElementById('conf-clientBannerEnabled')) document.getElementById('conf-clientBannerEnabled').value = storeConfig.clientBannerEnabled === true ? 'true' : 'false';
+            if (document.getElementById('conf-clientBannerText')) document.getElementById('conf-clientBannerText').value = storeConfig.clientBannerText || '';
+            if (document.getElementById('conf-sellerBannerEnabled')) document.getElementById('conf-sellerBannerEnabled').value = storeConfig.sellerBannerEnabled === true ? 'true' : 'false';
+            if (document.getElementById('conf-sellerBannerText')) document.getElementById('conf-sellerBannerText').value = storeConfig.sellerBannerText || '';
+
+            fetchClientSalesHistory();
+            fetchSellerSalesStats();
         }
 
         function switchTab(tabId, btn) {
@@ -697,12 +773,22 @@
             storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === 'true';
             storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
 
+            storeConfig.sellerDiscountEnabled = document.getElementById('conf-sellerDiscountEnabled').value === 'true';
+            storeConfig.sellerDiscountAmount = parseInt(document.getElementById('conf-sellerDiscountAmount').value) || 0;
+
+            storeConfig.clientBannerEnabled = document.getElementById('conf-clientBannerEnabled').value === 'true';
+            storeConfig.clientBannerText = document.getElementById('conf-clientBannerText').value;
+            storeConfig.sellerBannerEnabled = document.getElementById('conf-sellerBannerEnabled').value === 'true';
+            storeConfig.sellerBannerText = document.getElementById('conf-sellerBannerText').value;
+
             storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === 'true';
             storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === 'true';
 
             if (document.getElementById('conf-reminderTemplate')) {
                 storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
             }
+
+            storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
 
             db.ref('storeConfig').set(storeConfig).then(() => {
                 alert('¡Configuración guardada exitosamente!');
@@ -724,6 +810,9 @@
                         <span style="font-size: 0.8rem; color: #a0a0a0; word-break: break-all;">${e.url}</span>
                     </div>
                     <div class="item-actions">
+                        <button class="btn-icon btn-edit" onclick="editEstreno(${index})" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
                         <button class="btn-icon btn-delete" onclick="deleteEstreno(${index})" title="Eliminar">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -733,17 +822,43 @@
             });
         }
 
+        function editEstreno(index) {
+            editEstrenoIndex = index;
+            const e = storeConfig.estrenos[index];
+            document.getElementById('new-estreno-title').value = e.title;
+            document.getElementById('new-estreno-url').value = e.url;
+
+            document.getElementById('estreno-form-title').innerText = "Editar Película / Estreno";
+            document.getElementById('btn-save-estreno').innerText = "Actualizar Estreno";
+            document.getElementById('btn-cancel-estreno').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEditEstreno() {
+            editEstrenoIndex = -1;
+            document.getElementById('new-estreno-title').value = '';
+            document.getElementById('new-estreno-url').value = '';
+            document.getElementById('estreno-form-title').innerText = "Agregar Película / Estreno";
+            document.getElementById('btn-save-estreno').innerText = "Guardar Estreno";
+            document.getElementById('btn-cancel-estreno').style.display = 'none';
+        }
+
         function saveEstreno() {
-            const title = document.getElementById('new-estreno-title').value;
-            const url = document.getElementById('new-estreno-url').value;
+            const title = document.getElementById('new-estreno-title').value.trim();
+            const url = document.getElementById('new-estreno-url').value.trim();
             if (!title || !url) return alert('Completa título y enlace.');
 
             if (!storeConfig.estrenos) storeConfig.estrenos = [];
-            storeConfig.estrenos.unshift({ title, url });
+
+            if (editEstrenoIndex !== -1) {
+                storeConfig.estrenos[editEstrenoIndex] = { title, url };
+            } else {
+                storeConfig.estrenos.unshift({ title, url });
+            }
+
             db.ref('storeConfig').set(storeConfig);
 
-            document.getElementById('new-estreno-title').value = '';
-            document.getElementById('new-estreno-url').value = '';
+            cancelEditEstreno();
             renderEstrenosList();
         }
 
@@ -771,6 +886,9 @@
                         <span style="font-size: 0.8rem; color: #a0a0a0;">Contraseña: ${s.password}</span>
                     </div>
                     <div class="item-actions">
+                        <button class="btn-icon btn-edit" onclick="editSeller(${index})" title="Editar Vendedor">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
                         <button class="btn-icon btn-delete" onclick="deleteSeller(${index})" title="Eliminar Vendedor">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -780,19 +898,42 @@
             });
         }
 
+        function editSeller(index) {
+            editSellerIndex = index;
+            const s = storeConfig.sellers[index];
+            document.getElementById('new-seller-name').value = s.name;
+            document.getElementById('new-seller-pass').value = s.password;
+
+            document.getElementById('btn-save-seller').innerText = "Actualizar Vendedor";
+            document.getElementById('btn-cancel-seller').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEditSeller() {
+            editSellerIndex = -1;
+            document.getElementById('new-seller-name').value = '';
+            document.getElementById('new-seller-pass').value = '';
+            document.getElementById('btn-save-seller').innerText = "Añadir Vendedor";
+            document.getElementById('btn-cancel-seller').style.display = 'none';
+        }
+
         function saveSeller() {
             const name = document.getElementById('new-seller-name').value.trim();
             const password = document.getElementById('new-seller-pass').value.trim();
             if (!name || !password) return alert('Completa nombre y contraseña.');
 
             if (!storeConfig.sellers) storeConfig.sellers = [];
-            storeConfig.sellers.push({ name, password });
+
+            if (editSellerIndex !== -1) {
+                storeConfig.sellers[editSellerIndex] = { name, password };
+            } else {
+                storeConfig.sellers.push({ name, password });
+            }
 
             db.ref('storeConfig').set(storeConfig).then(() => {
-                document.getElementById('new-seller-name').value = '';
-                document.getElementById('new-seller-pass').value = '';
+                cancelEditSeller();
                 renderSellersList();
-                alert('Vendedor añadido con éxito en la Nube.');
+                alert(editSellerIndex !== -1 ? 'Vendedor actualizado con éxito.' : 'Vendedor añadido con éxito en la Nube.');
             });
         }
 
@@ -800,8 +941,57 @@
             if (confirm('¿Eliminar/Bloquear este vendedor? Perderá su acceso.')) {
                 storeConfig.sellers.splice(index, 1);
                 db.ref('storeConfig').set(storeConfig);
+                cancelEditSeller();
                 renderSellersList();
             }
+        }
+
+        function fetchSellerSalesStats() {
+            const statsDiv = document.getElementById('admin-list-sellers-stats');
+            if (statsDiv) statsDiv.innerHTML = '<p style="color:#ccc;">Cargando estadísticas...</p>';
+
+            db.ref('sellerSales').once('value').then(snap => {
+                const data = snap.val() || {};
+                renderSellerSalesStats(data);
+            });
+        }
+
+        function renderSellerSalesStats(data) {
+            const statsDiv = document.getElementById('admin-list-sellers-stats');
+            if (!statsDiv) return;
+            statsDiv.innerHTML = '';
+
+            const sellers = storeConfig.sellers || [];
+
+            if (sellers.length === 0) {
+                statsDiv.innerHTML = '<p style="color:#ccc;">No hay vendedores registrados.</p>';
+                return;
+            }
+
+            sellers.forEach(seller => {
+                const sName = seller.name;
+                const sales = data[sName] || {};
+                let count = 0;
+                let screensSold = 0;
+
+                Object.values(sales).forEach(sale => {
+                    count++;
+                    screensSold += (sale.items || []).length;
+                });
+
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.style.gridTemplateColumns = 'auto 1fr';
+                div.innerHTML = `
+                    <div><i class="fa-solid fa-chart-line" style="color:#4cd137; font-size:1.5rem"></i></div>
+                    <div>
+                        <strong style="color: white; font-size:1.1rem">${sName}</strong><br>
+                        <span style="font-size: 0.9rem; color: var(--text-primary); margin-right:1rem;"><i class="fa-solid fa-receipt"></i> Ventas: ${count}</span>
+                        <span style="font-size: 0.9rem; color: #f39c12;"><i class="fa-solid fa-tv"></i> Pantallas: ${screensSold}</span>
+                    </div>
+                `;
+                statsDiv.appendChild(div);
+            });
         }
 
         // --- SECTION CLIENTS ---
@@ -832,6 +1022,58 @@
                 `;
                 listDiv.appendChild(div);
             });
+        }
+
+        function fetchClientSalesHistory() {
+            db.ref('clientSales').once('value').then(snap => {
+                allClientSalesMap = snap.val() || {};
+                renderAllClientsList();
+            });
+        }
+
+        function renderAllClientsList() {
+            const listDiv = document.getElementById('admin-list-all-clients');
+            if (!listDiv) return;
+
+            const filterText = (document.getElementById('filter-clients-text').value || '').toLowerCase();
+            listDiv.innerHTML = '';
+
+            const phones = Object.keys(allClientSalesMap);
+            if (phones.length === 0) {
+                listDiv.innerHTML = '<p style="color:#ccc;">No hay clientes registrados en el historial.</p>';
+                return;
+            }
+
+            const clientsData = phones.map(phone => {
+                const sales = allClientSalesMap[phone];
+                const latestSale = Object.values(sales).sort((a, b) => b.date - a.date)[0];
+                return { phone, name: latestSale.clientName || 'Desconocido', city: latestSale.clientCity || 'N/A', count: Object.keys(sales).length };
+            });
+
+            clientsData.filter(c => c.phone.includes(filterText) || c.name.toLowerCase().includes(filterText)).forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.style.gridTemplateColumns = 'auto 1fr auto';
+                div.innerHTML = `
+                    <div><i class="fa-solid fa-user" style="color:#2ab7ca; font-size:1.5rem"></i></div>
+                    <div>
+                        <strong style="color: white; font-size:1.1rem">${c.name}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
+                        <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-icon btn-edit" onclick="clickEditClient('${c.phone}')" title="Editar Cliente">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function clickEditClient(phone) {
+            document.getElementById('search-client-phone').value = phone;
+            searchClient();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function searchClient() {
