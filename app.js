@@ -270,6 +270,8 @@ function processCartDiscounts() {
 
         if (isIndividual) {
             let isPromoBannerActiveEnabled = (isClientPromoActive || isSellerPromoActive);
+            let isGenericDiscountApplicable = individualCount >= 2;
+            let appliedPromo = false;
 
             if (isPromoBannerActiveEnabled) {
                 // Solo aplicar si alcanza o supera el límite de pantallas solicitado para la promo
@@ -278,18 +280,22 @@ function processCartDiscounts() {
                     promoCount++;
                     discountNote = `<span style="color:${isSellerMode ? '#c48dfc' : '#ff416c'}; font-size:0.7rem">(-$${promoDiscount.toLocaleString()} PROMO)</span>`;
                     totalDiscountAmount += promoDiscount;
+                    appliedPromo = true;
                 }
-            } else {
-                let isPromo = individualCount >= 2;
-                if (!isSellerMode && storeConfig.discountEnabled && isPromo && !publicSellerRef) {
+            }
+
+            // Si la promocion no aplica para este item (porq no alcanza limite, o ya se pasó límite),
+            // debe aplicar el descuento normalito como respaldo.
+            if (!appliedPromo && isGenericDiscountApplicable) {
+                if (!isSellerMode && storeConfig.discountEnabled && !publicSellerRef) {
                     finalPrice -= storeConfig.discountAmount;
                     discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
                     totalDiscountAmount += storeConfig.discountAmount;
-                } else if (!isSellerMode && storeConfig.discountEnabled && isPromo && publicSellerRef) {
+                } else if (!isSellerMode && storeConfig.discountEnabled && publicSellerRef) {
                     finalPrice -= storeConfig.discountAmount;
                     discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
                     totalDiscountAmount += storeConfig.discountAmount;
-                } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
+                } else if (isSellerMode && storeConfig.sellerDiscountEnabled) {
                     finalPrice -= storeConfig.sellerDiscountAmount;
                     discountNote = `<span style="color:#2ab7ca; font-size:0.7rem">(-$${storeConfig.sellerDiscountAmount.toLocaleString()} Dcto Mayorista)</span>`;
                     totalDiscountAmount += storeConfig.sellerDiscountAmount;
