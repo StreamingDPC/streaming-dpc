@@ -455,6 +455,20 @@
 
                 <div class="form-grid" style="margin-bottom: 1rem;">
                     <div class="form-col">
+                        <label>Valor descuento PROMOCIÓN Clientes ($)</label>
+                        <input type="number" id="conf-clientPromoDiscount" placeholder="Ej: 1000">
+                    </div>
+                    <div class="form-col">
+                        <label>Límite de pantallas (P/Cliente)</label>
+                        <input type="number" id="conf-clientPromoLimit" placeholder="Ej: 2">
+                        <span style="font-size:0.75rem; color:#ccc;">Las que excedan este límite se cobrarán a precio
+                            normal sin descuento.</span>
+                    </div>
+                </div>
+
+                <div class="form-grid"
+                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                    <div class="form-col">
                         <label>Anuncio Flotante EXCLUSIVO VENDEDORES</label>
                         <select id="conf-sellerBannerEnabled">
                             <option value="true">Activo / Visible</option>
@@ -465,6 +479,19 @@
                         <label>Texto Anuncio Vendedores</label>
                         <input type="text" id="conf-sellerBannerText"
                             placeholder="Ej: ¡Aprovecha el descuento mayorista hoy!">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Valor descuento PROMOCIÓN Vendedores ($)</label>
+                        <input type="number" id="conf-sellerPromoDiscount" placeholder="Ej: 2000">
+                    </div>
+                    <div class="form-col">
+                        <label>Límite de pantallas (P/Vendedor)</label>
+                        <input type="number" id="conf-sellerPromoLimit" placeholder="Ej: 5">
+                        <span style="font-size:0.75rem; color:#ccc;">Al habilitar el anuncio, este descuento reemplazará
+                            al descuento múltiple común y corriente.</span>
                     </div>
                 </div>
 
@@ -589,6 +616,11 @@
             if (document.getElementById('conf-clientBannerText')) document.getElementById('conf-clientBannerText').value = storeConfig.clientBannerText || '';
             if (document.getElementById('conf-sellerBannerEnabled')) document.getElementById('conf-sellerBannerEnabled').value = storeConfig.sellerBannerEnabled === true ? 'true' : 'false';
             if (document.getElementById('conf-sellerBannerText')) document.getElementById('conf-sellerBannerText').value = storeConfig.sellerBannerText || '';
+
+            if (document.getElementById('conf-clientPromoDiscount')) document.getElementById('conf-clientPromoDiscount').value = storeConfig.clientPromoDiscount || 0;
+            if (document.getElementById('conf-clientPromoLimit')) document.getElementById('conf-clientPromoLimit').value = storeConfig.clientPromoLimit || 0;
+            if (document.getElementById('conf-sellerPromoDiscount')) document.getElementById('conf-sellerPromoDiscount').value = storeConfig.sellerPromoDiscount || 0;
+            if (document.getElementById('conf-sellerPromoLimit')) document.getElementById('conf-sellerPromoLimit').value = storeConfig.sellerPromoLimit || 0;
 
             fetchClientSalesHistory();
             fetchSellerSalesStats();
@@ -780,6 +812,11 @@
             storeConfig.clientBannerText = document.getElementById('conf-clientBannerText').value;
             storeConfig.sellerBannerEnabled = document.getElementById('conf-sellerBannerEnabled').value === 'true';
             storeConfig.sellerBannerText = document.getElementById('conf-sellerBannerText').value;
+
+            storeConfig.clientPromoDiscount = parseInt(document.getElementById('conf-clientPromoDiscount').value) || 0;
+            storeConfig.clientPromoLimit = parseInt(document.getElementById('conf-clientPromoLimit').value) || 0;
+            storeConfig.sellerPromoDiscount = parseInt(document.getElementById('conf-sellerPromoDiscount').value) || 0;
+            storeConfig.sellerPromoLimit = parseInt(document.getElementById('conf-sellerPromoLimit').value) || 0;
 
             storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === 'true';
             storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === 'true';

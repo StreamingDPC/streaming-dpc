@@ -249,54 +249,79 @@ function removeFromCart(index) {
     renderCartItems();
 }
 
-function updateCartUI() {
-    cartBadge.innerText = cart.length;
-
-    let total = 0;
+function processCartDiscounts() {
     let individualCount = cart.filter(p => p.category === 'individual').length;
+    let isClientPromoActive = !isSellerMode && !publicSellerRef && storeConfig.clientBannerEnabled && storeConfig.clientPromoLimit > 0 && storeConfig.clientPromoDiscount > 0;
+    let isSellerPromoActive = isSellerMode && storeConfig.sellerBannerEnabled && storeConfig.sellerPromoLimit > 0 && storeConfig.sellerPromoDiscount > 0;
+
+    let promoLimit = isClientPromoActive ? storeConfig.clientPromoLimit : (isSellerPromoActive ? storeConfig.sellerPromoLimit : 0);
+    let promoDiscount = isClientPromoActive ? storeConfig.clientPromoDiscount : (isSellerPromoActive ? storeConfig.sellerPromoDiscount : 0);
+
+    let promoCount = 0;
+    let totalDiscountAmount = 0;
+    let total = 0;
+    let processedCart = [];
 
     cart.forEach(item => {
-        let itemPrice = getPrice(item);
-        let isPromo = item.category === 'individual' && individualCount >= 2;
-        // Aplicar descuento clientes
-        if (!isSellerMode && storeConfig.discountEnabled && isPromo && !publicSellerRef) {
-            itemPrice -= storeConfig.discountAmount;
-        } else if (!isSellerMode && storeConfig.discountEnabled && isPromo && publicSellerRef) {
-            // Clients of public seller could also receive the discount conceptually if we don't disable it. Keep it as was.
-            itemPrice -= storeConfig.discountAmount;
-        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
-            // Descuento a vendedores
-            itemPrice -= storeConfig.sellerDiscountAmount;
+        let basePrice = getPrice(item);
+        let finalPrice = basePrice;
+        let discountNote = "";
+        let isIndividual = item.category === 'individual';
+
+        if (isIndividual) {
+            if (isClientPromoActive || isSellerPromoActive) {
+                if (promoCount < promoLimit) {
+                    finalPrice -= promoDiscount;
+                    promoCount++;
+                    discountNote = `<span style="color:${isSellerMode ? '#c48dfc' : '#ff416c'}; font-size:0.7rem">(-$${promoDiscount.toLocaleString()} PROMO)</span>`;
+                    totalDiscountAmount += promoDiscount;
+                }
+            } else {
+                let isPromo = individualCount >= 2;
+                if (!isSellerMode && storeConfig.discountEnabled && isPromo && !publicSellerRef) {
+                    finalPrice -= storeConfig.discountAmount;
+                    discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
+                    totalDiscountAmount += storeConfig.discountAmount;
+                } else if (!isSellerMode && storeConfig.discountEnabled && isPromo && publicSellerRef) {
+                    finalPrice -= storeConfig.discountAmount;
+                    discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
+                    totalDiscountAmount += storeConfig.discountAmount;
+                } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
+                    finalPrice -= storeConfig.sellerDiscountAmount;
+                    discountNote = `<span style="color:#2ab7ca; font-size:0.7rem">(-$${storeConfig.sellerDiscountAmount.toLocaleString()} Dcto Mayorista)</span>`;
+                    totalDiscountAmount += storeConfig.sellerDiscountAmount;
+                }
+            }
         }
-        total += itemPrice;
+
+        total += finalPrice;
+        processedCart.push({
+            ...item,
+            finalPrice,
+            discountNote
+        });
     });
 
-    cartTotalLabel.innerText = `$${total.toLocaleString()}`;
+    return { processedCart, total, totalDiscountAmount, isPromoActive: isClientPromoActive || isSellerPromoActive };
+}
+
+function updateCartUI() {
+    cartBadge.innerText = cart.length;
+    let stats = processCartDiscounts();
+    cartTotalLabel.innerText = `$${stats.total.toLocaleString()}`;
 }
 
 function renderCartItems() {
     cartItemsContainer.innerHTML = '';
-    let individualCount = cart.filter(p => p.category === 'individual').length;
+    let stats = processCartDiscounts();
 
-    cart.forEach((item, index) => {
-        let finalPrice = getPrice(item);
-        let discountNote = "";
-        let isPromo = item.category === 'individual' && individualCount >= 2;
-
-        if (!isSellerMode && storeConfig.discountEnabled && isPromo) {
-            finalPrice -= storeConfig.discountAmount;
-            discountNote = `<span style="color:#4cd137; font-size:0.7rem">(-$${storeConfig.discountAmount.toLocaleString()} Combo Propio)</span>`;
-        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
-            finalPrice -= storeConfig.sellerDiscountAmount;
-            discountNote = `<span style="color:#2ab7ca; font-size:0.7rem">(-$${storeConfig.sellerDiscountAmount.toLocaleString()} Dcto Mayorista)</span>`;
-        }
-
+    stats.processedCart.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'cart-item';
         div.innerHTML = `
             <div>
-                <p style="font-weight:600">${item.name} ${discountNote}</p>
-                <p style="font-size:0.8rem; color:#a0a0a0">$${finalPrice.toLocaleString()}</p>
+                <p style="font-weight:600">${item.name} ${item.discountNote}</p>
+                <p style="font-size:0.8rem; color:#a0a0a0">$${item.finalPrice.toLocaleString()}</p>
             </div>
             <button onclick="removeFromCart(${index})" style="background:none; border:none; color:#ff4d00; cursor:pointer">
                 <i class="fa-solid fa-trash"></i>
@@ -755,7 +780,8 @@ function setupEventListeners() {
             }
         }
 
-        let total = 0;
+        let stats = processCartDiscounts();
+        let total = stats.total;
         let individualCount = cart.filter(p => p.category === 'individual').length;
         let message = `🚀 *Nuevo Pedido - Streaming DPC*\n\n`;
 
@@ -781,24 +807,18 @@ function setupEventListeners() {
 
         message += `\nHola, me gustaría adquirir las siguientes pantallas:\n\n`;
 
-        cart.forEach((item, i) => {
-            let finalPrice = getPrice(item);
-            let isPromo = item.category === 'individual' && individualCount >= 2;
-
-            if (!isSellerMode && storeConfig.discountEnabled && isPromo) {
-                finalPrice -= storeConfig.discountAmount;
-            } else if (isSellerMode && storeConfig.sellerDiscountEnabled && isPromo) {
-                finalPrice -= storeConfig.sellerDiscountAmount;
-            }
-
-            total += finalPrice;
-            message += `${i + 1}. *${item.name}* - $${finalPrice.toLocaleString()}\n`;
+        stats.processedCart.forEach((item, i) => {
+            message += `${i + 1}. *${item.name}* - $${item.finalPrice.toLocaleString()}\n`;
         });
 
-        if (!isSellerMode && storeConfig.discountEnabled && individualCount >= 2) {
-            message += `\n✨ _Descuento de $${(individualCount * storeConfig.discountAmount).toLocaleString()} aplicado por combo personalizado._\n`;
-        } else if (isSellerMode && storeConfig.sellerDiscountEnabled && individualCount >= 2) {
-            message += `\n✨ _Descuento Mayorista de $${(individualCount * storeConfig.sellerDiscountAmount).toLocaleString()} aplicado._\n`;
+        if (stats.totalDiscountAmount > 0) {
+            if (stats.isPromoActive) {
+                message += `\n✨ _Descuento Especial Promocional de -$${stats.totalDiscountAmount.toLocaleString()} aplicado._\n`;
+            } else if (!isSellerMode) {
+                message += `\n✨ _Descuento de -$${stats.totalDiscountAmount.toLocaleString()} aplicado por combo personalizado._\n`;
+            } else {
+                message += `\n✨ _Descuento Mayorista de -$${stats.totalDiscountAmount.toLocaleString()} aplicado._\n`;
+            }
         }
 
         message += `\n💰 *Total a pagar:* $${total.toLocaleString()}\n\n`;
