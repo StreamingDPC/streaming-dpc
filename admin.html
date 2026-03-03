@@ -560,13 +560,12 @@
                             por ti.</p>
                     </div>
                     <div class="form-col">
-                        <label>Hora de Activación (AM/PM)</label>
-                        <select id="conf-autoReminderHour">
-                            <option value="0">Toda hora (Pruebas)</option>
-                            <option value="7">A partir de las 7:00 AM</option>
-                            <option value="8">A partir de las 8:00 AM</option>
-                            <option value="9">A partir de las 9:00 AM</option>
-                        </select>
+                        <label>Hora de Activación (Formato 24h: 0 a 23)</label>
+                        <input type="number" id="conf-autoReminderHour" min="0" max="23"
+                            placeholder="Ej: 8 para 8:00 AM" style="margin-bottom: 5px;">
+                        <button class="save-btn" onclick="checkDailyAutoReminders(true)"
+                            style="background:#f39c12; margin-top:5px; width:auto; padding: 8px 15px; font-size:0.8rem;"><i
+                                class="fa-solid fa-play"></i> Forzar Envíos de Hoy AHORA</button>
                     </div>
                 </div>
 
@@ -660,7 +659,7 @@
             document.getElementById('conf-disneyEnabled').value = storeConfig.disneyEnabled !== false ? 'true' : 'false';
 
             document.getElementById('conf-autoReminderEnabled').value = storeConfig.autoReminderEnabled === false ? "false" : "true";
-            document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "8";
+            document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "0";
             document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
 
             if (document.getElementById('conf-sellerPassword')) document.getElementById('conf-sellerPassword').value = storeConfig.sellerPassword || 'admin';
@@ -902,7 +901,7 @@
             }
 
             storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
-            storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 8;
+            storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 0;
 
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
 
@@ -1559,15 +1558,18 @@
 
         let globalReminderQueue = [];
 
-        function checkDailyAutoReminders() {
-            if (storeConfig.autoReminderEnabled === false || storeConfig.autoReminderEnabled === "false") return;
+        function checkDailyAutoReminders(force = false) {
+            if (!force && (storeConfig.autoReminderEnabled === false || storeConfig.autoReminderEnabled === "false")) return;
 
             const configHour = parseInt(storeConfig.autoReminderHour) || 0;
             const currentHour = new Date().getHours();
-            if (configHour > 0 && currentHour < configHour) return;
+            if (!force && configHour > 0 && currentHour < configHour) return;
 
             const todayStr = new Date().toLocaleDateString();
-            if (localStorage.getItem('lastAutoReminderDate') === todayStr) return; // Already processed today
+            if (!force && localStorage.getItem('lastAutoReminderDate') === todayStr) {
+                if (force) alert('Ya se procesaron los recordatorios hoy, pero al forzar, volveremos a revisar...');
+                else return; // Already processed today
+            }
 
             globalReminderQueue = [];
 
