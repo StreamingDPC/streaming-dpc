@@ -1137,7 +1137,11 @@
             let msg = `Hola *${sellerName}* 👋\n\nTe recuerdo que la cuenta de tu cliente *${clientName}* (📱 ${clientPhone})\n\nCon: ${itemsStr}\n👉 *FINALIZA PRONTO o YA VENCIÓ* 👈\n\nPor favor contáctalo para gestionar su renovación.`;
 
             if (saleTotal > 0) {
-                msg += `\n💰 *Total a Renovar:* $${saleTotal.toLocaleString()}`;
+                msg += `\n💰 *Total a Renovar con Administrador:* $${saleTotal.toLocaleString()}`;
+            }
+
+            if (storeConfig.paymentInfo) {
+                msg += `\n\n*Medios de Pago Autorizados:*\n${storeConfig.paymentInfo}`;
             }
 
             const encodedMsg = encodeURIComponent(msg);
@@ -1301,11 +1305,17 @@
 
         function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = decodeURIComponent(itemsEncoded);
-            let template = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
+            let template = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️";
             let msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr);
 
             if (saleTotal > 0) {
-                msg += `\n\n💰 *Total a Pagar:* $${saleTotal.toLocaleString()}`;
+                msg += `\n\n💰 *Total a Renovar:* $${saleTotal.toLocaleString()}`;
+            }
+
+            if (storeConfig.paymentInfo) {
+                msg += `\n\n*Medios de Pago:*\n${storeConfig.paymentInfo}`;
+            } else {
+                msg += `\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*`;
             }
 
             const encodedMsg = encodeURIComponent(msg);
