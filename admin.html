@@ -1175,23 +1175,96 @@
             });
 
             clientsData.filter(c => c.phone.includes(filterText) || c.name.toLowerCase().includes(filterText)).forEach(c => {
+                const phone = c.phone;
+                const sales = allClientSalesMap[phone];
+                const salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
+
                 const div = document.createElement('div');
                 div.className = 'admin-item';
-                div.style.gridTemplateColumns = 'auto 1fr auto';
+                div.style.flexDirection = 'column';
+                div.style.alignItems = 'flex-start';
+                div.style.gap = '1rem';
+
                 div.innerHTML = `
-                    <div><i class="fa-solid fa-user" style="color:#2ab7ca; font-size:1.5rem"></i></div>
-                    <div>
-                        <strong style="color: white; font-size:1.1rem">${c.name}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
-                        <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
-                    </div>
-                    <div class="item-actions">
-                        <button class="btn-icon btn-edit" onclick="clickEditClient('${c.phone}')" title="Editar Cliente">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
+                    <div style="display:flex; gap:1rem; width:100%; align-items:center;">
+                        <div><i class="fa-solid fa-user" style="color:#2ab7ca; font-size:1.5rem"></i></div>
+                        <div style="flex:1;">
+                            <strong style="color: white; font-size:1.1rem">${c.name}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
+                            <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-icon btn-edit" onclick="clickEditClient('${c.phone}')" title="Editar Cliente">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
+
+                if (salesArray.length > 0) {
+                    const salesContainer = document.createElement('div');
+                    salesContainer.style.width = '100%';
+                    salesContainer.style.display = 'grid';
+                    salesContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+                    salesContainer.style.gap = '0.8rem';
+                    salesContainer.style.marginTop = '0.5rem';
+                    salesContainer.style.paddingTop = '1rem';
+                    salesContainer.style.borderTop = '1px solid var(--glass-border)';
+
+                    salesArray.forEach(sale => {
+                        const now = Date.now();
+                        const daysLeft = Math.ceil((sale.expirationDate - now) / (1000 * 60 * 60 * 24));
+
+                        let statusColor = '#4cd137';
+                        if (daysLeft <= 3 && daysLeft >= 0) statusColor = '#f39c12';
+                        if (daysLeft < 0) statusColor = '#ff4d4d';
+
+                        const itemsStr = sale.items ? sale.items.map(i => i.name).join(', ') : 'Pantallas';
+                        const safeClientName = c.name.replace(/'/g, '');
+
+                        const saleCard = document.createElement('div');
+                        saleCard.style.padding = '1rem';
+                        saleCard.style.background = 'rgba(255,255,255,0.05)';
+                        saleCard.style.borderLeft = `4px solid ${statusColor}`;
+                        saleCard.style.borderRadius = '8px';
+                        saleCard.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 0.3rem;">
+                                <span style="font-size: 0.85rem; color:#ccc;">${new Date(sale.date).toLocaleDateString()}</span>
+                                <span style="background:${statusColor}; color:white; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight:bold;">
+                                    ${daysLeft >= 0 ? `Vence en ${daysLeft} d` : 'Vencida'}
+                                </span>
+                            </div>
+                            <p style="font-size:0.8rem; color:var(--text-primary); margin-bottom:1rem; line-height:1.4;">
+                                📺 ${itemsStr}
+                            </p>
+                            <button onclick="sendAdminReminderToDirectClient('${safeClientName}', '${encodeURIComponent(itemsStr)}', '${c.phone}')" 
+                                style="padding:0.6rem 1rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2ab7ca; background: rgba(42, 183, 202, 0.1); color:#2ab7ca; width:100%; font-size:0.85rem; transition: background 0.3s;"
+                                onmouseover="this.style.background='rgba(42, 183, 202, 0.2)'" onmouseout="this.style.background='rgba(42, 183, 202, 0.1)'">
+                                <i class="fa-brands fa-whatsapp"></i> Recordar Cliente
+                            </button>
+                        `;
+                        salesContainer.appendChild(saleCard);
+                    });
+
+                    div.appendChild(salesContainer);
+                }
+
                 listDiv.appendChild(div);
             });
+        }
+
+        function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone) {
+            const itemsStr = decodeURIComponent(itemsEncoded);
+            let template = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
+            let msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr);
+            const encodedMsg = encodeURIComponent(msg);
+
+            // Add country code if it looks like a local Colombian number
+            let waPhone = clientPhone.replace(/\D/g, '');
+            if (waPhone.length === 10 && waPhone.startsWith('3')) {
+                waPhone = '57' + waPhone;
+            }
+
+            window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
         }
 
         function clickEditClient(phone) {
