@@ -569,7 +569,49 @@
                     </div>
                 </div>
 
-                <div class="form-col" style="margin-bottom: 1rem;">
+                <div class="form-grid"
+                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <h3 style="margin-bottom: 0.5rem; color: #f39c12;"><i class="fa-solid fa-trophy"
+                                style="color:#f39c12;"></i> Sistema de Incentivos para Vendedores</h3>
+                        <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Motiva a tus vendedores
+                            dándoles bonos de plata digital acumulables por las ventas de pantallas y combos. Ellos
+                            verán este saldo en su panel.</p>
+                    </div>
+                    <div class="form-col">
+                        <label>Activar Incentivos</label>
+                        <select id="conf-incentiveEnabled">
+                            <option value="true">Activo / Encendido</option>
+                            <option value="false">Apagado</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Mensaje Motivacional (Semanal/Mensual)</label>
+                        <input type="text" id="conf-incentiveMessage"
+                            placeholder="Ej: ¡Gana $50,000 extra al llegar a la meta!">
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Bono venta Individual 1 Pantalla ($)</label>
+                        <input type="number" id="conf-incentive1" placeholder="Ej: 500">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono venta Individual 2 Pantallas ($)</label>
+                        <input type="number" id="conf-incentive2" placeholder="Ej: 1500">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono venta Individual 3+ Pantallas ($)</label>
+                        <input type="number" id="conf-incentive3" placeholder="Ej: 3000">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono por Vender COMBOS ($)</label>
+                        <input type="number" id="conf-incentiveCombo" placeholder="Ej: 5000">
+                    </div>
+                </div>
+
+                <div class="form-col"
+                    style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
                     <label>Contraseña Acceso Vendedores</label>
                     <input type="text" id="conf-sellerPassword" placeholder="Ej: misvendedores123">
                     <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Quien digite esta clave en la
@@ -675,6 +717,13 @@
             if (document.getElementById('conf-clientPromoLimit')) document.getElementById('conf-clientPromoLimit').value = storeConfig.clientPromoLimit || 0;
             if (document.getElementById('conf-sellerPromoDiscount')) document.getElementById('conf-sellerPromoDiscount').value = storeConfig.sellerPromoDiscount || 0;
             if (document.getElementById('conf-sellerPromoLimit')) document.getElementById('conf-sellerPromoLimit').value = storeConfig.sellerPromoLimit || 0;
+
+            if (document.getElementById('conf-incentiveEnabled')) document.getElementById('conf-incentiveEnabled').value = storeConfig.incentiveEnabled === true ? 'true' : 'false';
+            if (document.getElementById('conf-incentiveMessage')) document.getElementById('conf-incentiveMessage').value = storeConfig.incentiveMessage || '';
+            if (document.getElementById('conf-incentive1')) document.getElementById('conf-incentive1').value = storeConfig.incentive1 || 0;
+            if (document.getElementById('conf-incentive2')) document.getElementById('conf-incentive2').value = storeConfig.incentive2 || 0;
+            if (document.getElementById('conf-incentive3')) document.getElementById('conf-incentive3').value = storeConfig.incentive3 || 0;
+            if (document.getElementById('conf-incentiveCombo')) document.getElementById('conf-incentiveCombo').value = storeConfig.incentiveCombo || 0;
 
             fetchClientSalesHistory();
             fetchSellerSalesStats();
@@ -904,6 +953,13 @@
             storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 0;
 
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
+
+            storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
+            storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
+            storeConfig.incentive1 = parseInt(document.getElementById('conf-incentive1').value) || 0;
+            storeConfig.incentive2 = parseInt(document.getElementById('conf-incentive2').value) || 0;
+            storeConfig.incentive3 = parseInt(document.getElementById('conf-incentive3').value) || 0;
+            storeConfig.incentiveCombo = parseInt(document.getElementById('conf-incentiveCombo').value) || 0;
 
             db.ref('storeConfig').set(storeConfig).then(() => {
                 alert('¡Configuración guardada exitosamente!');

@@ -838,6 +838,20 @@ function setupEventListeners() {
 
         // Guardar venta en base de datos
         if (!isRecurrent) {
+            let incentiveEarned = 0;
+            if (storeConfig.incentiveEnabled) {
+                let indvCount = stats.processedCart.filter(item => item.category === 'individual').length;
+                let combosCount = stats.processedCart.filter(item => item.category.startsWith('combos')).length;
+
+                if (combosCount > 0) {
+                    incentiveEarned += combosCount * (parseInt(storeConfig.incentiveCombo) || 0);
+                }
+
+                if (indvCount === 1) incentiveEarned += (parseInt(storeConfig.incentive1) || 0);
+                else if (indvCount === 2) incentiveEarned += (parseInt(storeConfig.incentive2) || 0);
+                else if (indvCount >= 3) incentiveEarned += (parseInt(storeConfig.incentive3) || 0);
+            }
+
             const saleData = {
                 clientName: cName,
                 clientCity: cCity,
@@ -846,7 +860,8 @@ function setupEventListeners() {
                 expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000), // +30 days
                 items: stats.processedCart.map(item => ({ id: item.id, name: item.name, category: item.category, finalPrice: item.finalPrice })),
                 total: total,
-                sellerName: isSellerMode ? currentSellerName : 'Página Web Oficial'
+                sellerName: isSellerMode ? currentSellerName : 'Página Web Oficial',
+                incentiveEarned: incentiveEarned
             };
 
             // Public Seller Checkout Forwarding
@@ -904,6 +919,24 @@ function renderSellerDashboard() {
 
         // Convert to array and sort by latest date first
         const salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
+
+        if (storeConfig.incentiveEnabled) {
+            let totalAccumulated = 0;
+            salesArray.forEach(sale => {
+                if (sale.incentiveEarned) totalAccumulated += sale.incentiveEarned;
+            });
+            const board = document.getElementById('seller-incentives-board');
+            const boardMsg = document.getElementById('seller-incentive-msg');
+            const boardAmount = document.getElementById('seller-incentive-amount');
+            if (board) {
+                board.style.display = 'block';
+                boardMsg.innerHTML = storeConfig.incentiveMessage || 'Sigue vendiendo para acumular increíbles bonos y recompensas.';
+                boardAmount.innerHTML = totalAccumulated.toLocaleString();
+            }
+        } else {
+            const board = document.getElementById('seller-incentives-board');
+            if (board) board.style.display = 'none';
+        }
 
         salesArray.forEach(sale => {
             const now = Date.now();
