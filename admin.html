@@ -1299,7 +1299,7 @@
             if (editBannerIndex !== -1) {
                 storeConfig.mainBanners[editBannerIndex] = { badge, title, desc, img, btnText, btnLink };
             } else {
-                if (storeConfig.mainBanners.length >= 5) return alert('El máximo de banners permitidos es 5. Elimina uno primero.');
+                if (storeConfig.mainBanners.length >= 10) return alert('El máximo de banners permitidos es 10. Elimina uno primero.');
                 storeConfig.mainBanners.push({ badge, title, desc, img, btnText, btnLink });
             }
 
