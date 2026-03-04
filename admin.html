@@ -709,16 +709,44 @@
             </div>
             <div class="form-grid" style="margin-bottom: 1rem;">
                 <div class="form-col">
-                    <label>Bono Individual 1 Pantalla ($)</label>
-                    <input type="number" id="conf-incentive1" placeholder="Ej: 500">
+                    <label>Bono Netflix ($)</label>
+                    <input type="number" id="conf-incentiveNetflix" placeholder="Ej: 500">
                 </div>
                 <div class="form-col">
-                    <label>Bono Individual 2 Pantallas ($)</label>
-                    <input type="number" id="conf-incentive2" placeholder="Ej: 1500">
+                    <label>Bono Disney+ ($)</label>
+                    <input type="number" id="conf-incentiveDisney" placeholder="Ej: 500">
                 </div>
                 <div class="form-col">
-                    <label>Bono Individual 3+ Pantallas ($)</label>
-                    <input type="number" id="conf-incentive3" placeholder="Ej: 3000">
+                    <label>Bono HBO Max ($)</label>
+                    <input type="number" id="conf-incentiveMax" placeholder="Ej: 500">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <div class="form-col">
+                    <label>Bono Prime Video ($)</label>
+                    <input type="number" id="conf-incentivePrime" placeholder="Ej: 500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Paramount+ ($)</label>
+                    <input type="number" id="conf-incentiveParamount" placeholder="Ej: 500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Vix ($)</label>
+                    <input type="number" id="conf-incentiveVix" placeholder="Ej: 500">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <div class="form-col">
+                    <label>Bono IPTV ($)</label>
+                    <input type="number" id="conf-incentiveIptv" placeholder="Ej: 500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Crunchyroll ($)</label>
+                    <input type="number" id="conf-incentiveCrunchyroll" placeholder="Ej: 500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Apple TV ($)</label>
+                    <input type="number" id="conf-incentiveApple" placeholder="Ej: 500">
                 </div>
             </div>
             <div class="form-grid" style="margin-bottom: 1rem;">
@@ -877,9 +905,15 @@
 
             if (document.getElementById('conf-incentiveEnabled')) document.getElementById('conf-incentiveEnabled').value = storeConfig.incentiveEnabled === true ? 'true' : 'false';
             if (document.getElementById('conf-incentiveMessage')) document.getElementById('conf-incentiveMessage').value = storeConfig.incentiveMessage || '';
-            if (document.getElementById('conf-incentive1')) document.getElementById('conf-incentive1').value = storeConfig.incentive1 || 0;
-            if (document.getElementById('conf-incentive2')) document.getElementById('conf-incentive2').value = storeConfig.incentive2 || 0;
-            if (document.getElementById('conf-incentive3')) document.getElementById('conf-incentive3').value = storeConfig.incentive3 || 0;
+            if (document.getElementById('conf-incentiveNetflix')) document.getElementById('conf-incentiveNetflix').value = storeConfig.incentiveNetflix || 0;
+            if (document.getElementById('conf-incentiveDisney')) document.getElementById('conf-incentiveDisney').value = storeConfig.incentiveDisney || 0;
+            if (document.getElementById('conf-incentiveMax')) document.getElementById('conf-incentiveMax').value = storeConfig.incentiveMax || 0;
+            if (document.getElementById('conf-incentivePrime')) document.getElementById('conf-incentivePrime').value = storeConfig.incentivePrime || 0;
+            if (document.getElementById('conf-incentiveParamount')) document.getElementById('conf-incentiveParamount').value = storeConfig.incentiveParamount || 0;
+            if (document.getElementById('conf-incentiveVix')) document.getElementById('conf-incentiveVix').value = storeConfig.incentiveVix || 0;
+            if (document.getElementById('conf-incentiveIptv')) document.getElementById('conf-incentiveIptv').value = storeConfig.incentiveIptv || 0;
+            if (document.getElementById('conf-incentiveCrunchyroll')) document.getElementById('conf-incentiveCrunchyroll').value = storeConfig.incentiveCrunchyroll || 0;
+            if (document.getElementById('conf-incentiveApple')) document.getElementById('conf-incentiveApple').value = storeConfig.incentiveApple || 0;
             if (document.getElementById('conf-incentiveCombo2')) document.getElementById('conf-incentiveCombo2').value = storeConfig.incentiveCombo2 || 0;
             if (document.getElementById('conf-incentiveCombo3')) document.getElementById('conf-incentiveCombo3').value = storeConfig.incentiveCombo3 || 0;
             if (document.getElementById('conf-incentiveCombo4')) document.getElementById('conf-incentiveCombo4').value = storeConfig.incentiveCombo4 || 0;
@@ -1127,9 +1161,15 @@
 
             storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
             storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
-            storeConfig.incentive1 = parseInt(document.getElementById('conf-incentive1').value) || 0;
-            storeConfig.incentive2 = parseInt(document.getElementById('conf-incentive2').value) || 0;
-            storeConfig.incentive3 = parseInt(document.getElementById('conf-incentive3').value) || 0;
+            storeConfig.incentiveNetflix = parseInt(document.getElementById('conf-incentiveNetflix').value) || 0;
+            storeConfig.incentiveDisney = parseInt(document.getElementById('conf-incentiveDisney').value) || 0;
+            storeConfig.incentiveMax = parseInt(document.getElementById('conf-incentiveMax').value) || 0;
+            storeConfig.incentivePrime = parseInt(document.getElementById('conf-incentivePrime').value) || 0;
+            storeConfig.incentiveParamount = parseInt(document.getElementById('conf-incentiveParamount').value) || 0;
+            storeConfig.incentiveVix = parseInt(document.getElementById('conf-incentiveVix').value) || 0;
+            storeConfig.incentiveIptv = parseInt(document.getElementById('conf-incentiveIptv').value) || 0;
+            storeConfig.incentiveCrunchyroll = parseInt(document.getElementById('conf-incentiveCrunchyroll').value) || 0;
+            storeConfig.incentiveApple = parseInt(document.getElementById('conf-incentiveApple').value) || 0;
             storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
             storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
             storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;

@@ -1021,20 +1021,32 @@ function setupEventListeners() {
             let incentiveEarned = 0;
             let incentiveDetails = [];
             if (storeConfig.incentiveEnabled) {
-                let indvCount = stats.processedCart.filter(item => item.category === 'individual').length;
-
                 stats.processedCart.forEach(item => {
-                    if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
+                    if (item.category === 'individual') {
+                        let b = 0; let name = '';
+                        const brandStr = (item.brand || item.name).toLowerCase();
+                        if (brandStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
+                        else if (brandStr.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; }
+                        else if (brandStr.includes('max')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
+                        else if (brandStr.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; name = 'Prime Video'; }
+                        else if (brandStr.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; name = 'Paramount+'; }
+                        else if (brandStr.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; name = 'Vix'; }
+                        else if (brandStr.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; name = 'IPTV'; }
+                        else if (brandStr.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; name = 'Crunchyroll'; }
+                        else if (brandStr.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; name = 'Apple TV'; }
+
+                        if (b > 0) {
+                            incentiveEarned += b;
+                            incentiveDetails.push(`${name} (+$${b})`);
+                        }
+                    }
+                    else if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
                     else if (item.category === 'combos3') { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); }
                     else if (item.category === 'combos4') { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); }
                     else if (item.category === 'combos5') { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); }
                     else if (item.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); }
                     else if (item.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); }
                 });
-
-                if (indvCount === 1) { const b = parseInt(storeConfig.incentive1) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 1 P. (+$${b})`); }
-                else if (indvCount === 2) { const b = parseInt(storeConfig.incentive2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 2 P. (+$${b})`); }
-                else if (indvCount >= 3) { const b = parseInt(storeConfig.incentive3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 3+ P. (+$${b})`); }
             }
 
             const saleData = {
@@ -1143,9 +1155,15 @@ function renderSellerDashboard() {
                         <div style="font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; margin-top: 15px; color: #ccc;">
                             <strong style="color:white;"><i class="fa-solid fa-list-check" style="color:#f39c12"></i> Tabla de Ganancias Activas:</strong><br><br>
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 1 P. Individual: <b>$${parseInt(storeConfig.incentive1) || 0}</b></div>
-                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 2 P. Individual: <b>$${parseInt(storeConfig.incentive2) || 0}</b></div>
-                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 3+ P. Individual: <b>$${parseInt(storeConfig.incentive3) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Netflix: <b>$${parseInt(storeConfig.incentiveNetflix) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Disney+: <b>$${parseInt(storeConfig.incentiveDisney) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> HBO Max: <b>$${parseInt(storeConfig.incentiveMax) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Prime: <b>$${parseInt(storeConfig.incentivePrime) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Paramount: <b>$${parseInt(storeConfig.incentiveParamount) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Vix: <b>$${parseInt(storeConfig.incentiveVix) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> IPTV: <b>$${parseInt(storeConfig.incentiveIptv) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Crunchyroll: <b>$${parseInt(storeConfig.incentiveCrunchyroll) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Apple TV: <b>$${parseInt(storeConfig.incentiveApple) || 0}</b></div>
                                 <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 2 P.: <b>$${parseInt(storeConfig.incentiveCombo2) || 0}</b></div>
                                 <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 3 P.: <b>$${parseInt(storeConfig.incentiveCombo3) || 0}</b></div>
                                 <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 4 P.: <b>$${parseInt(storeConfig.incentiveCombo4) || 0}</b></div>
