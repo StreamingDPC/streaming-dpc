@@ -899,6 +899,11 @@ function setupEventListeners() {
 
             const encoded = encodeURIComponent(message);
             window.open(`https://wa.me/${checkoutWhatsappNumber}?text=${encoded}`, '_blank');
+
+            // Vaciar el carrito y cerrar
+            cart = [];
+            updateCartUI();
+            if (cartModal) cartModal.style.display = 'none';
         };
 
         if (publicSellerRef) {
