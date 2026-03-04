@@ -839,17 +839,22 @@ function setupEventListeners() {
         // Guardar venta en base de datos
         if (!isRecurrent) {
             let incentiveEarned = 0;
+            let incentiveDetails = [];
             if (storeConfig.incentiveEnabled) {
                 let indvCount = stats.processedCart.filter(item => item.category === 'individual').length;
-                let combosCount = stats.processedCart.filter(item => item.category.startsWith('combos')).length;
 
-                if (combosCount > 0) {
-                    incentiveEarned += combosCount * (parseInt(storeConfig.incentiveCombo) || 0);
-                }
+                stats.processedCart.forEach(item => {
+                    if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
+                    else if (item.category === 'combos3') { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); }
+                    else if (item.category === 'combos4') { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); }
+                    else if (item.category === 'combos5') { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); }
+                    else if (item.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); }
+                    else if (item.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); }
+                });
 
-                if (indvCount === 1) incentiveEarned += (parseInt(storeConfig.incentive1) || 0);
-                else if (indvCount === 2) incentiveEarned += (parseInt(storeConfig.incentive2) || 0);
-                else if (indvCount >= 3) incentiveEarned += (parseInt(storeConfig.incentive3) || 0);
+                if (indvCount === 1) { const b = parseInt(storeConfig.incentive1) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 1 P. (+$${b})`); }
+                else if (indvCount === 2) { const b = parseInt(storeConfig.incentive2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 2 P. (+$${b})`); }
+                else if (indvCount >= 3) { const b = parseInt(storeConfig.incentive3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Individual 3+ P. (+$${b})`); }
             }
 
             const saleData = {
@@ -861,7 +866,8 @@ function setupEventListeners() {
                 items: stats.processedCart.map(item => ({ id: item.id, name: item.name, category: item.category, finalPrice: item.finalPrice })),
                 total: total,
                 sellerName: isSellerMode ? currentSellerName : 'Página Web Oficial',
-                incentiveEarned: incentiveEarned
+                incentiveEarned: incentiveEarned,
+                incentiveDetails: incentiveDetails
             };
 
             // Public Seller Checkout Forwarding
@@ -928,10 +934,38 @@ function renderSellerDashboard() {
             const board = document.getElementById('seller-incentives-board');
             const boardMsg = document.getElementById('seller-incentive-msg');
             const boardAmount = document.getElementById('seller-incentive-amount');
+            let boardDetails = document.getElementById('seller-incentive-details-list');
+
+            if (!boardDetails && board) {
+                boardDetails = document.createElement('div');
+                boardDetails.id = 'seller-incentive-details-list';
+                board.appendChild(boardDetails);
+            }
+
             if (board) {
                 board.style.display = 'block';
                 boardMsg.innerHTML = storeConfig.incentiveMessage || 'Sigue vendiendo para acumular increíbles bonos y recompensas.';
                 boardAmount.innerHTML = totalAccumulated.toLocaleString();
+
+                if (boardDetails) {
+                    let activeTableHtml = `
+                        <div style="font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; margin-top: 15px; color: #ccc;">
+                            <strong style="color:white;"><i class="fa-solid fa-list-check" style="color:#f39c12"></i> Tabla de Ganancias Activas:</strong><br><br>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 1 P. Individual: <b>$${parseInt(storeConfig.incentive1) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 2 P. Individual: <b>$${parseInt(storeConfig.incentive2) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> 3+ P. Individual: <b>$${parseInt(storeConfig.incentive3) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 2 P.: <b>$${parseInt(storeConfig.incentiveCombo2) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 3 P.: <b>$${parseInt(storeConfig.incentiveCombo3) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 4 P.: <b>$${parseInt(storeConfig.incentiveCombo4) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Combo 5+ P.: <b>$${parseInt(storeConfig.incentiveCombo5) || 0}</b></div>
+                                <div><i class="fa-solid fa-check" style="color:#4cd137"></i> Promo Finde: <b>$${parseInt(storeConfig.incentiveFinde) || 0}</b></div>
+                                <div style="grid-column: 1 / -1;"><i class="fa-solid fa-check" style="color:#4cd137"></i> Promo del Mes: <b>$${parseInt(storeConfig.incentiveMes) || 0}</b></div>
+                            </div>
+                        </div>
+                    `;
+                    boardDetails.innerHTML = activeTableHtml;
+                }
             }
         } else {
             const board = document.getElementById('seller-incentives-board');
@@ -970,6 +1004,8 @@ function renderSellerDashboard() {
                     <span><i class="fa-solid fa-mobile-screen"></i> ${sale.clientPhone || 'No registrado'}</span>
                     <span>📍 ${sale.clientCity || 'Ciudad N/A'}</span>
                 </div>
+                <!-- Mostrar bono en tarjeta si lo hay -->
+                ${sale.incentiveEarned ? `<div style="background: rgba(243,156,18,0.2); border: 1px dashed #f39c12; color: #f39c12; font-size: 0.8rem; padding: 5px 10px; border-radius: 6px; margin-bottom: 0.8rem;"><b>Bono Ganado:</b> +$${sale.incentiveEarned.toLocaleString()} <span style="font-size:0.75rem;">(${sale.incentiveDetails ? sale.incentiveDetails.join(', ') : ''})</span></div>` : ''}
                 <p style="font-size:0.85rem; color:var(--text-primary); margin-bottom:1rem;">📺 ${itemsStr}</p>
                 <div style="display:flex; gap: 0.5rem; flex-wrap:wrap;">
                     <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone}', '${sale.clientCity}', '${encodeURIComponent(JSON.stringify(sale.items || []))}')" 

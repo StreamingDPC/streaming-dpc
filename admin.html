@@ -593,20 +593,44 @@
                 </div>
                 <div class="form-grid" style="margin-bottom: 1rem;">
                     <div class="form-col">
-                        <label>Bono venta Individual 1 Pantalla ($)</label>
+                        <label>Bono Individual 1 Pantalla ($)</label>
                         <input type="number" id="conf-incentive1" placeholder="Ej: 500">
                     </div>
                     <div class="form-col">
-                        <label>Bono venta Individual 2 Pantallas ($)</label>
+                        <label>Bono Individual 2 Pantallas ($)</label>
                         <input type="number" id="conf-incentive2" placeholder="Ej: 1500">
                     </div>
                     <div class="form-col">
-                        <label>Bono venta Individual 3+ Pantallas ($)</label>
+                        <label>Bono Individual 3+ Pantallas ($)</label>
                         <input type="number" id="conf-incentive3" placeholder="Ej: 3000">
                     </div>
+                </div>
+                <div class="form-grid" style="margin-bottom: 1rem;">
                     <div class="form-col">
-                        <label>Bono por Vender COMBOS ($)</label>
-                        <input type="number" id="conf-incentiveCombo" placeholder="Ej: 5000">
+                        <label>Bono x Combo 2 P. ($)</label>
+                        <input type="number" id="conf-incentiveCombo2" placeholder="Ej: 2000">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono x Combo 3 P. ($)</label>
+                        <input type="number" id="conf-incentiveCombo3" placeholder="Ej: 3000">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono x Combo 4 P. ($)</label>
+                        <input type="number" id="conf-incentiveCombo4" placeholder="Ej: 4000">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono x Combo 5+ P. ($)</label>
+                        <input type="number" id="conf-incentiveCombo5" placeholder="Ej: 5000">
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Bono x Promo Fin de Semana ($)</label>
+                        <input type="number" id="conf-incentiveFinde" placeholder="Ej: 6000">
+                    </div>
+                    <div class="form-col">
+                        <label>Bono x Promo del Mes ($)</label>
+                        <input type="number" id="conf-incentiveMes" placeholder="Ej: 8000">
                     </div>
                 </div>
 
@@ -723,7 +747,12 @@
             if (document.getElementById('conf-incentive1')) document.getElementById('conf-incentive1').value = storeConfig.incentive1 || 0;
             if (document.getElementById('conf-incentive2')) document.getElementById('conf-incentive2').value = storeConfig.incentive2 || 0;
             if (document.getElementById('conf-incentive3')) document.getElementById('conf-incentive3').value = storeConfig.incentive3 || 0;
-            if (document.getElementById('conf-incentiveCombo')) document.getElementById('conf-incentiveCombo').value = storeConfig.incentiveCombo || 0;
+            if (document.getElementById('conf-incentiveCombo2')) document.getElementById('conf-incentiveCombo2').value = storeConfig.incentiveCombo2 || 0;
+            if (document.getElementById('conf-incentiveCombo3')) document.getElementById('conf-incentiveCombo3').value = storeConfig.incentiveCombo3 || 0;
+            if (document.getElementById('conf-incentiveCombo4')) document.getElementById('conf-incentiveCombo4').value = storeConfig.incentiveCombo4 || 0;
+            if (document.getElementById('conf-incentiveCombo5')) document.getElementById('conf-incentiveCombo5').value = storeConfig.incentiveCombo5 || 0;
+            if (document.getElementById('conf-incentiveFinde')) document.getElementById('conf-incentiveFinde').value = storeConfig.incentiveFinde || 0;
+            if (document.getElementById('conf-incentiveMes')) document.getElementById('conf-incentiveMes').value = storeConfig.incentiveMes || 0;
 
             fetchClientSalesHistory();
             fetchSellerSalesStats();
@@ -959,7 +988,12 @@
             storeConfig.incentive1 = parseInt(document.getElementById('conf-incentive1').value) || 0;
             storeConfig.incentive2 = parseInt(document.getElementById('conf-incentive2').value) || 0;
             storeConfig.incentive3 = parseInt(document.getElementById('conf-incentive3').value) || 0;
-            storeConfig.incentiveCombo = parseInt(document.getElementById('conf-incentiveCombo').value) || 0;
+            storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
+            storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
+            storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;
+            storeConfig.incentiveCombo5 = parseInt(document.getElementById('conf-incentiveCombo5').value) || 0;
+            storeConfig.incentiveFinde = parseInt(document.getElementById('conf-incentiveFinde').value) || 0;
+            storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
 
             db.ref('storeConfig').set(storeConfig).then(() => {
                 alert('¡Configuración guardada exitosamente!');
