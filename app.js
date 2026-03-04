@@ -115,6 +115,19 @@ function setupConfigUI() {
         openCodeBtn.style.display = 'none';
     }
 
+    // Bind Footer Links
+    const waLink = document.getElementById('footer-wa');
+    if (waLink && storeConfig.whatsappNumber) waLink.href = `https://wa.me/${storeConfig.whatsappNumber}`;
+    else if (waLink) waLink.style.display = 'none';
+
+    const fbLink = document.getElementById('footer-fb');
+    if (fbLink && storeConfig.facebookUrl) fbLink.href = storeConfig.facebookUrl;
+    else if (fbLink) fbLink.style.display = 'none';
+
+    const igLink = document.getElementById('footer-ig');
+    if (igLink && storeConfig.instagramUrl) igLink.href = storeConfig.instagramUrl;
+    else if (igLink) igLink.style.display = 'none';
+
     // Toggle Reseller colors
     if (isSellerMode) {
         openVendedoresBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span class="hide-mobile">👋 Hola, ${currentSellerName}</span>`;
@@ -153,39 +166,108 @@ function setupConfigUI() {
     const featuredContainer = document.getElementById('featured-hero-container');
     const heroTitleCont = document.querySelector('.hero');
     if (featuredContainer) {
-        if (storeConfig.mainBannerEnabled) {
-            const badge = storeConfig.mainBannerBadge || 'GRAN ESTRENO';
-            const title = storeConfig.mainBannerTitle || 'Película Destacada';
-            const desc = storeConfig.mainBannerDesc || 'Disponible ahora en nuestra plataforma.';
-            const img = storeConfig.mainBannerImage || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
-            const btnText = storeConfig.mainBannerBtnText || 'Ver Estrenos';
-            let btnLink = storeConfig.mainBannerBtnLink || 'estrenos';
+        let banners = storeConfig.mainBanners || [];
+        // Fallback for previous single banner
+        if (banners.length === 0 && storeConfig.mainBannerTitle) {
+            banners = [{
+                badge: storeConfig.mainBannerBadge,
+                title: storeConfig.mainBannerTitle,
+                desc: storeConfig.mainBannerDesc,
+                img: storeConfig.mainBannerImage || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+                btnText: storeConfig.mainBannerBtnText,
+                btnLink: storeConfig.mainBannerBtnLink
+            }];
+        }
 
-            let btnHtml = '';
-            if (btnLink.startsWith('http')) {
-                btnHtml = `<a href="${btnLink}" target="_blank" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</a>`;
-            } else {
-                // Click on the specified tab
-                btnHtml = `<button onclick="document.querySelector('.tab-btn[data-tab=\\'${btnLink}\\']')?.click();" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
-            }
+        if (storeConfig.mainBannerEnabled && banners.length > 0) {
+            let slidesHtml = '';
+            banners.forEach((b, idx) => {
+                const badge = b.badge || 'GRAN ESTRENO';
+                const title = b.title || 'Película Destacada';
+                const desc = b.desc || 'Disponible ahora en nuestra plataforma.';
+                const img = b.img || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+                const btnText = b.btnText || 'Ver Estrenos';
+                let btnLink = b.btnLink || 'estrenos';
+
+                let btnHtml = '';
+                if (btnLink.startsWith('http')) {
+                    btnHtml = `<button onclick="openVideoModal('${btnLink}')" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
+                } else {
+                    btnHtml = `<button onclick="document.querySelector('.tab-btn[data-tab=\\'${btnLink}\\']')?.click();" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
+                }
+
+                slidesHtml += `
+                    <div class="featured-slide ${idx === 0 ? 'active' : ''}" style="background-image: url('${img}');">
+                        <div class="featured-content">
+                            <span class="featured-badge">${badge}</span>
+                            <h2 class="featured-title">${title}</h2>
+                            <p class="featured-desc">${desc}</p>
+                            ${btnHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            const controlsHtml = banners.length > 1 ? `
+                <button class="slider-btn prev" onclick="moveBannerSlider(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="slider-btn next" onclick="moveBannerSlider(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            ` : '';
 
             featuredContainer.innerHTML = `
-                <div class="featured-banner" style="background-image: url('${img}');">
-                    <div class="featured-content">
-                        <span class="featured-badge">${badge}</span>
-                        <h2 class="featured-title">${title}</h2>
-                        <p class="featured-desc">${desc}</p>
-                        ${btnHtml}
-                    </div>
+                <div class="featured-slider">
+                    ${slidesHtml}
+                    ${controlsHtml}
                 </div>
             `;
             featuredContainer.style.display = 'block';
-            if (heroTitleCont) heroTitleCont.style.display = 'none'; // Hide generic title when banner is up
+            if (heroTitleCont) heroTitleCont.style.display = 'none';
+
+            // Auto start timer
+            if (banners.length > 1) {
+                if (window.bannerIntervalId) clearInterval(window.bannerIntervalId);
+                window.bannerIntervalId = setInterval(() => { moveBannerSlider(1); }, 10000);
+            }
         } else {
             featuredContainer.style.display = 'none';
-            if (heroTitleCont) heroTitleCont.style.display = 'block'; // Show generic title again
+            if (heroTitleCont) heroTitleCont.style.display = 'block';
         }
     }
+}
+
+window.moveBannerSlider = function (dir) {
+    const slides = document.querySelectorAll('.featured-slide');
+    if (slides.length <= 1) return;
+    let currentIdx = -1;
+    slides.forEach((sl, idx) => {
+        if (sl.classList.contains('active')) currentIdx = idx;
+        sl.classList.remove('active');
+    });
+    if (currentIdx === -1) currentIdx = 0;
+
+    let nextIdx = currentIdx + dir;
+    if (nextIdx >= slides.length) nextIdx = 0;
+    if (nextIdx < 0) nextIdx = slides.length - 1;
+
+    slides[nextIdx].classList.add('active');
+
+    if (window.bannerIntervalId) {
+        clearInterval(window.bannerIntervalId);
+        window.bannerIntervalId = setInterval(() => { moveBannerSlider(1); }, 10000);
+    }
+}
+
+window.openVideoModal = function (url) {
+    const modal = document.getElementById('video-modal');
+    if (!modal) return window.open(url, '_blank');
+    const iframe = document.getElementById('video-iframe');
+    let iframeSrc = url;
+    if (url.includes('youtube.com/watch?v=')) {
+        iframeSrc = url.replace('watch?v=', 'embed/');
+    } else if (url.includes('youtu.be/')) {
+        iframeSrc = url.replace('youtu.be/', 'youtube.com/embed/');
+    }
+    iframe.src = iframeSrc;
+    modal.style.display = 'block';
 }
 
 function getPrice(product) {
@@ -213,17 +295,20 @@ function renderProducts(category) {
             const card = document.createElement('div');
             card.className = 'product-card';
 
-            // If it is a youtube direct URL, convert to embed. Otherwise try to use original URL or fallback
-            let iframeSrc = item.url;
+            let videoId = null;
             if (item.url.includes('youtube.com/watch?v=')) {
-                iframeSrc = item.url.replace('watch?v=', 'embed/');
+                videoId = item.url.split('v=')[1]?.split('&')[0];
             } else if (item.url.includes('youtu.be/')) {
-                iframeSrc = item.url.replace('youtu.be/', 'youtube.com/embed/');
+                videoId = item.url.split('youtu.be/')[1]?.split('?')[0];
             }
-            // For safety and layout, keep simple structure
+            const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : 'https://img.icons8.com/color/96/movie.png';
+
             card.innerHTML = `
-                <div style="border-radius:12px; overflow:hidden; margin-bottom:1rem;">
-                    <iframe width="100%" height="200" src="${iframeSrc}" frameborder="0" allowfullscreen></iframe>
+                <div style="position:relative; border-radius:12px; overflow:hidden; margin-bottom:1rem; cursor:pointer;" onclick="openVideoModal('${item.url}')">
+                    <img src="${thumbUrl}" alt="Trailer" style="width:100%; height:200px; object-fit:cover; display:block;">
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--accent-primary); width:50px; height:50px; border-radius:50%; display:flex; justify-content:center; align-items:center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                        <i class="fa-solid fa-play" style="color:black; font-size:1.5rem; margin-left:5px;"></i>
+                    </div>
                 </div>
                 <h3 class="product-title" style="margin-top:auto;">${item.title}</h3>
                 <p class="product-desc" style="margin-bottom:0;">🍿 Tráiler Oficial</p>
@@ -541,6 +626,15 @@ function setupEventListeners() {
     }
     if (closeClientDashBtn) {
         closeClientDashBtn.addEventListener('click', () => clientDashboardModal.style.display = 'none');
+    }
+
+    const videoModalClose = document.getElementById('video-modal-close');
+    if (videoModalClose) {
+        videoModalClose.addEventListener('click', () => {
+            document.getElementById('video-modal').style.display = 'none';
+            const iframe = document.getElementById('video-iframe');
+            if (iframe) iframe.src = '';
+        });
     }
 
     if (btnClientNext) {

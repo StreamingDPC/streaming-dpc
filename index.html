@@ -19,9 +19,9 @@
     <div class="app-container">
         <!-- Header -->
         <header>
-            <div class="logo">
-                <span class="dpc">STREAMING</span>
-                <span class="brand">DPC</span>
+            <div class="logo" style="display: flex; align-items: center;">
+                <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
+                    alt="Streaming DPC" style="height: 50px; border-radius: 8px; object-fit: contain;">
             </div>
             <div class="header-actions" style="display: flex; gap: 1rem; align-items: center;">
                 <button id="open-client-btn" class="get-code-btn"
@@ -45,7 +45,7 @@
         <!-- Floating Announcements (Injected via JS) -->
         <div id="floating-banner"
             style="display:none; width:100%; padding:0.8rem; text-align:center; font-weight:600; font-size:0.95rem; z-index:900; background: linear-gradient(90deg, #ff416c, #ff4b2b); color: white; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4); animation: pulse 2s infinite;">
-            <i class="fa-solid fa-bullhorn"></i> <span id="banner-text"></span>
+            <i class="fa-solid fa-bullhorn"></i> <span id="banner-text" style="white-space: pre-wrap;"></span>
         </div>
 
         <!-- Featured Banner (Injected via JS) -->
@@ -92,11 +92,23 @@
 
         <!-- Footer -->
         <footer>
-            <p>&copy; 2026 Streaming DPC. Todos los derechos reservados.</p>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                <a href="#" id="footer-wa" class="social-link"
+                    style="color: #25D366; font-size: 1.8rem; transition: transform 0.3s;" target="_blank"><i
+                        class="fa-brands fa-whatsapp"></i></a>
+                <a href="#" id="footer-fb" class="social-link"
+                    style="color: #1877F2; font-size: 1.8rem; transition: transform 0.3s;" target="_blank"><i
+                        class="fa-brands fa-facebook"></i></a>
+                <a href="#" id="footer-ig" class="social-link"
+                    style="color: #E1306C; font-size: 1.8rem; transition: transform 0.3s;" target="_blank"><i
+                        class="fa-brands fa-instagram"></i></a>
+            </div>
+            <p>&copy; <span id="current-year"></span> Streaming DPC. Todos los derechos reservados.</p>
             <div style="margin-top: 1rem;">
                 <img src="https://api.visitorbadge.io/api/visitors?path=streaming-dpc-store&countColor=%23ff4d00&labelColor=%230a0a0c&label=Visitas"
                     alt="Contador de Visitas">
             </div>
+            <script>document.getElementById('current-year').innerText = new Date().getFullYear();</script>
         </footer>
     </div>
 
@@ -470,6 +482,23 @@
                         <!-- JS renders sales here -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Modal -->
+    <div id="video-modal" class="modal" style="z-index: 2000;">
+        <div class="modal-content"
+            style="max-width: 800px; padding: 0.5rem; background: var(--bg-dark); border: 2px solid var(--accent-primary);">
+            <div style="display: flex; justify-content: flex-end; padding: 0.5rem;">
+                <span class="close-modal" id="video-modal-close"
+                    style="color: white; font-size: 2rem; cursor: pointer;">&times;</span>
+            </div>
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+                <iframe id="video-iframe"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
             </div>
         </div>
     </div>

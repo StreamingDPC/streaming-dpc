@@ -213,6 +213,7 @@
         <div class="admin-tabs">
             <button class="admin-tab active" onclick="switchTab('productos', this)">📦 Productos</button>
             <button class="admin-tab" onclick="switchTab('estrenos', this)">🎬 Estrenos</button>
+            <button class="admin-tab" onclick="switchTab('banners', this)">🖼️ Banners</button>
             <button class="admin-tab" onclick="switchTab('vendedores', this)">👔 Vendedores</button>
             <button class="admin-tab" onclick="switchTab('clientes', this)">👥 Clientes</button>
             <button class="admin-tab" onclick="switchTab('ventas', this)">📈 Ventas</button>
@@ -313,6 +314,65 @@
             </div>
         </div>
 
+        <!-- TAB BANNERS -->
+        <div id="tab-banners" class="tab-content">
+            <div class="admin-form">
+                <h3 style="color: #ff416c; margin-bottom: 1rem;"><i class="fa-solid fa-star" style="color:#ff416c;"></i>
+                    Configuración General de Banners Principales</h3>
+                <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Muestra un gran banner promocional que
+                    cambia automáticamente en la parte superior de la página para enganchar a los clientes. (Máximo
+                    recomendado: 5)</p>
+                <div class="form-col" style="margin-bottom: 1rem;">
+                    <label>Activar Carrusel de Banners Principales</label>
+                    <select id="conf-mainBannerEnabled" onchange="saveBannerToggle()">
+                        <option value="false">Apagado</option>
+                        <option value="true">Activo / Encendido</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="admin-form">
+                <h3 id="banner-form-title">Agregar Nuevo Banner</h3>
+                <div class="form-grid">
+                    <div class="form-col">
+                        <label>Etiqueta Pequenia (Ej: GRAN ESTRENO)</label>
+                        <input type="text" id="new-banner-badge" placeholder="Ej: GRAN ESTRENO">
+                    </div>
+                    <div class="form-col">
+                        <label>Título Principal</label>
+                        <input type="text" id="new-banner-title" placeholder="Ej: Deadpool & Wolverine">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>Descripción Corta</label>
+                        <input type="text" id="new-banner-desc" placeholder="Ej: Ya disponible en máxima calidad...">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>URL de la Imagen de Fondo (Horizontal recomendada)</label>
+                        <input type="text" id="new-banner-image" placeholder="Ej: https://.../imagen.jpg">
+                    </div>
+                    <div class="form-col">
+                        <label>Texto del Botón</label>
+                        <input type="text" id="new-banner-btntext" placeholder="Ej: Ver Estrenos">
+                    </div>
+                    <div class="form-col">
+                        <label>Acción del Botón (Pestaña o Link)</label>
+                        <input type="text" id="new-banner-btnlink" placeholder="Ej: estrenos (o una URL completa)">
+                    </div>
+                </div>
+                <div style="display:flex; gap:1rem; align-items:center;">
+                    <button class="save-btn" id="btn-save-banner" onclick="saveBanner()" style="flex:1;">Guardar
+                        Banner</button>
+                    <button class="save-btn" id="btn-cancel-banner" onclick="cancelEditBanner()"
+                        style="flex:1; background:#ff4d4d; display:none;">Cancelar Edición</button>
+                </div>
+            </div>
+
+            <div class="admin-form">
+                <h3>Banners Agregados</h3>
+                <div id="admin-list-main-banners" class="admin-list"></div>
+            </div>
+        </div>
+
         <!-- TAB VENDEDORES -->
         <div id="tab-vendedores" class="tab-content">
             <div class="admin-form">
@@ -409,6 +469,21 @@
                             class="fa-solid fa-trash"></i> Eliminar Selección</button>
                 </div>
                 <div id="admin-list-all-clients" class="admin-list" style="max-height: 400px; overflow-y: auto;"></div>
+
+                <h4 style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;"><i
+                        class="fa-solid fa-file-csv"></i> Importar Base de Datos (CSV)</h4>
+                <p style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 0.5rem;">Carga tu lista de clientes pegando
+                    su Teléfono, Nombre y PIN separados por comas.</p>
+                <textarea id="import-clients-csv" rows="3" class="input-modern"
+                    placeholder="Ejemplo:\n3001234567,Juan Perez,1234\n3129876543,Maria Lopez,4321"></textarea>
+                <div style="display:flex; gap: 1rem; margin-top: 0.5rem;">
+                    <button class="save-btn" onclick="importClientsCSV()"
+                        style="background:#27ae60; margin:0; width:auto; padding: 10px 20px;"><i
+                            class="fa-solid fa-upload"></i> Importar Clientes</button>
+                    <button class="save-btn" onclick="exportClientsCSV()"
+                        style="background:#2980b9; margin:0; width:auto; padding: 10px 20px;"><i
+                            class="fa-solid fa-download"></i> Exportar Actuales</button>
+                </div>
             </div>
             <div class="admin-form">
                 <h3>Lista de Celulares Bloqueados</h3>
@@ -423,6 +498,17 @@
                 <div class="form-col" style="margin-bottom: 1rem;">
                     <label>Número de WhatsApp (Ej: 573155182545)</label>
                     <input type="text" id="conf-whatsapp">
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Link de Facebook (Opcional)</label>
+                        <input type="text" id="conf-facebook" placeholder="Ej: https://facebook.com/pagina">
+                    </div>
+                    <div class="form-col">
+                        <label>Link de Instagram (Opcional)</label>
+                        <input type="text" id="conf-instagram" placeholder="Ej: https://instagram.com/pagina">
+                    </div>
                 </div>
 
                 <div class="form-col" style="margin-bottom: 1rem;">
@@ -467,10 +553,10 @@
                             <option value="false">Inactivo / Oculto</option>
                         </select>
                     </div>
-                    <div class="form-col">
+                    <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Texto Anuncio Clientes</label>
-                        <input type="text" id="conf-clientBannerText"
-                            placeholder="Ej: ¡Lleva 2 pantallas y ahorra $1000!">
+                        <textarea id="conf-clientBannerText" rows="2"
+                            placeholder="Ej: ¡Lleva 2 pantallas y ahorra $1000!"></textarea>
                     </div>
                 </div>
 
@@ -496,10 +582,10 @@
                             <option value="false">Inactivo / Oculto</option>
                         </select>
                     </div>
-                    <div class="form-col">
+                    <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Texto Anuncio Vendedores</label>
-                        <input type="text" id="conf-sellerBannerText"
-                            placeholder="Ej: ¡Aprovecha el descuento mayorista hoy!">
+                        <textarea id="conf-sellerBannerText" rows="2"
+                            placeholder="Ej: ¡Aprovecha el descuento mayorista hoy!"></textarea>
                     </div>
                 </div>
 
@@ -551,143 +637,111 @@
                 <div class="form-grid"
                     style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
                     <div class="form-col">
-                        <label>Asistente Automático Diario (Notificaciones)</label>
+                        <label>Asistente Automático Vencimiento HOY</label>
                         <select id="conf-autoReminderEnabled">
                             <option value="true">Activo / Encendido</option>
                             <option value="false">Apagado</option>
                         </select>
+                        <p style="font-size: 0.75rem; color: #a0a0a0; margin-top: 5px;">Abre las ventanas de WhatsApp de
+                            los que vencen hoy.</p>
+                    </div>
+                    <div class="form-col">
+                        <label>Asistente Automático Aviso MAÑANA</label>
+                        <select id="conf-autoReminderTomorrowEnabled">
+                            <option value="true">Activo / Encendido</option>
+                            <option value="false">Apagado</option>
+                        </select>
                         <p style="font-size: 0.75rem; color: #a0a0a0; margin-top: 5px;">Abre las ventanas de WhatsApp
-                            por ti.</p>
-                    </div>
-                    <div class="form-col">
-                        <label>Hora de Activación (Formato 24h: 0 a 23)</label>
-                        <input type="number" id="conf-autoReminderHour" min="0" max="23"
-                            placeholder="Ej: 8 para 8:00 AM" style="margin-bottom: 5px;">
-                        <button class="save-btn" onclick="checkDailyAutoReminders(true)"
-                            style="background:#f39c12; margin-top:5px; width:auto; padding: 8px 15px; font-size:0.8rem;"><i
-                                class="fa-solid fa-play"></i> Forzar Envíos de Hoy AHORA</button>
+                            para los que vencen mañana.</p>
                     </div>
                 </div>
 
-                <div class="form-grid"
-                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
-                    <div class="form-col" style="grid-column: 1 / -1;">
-                        <h3 style="margin-bottom: 0.5rem; color: #f39c12;"><i class="fa-solid fa-trophy"
-                                style="color:#f39c12;"></i> Sistema de Incentivos para Vendedores</h3>
-                        <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Motiva a tus vendedores
-                            dándoles bonos de plata digital acumulables por las ventas de pantallas y combos. Ellos
-                            verán este saldo en su panel.</p>
-                    </div>
-                    <div class="form-col">
-                        <label>Activar Incentivos</label>
-                        <select id="conf-incentiveEnabled">
-                            <option value="true">Activo / Encendido</option>
-                            <option value="false">Apagado</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label>Mensaje Motivacional (Semanal/Mensual)</label>
-                        <input type="text" id="conf-incentiveMessage"
-                            placeholder="Ej: ¡Gana $50,000 extra al llegar a la meta!">
-                    </div>
+                <div class="form-col" style="margin-bottom: 1rem;">
+                    <label>Hora de Activación (Formato 24h: 0 a 23)</label>
+                    <input type="number" id="conf-autoReminderHour" min="0" max="23" placeholder="Ej: 8 para 8:00 AM"
+                        style="margin-bottom: 5px;">
+                    <button class="save-btn" onclick="checkDailyAutoReminders(true)"
+                        style="background:#f39c12; margin-top:5px; width:auto; padding: 8px 15px; font-size:0.8rem;"><i
+                            class="fa-solid fa-play"></i> Forzar Envíos de Hoy AHORA</button>
                 </div>
-                <div class="form-grid" style="margin-bottom: 1rem;">
-                    <div class="form-col">
-                        <label>Bono Individual 1 Pantalla ($)</label>
-                        <input type="number" id="conf-incentive1" placeholder="Ej: 500">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono Individual 2 Pantallas ($)</label>
-                        <input type="number" id="conf-incentive2" placeholder="Ej: 1500">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono Individual 3+ Pantallas ($)</label>
-                        <input type="number" id="conf-incentive3" placeholder="Ej: 3000">
-                    </div>
-                </div>
-                <div class="form-grid" style="margin-bottom: 1rem;">
-                    <div class="form-col">
-                        <label>Bono x Combo 2 P. ($)</label>
-                        <input type="number" id="conf-incentiveCombo2" placeholder="Ej: 2000">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono x Combo 3 P. ($)</label>
-                        <input type="number" id="conf-incentiveCombo3" placeholder="Ej: 3000">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono x Combo 4 P. ($)</label>
-                        <input type="number" id="conf-incentiveCombo4" placeholder="Ej: 4000">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono x Combo 5+ P. ($)</label>
-                        <input type="number" id="conf-incentiveCombo5" placeholder="Ej: 5000">
-                    </div>
-                </div>
-                <div class="form-grid" style="margin-bottom: 1rem;">
-                    <div class="form-col">
-                        <label>Bono x Promo Fin de Semana ($)</label>
-                        <input type="number" id="conf-incentiveFinde" placeholder="Ej: 6000">
-                    </div>
-                    <div class="form-col">
-                        <label>Bono x Promo del Mes ($)</label>
-                        <input type="number" id="conf-incentiveMes" placeholder="Ej: 8000">
-                    </div>
-                </div>
-
-                <div class="form-grid"
-                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
-                    <div class="form-col" style="grid-column: 1 / -1;">
-                        <h3 style="margin-bottom: 0.5rem; color: #ff416c;"><i class="fa-solid fa-star"
-                                style="color:#ff416c;"></i> Banner de Estreno Principal</h3>
-                        <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Muestra un gran banner
-                            promocional en la parte superior de la página para enganchar a los clientes con un gran
-                            estreno o anuncio.</p>
-                    </div>
-                    <div class="form-col">
-                        <label>Activar Banner Principal</label>
-                        <select id="conf-mainBannerEnabled">
-                            <option value="false">Apagado</option>
-                            <option value="true">Activo / Encendido</option>
-                        </select>
-                    </div>
-                    <div class="form-col">
-                        <label>Etiqueta Pequenia (Ej: GRAN ESTRENO)</label>
-                        <input type="text" id="conf-mainBannerBadge" placeholder="Ej: GRAN ESTRENO">
-                    </div>
-                    <div class="form-col">
-                        <label>Título Principal</label>
-                        <input type="text" id="conf-mainBannerTitle" placeholder="Ej: Deadpool & Wolverine">
-                    </div>
-                    <div class="form-col" style="grid-column: 1 / -1;">
-                        <label>Descripción Corta</label>
-                        <input type="text" id="conf-mainBannerDesc"
-                            placeholder="Ej: Ya disponible en máxima calidad...">
-                    </div>
-                    <div class="form-col" style="grid-column: 1 / -1;">
-                        <label>URL de la Imagen de Fondo (Horizontal recomendada)</label>
-                        <input type="text" id="conf-mainBannerImage" placeholder="Ej: https://.../imagen.jpg">
-                    </div>
-                    <div class="form-col">
-                        <label>Texto del Botón</label>
-                        <input type="text" id="conf-mainBannerBtnText" placeholder="Ej: Ver Producto">
-                    </div>
-                    <div class="form-col">
-                        <label>Acción del Botón (Pestaña o Link)</label>
-                        <input type="text" id="conf-mainBannerBtnLink" placeholder="Ej: estrenos (o una URL completa)">
-                    </div>
-                </div>
-
-                <div class="form-col"
-                    style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
-                    <label>Contraseña Acceso Vendedores</label>
-                    <input type="text" id="conf-sellerPassword" placeholder="Ej: misvendedores123">
-                    <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Quien digite esta clave en la
-                        tienda verá los Precios de Vendedor.</p>
-                </div>
-
-                <button class="save-btn" onclick="saveConfig()">Guardar Configuración</button>
             </div>
+
+            <div class="form-grid"
+                style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                <div class="form-col" style="grid-column: 1 / -1;">
+                    <h3 style="margin-bottom: 0.5rem; color: #f39c12;"><i class="fa-solid fa-trophy"
+                            style="color:#f39c12;"></i> Sistema de Incentivos para Vendedores</h3>
+                    <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Motiva a tus vendedores
+                        dándoles bonos de plata digital acumulables por las ventas de pantallas y combos. Ellos
+                        verán este saldo en su panel.</p>
+                </div>
+                <div class="form-col">
+                    <label>Activar Incentivos</label>
+                    <select id="conf-incentiveEnabled">
+                        <option value="true">Activo / Encendido</option>
+                        <option value="false">Apagado</option>
+                    </select>
+                </div>
+                <div class="form-col">
+                    <label>Mensaje Motivacional (Semanal/Mensual)</label>
+                    <input type="text" id="conf-incentiveMessage"
+                        placeholder="Ej: ¡Gana $50,000 extra al llegar a la meta!">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <div class="form-col">
+                    <label>Bono Individual 1 Pantalla ($)</label>
+                    <input type="number" id="conf-incentive1" placeholder="Ej: 500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Individual 2 Pantallas ($)</label>
+                    <input type="number" id="conf-incentive2" placeholder="Ej: 1500">
+                </div>
+                <div class="form-col">
+                    <label>Bono Individual 3+ Pantallas ($)</label>
+                    <input type="number" id="conf-incentive3" placeholder="Ej: 3000">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <div class="form-col">
+                    <label>Bono x Combo 2 P. ($)</label>
+                    <input type="number" id="conf-incentiveCombo2" placeholder="Ej: 2000">
+                </div>
+                <div class="form-col">
+                    <label>Bono x Combo 3 P. ($)</label>
+                    <input type="number" id="conf-incentiveCombo3" placeholder="Ej: 3000">
+                </div>
+                <div class="form-col">
+                    <label>Bono x Combo 4 P. ($)</label>
+                    <input type="number" id="conf-incentiveCombo4" placeholder="Ej: 4000">
+                </div>
+                <div class="form-col">
+                    <label>Bono x Combo 5+ P. ($)</label>
+                    <input type="number" id="conf-incentiveCombo5" placeholder="Ej: 5000">
+                </div>
+            </div>
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <div class="form-col">
+                    <label>Bono x Promo Fin de Semana ($)</label>
+                    <input type="number" id="conf-incentiveFinde" placeholder="Ej: 6000">
+                </div>
+                <div class="form-col">
+                    <label>Bono x Promo del Mes ($)</label>
+                    <input type="number" id="conf-incentiveMes" placeholder="Ej: 8000">
+                </div>
+            </div>
+
+            <div class="form-col"
+                style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                <label>Contraseña Acceso Vendedores</label>
+                <input type="text" id="conf-sellerPassword" placeholder="Ej: misvendedores123">
+                <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Quien digite esta clave en la
+                    tienda verá los Precios de Vendedor.</p>
+            </div>
+
+            <button class="save-btn" onclick="saveConfig()">Guardar Configuración</button>
         </div>
+    </div>
 
     </div>
 
@@ -743,6 +797,7 @@
                 } else {
                     renderAdminList();
                     renderEstrenosList();
+                    renderBannersList();
                     renderSellersList();
                     renderBlockedClients();
                 }
@@ -751,12 +806,15 @@
         function init() {
             renderAdminList();
             renderEstrenosList();
+            renderBannersList();
             renderSellersList();
             renderBlockedClients();
 
             // Llenar config
-            document.getElementById('conf-whatsapp').value = storeConfig.whatsappNumber;
-            document.getElementById('conf-paymentInfo').value = storeConfig.paymentInfo;
+            document.getElementById('conf-whatsapp').value = storeConfig.whatsappNumber || '';
+            if (document.getElementById('conf-facebook')) document.getElementById('conf-facebook').value = storeConfig.facebookUrl || '';
+            if (document.getElementById('conf-instagram')) document.getElementById('conf-instagram').value = storeConfig.instagramUrl || '';
+            document.getElementById('conf-paymentInfo').value = storeConfig.paymentInfo || '';
             document.getElementById('conf-discountEnabled').value = storeConfig.discountEnabled.toString();
             document.getElementById('conf-discountAmount').value = storeConfig.discountAmount;
 
@@ -768,6 +826,7 @@
             document.getElementById('conf-disneyEnabled').value = storeConfig.disneyEnabled !== false ? 'true' : 'false';
 
             document.getElementById('conf-autoReminderEnabled').value = storeConfig.autoReminderEnabled === false ? "false" : "true";
+            if (document.getElementById('conf-autoReminderTomorrowEnabled')) document.getElementById('conf-autoReminderTomorrowEnabled').value = storeConfig.autoReminderTomorrowEnabled === false ? "false" : "true";
             document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "0";
             document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
 
@@ -1002,6 +1061,8 @@
 
         function saveConfig() {
             storeConfig.whatsappNumber = document.getElementById('conf-whatsapp').value;
+            if (document.getElementById('conf-facebook')) storeConfig.facebookUrl = document.getElementById('conf-facebook').value.trim();
+            if (document.getElementById('conf-instagram')) storeConfig.instagramUrl = document.getElementById('conf-instagram').value.trim();
             storeConfig.paymentInfo = document.getElementById('conf-paymentInfo').value;
             storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === 'true';
             storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
@@ -1030,15 +1091,10 @@
             }
 
             storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
+            if (document.getElementById('conf-autoReminderTomorrowEnabled')) storeConfig.autoReminderTomorrowEnabled = document.getElementById('conf-autoReminderTomorrowEnabled').value === "true";
             storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 0;
 
             if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
-            if (document.getElementById('conf-mainBannerBadge')) storeConfig.mainBannerBadge = document.getElementById('conf-mainBannerBadge').value;
-            if (document.getElementById('conf-mainBannerTitle')) storeConfig.mainBannerTitle = document.getElementById('conf-mainBannerTitle').value;
-            if (document.getElementById('conf-mainBannerDesc')) storeConfig.mainBannerDesc = document.getElementById('conf-mainBannerDesc').value;
-            if (document.getElementById('conf-mainBannerImage')) storeConfig.mainBannerImage = document.getElementById('conf-mainBannerImage').value;
-            if (document.getElementById('conf-mainBannerBtnText')) storeConfig.mainBannerBtnText = document.getElementById('conf-mainBannerBtnText').value;
-            if (document.getElementById('conf-mainBannerBtnLink')) storeConfig.mainBannerBtnLink = document.getElementById('conf-mainBannerBtnLink').value;
 
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
 
@@ -1131,6 +1187,106 @@
                 storeConfig.estrenos.splice(index, 1);
                 db.ref('storeConfig').set(storeConfig);
                 renderEstrenosList();
+            }
+        }
+
+        // --- SECTION BANNERS ---
+        let editBannerIndex = -1;
+
+        function saveBannerToggle() {
+            storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
+            db.ref('storeConfig').set(storeConfig);
+        }
+
+        function renderBannersList() {
+            if (document.getElementById('conf-mainBannerEnabled')) document.getElementById('conf-mainBannerEnabled').value = storeConfig.mainBannerEnabled === true ? 'true' : 'false';
+
+            const listDiv = document.getElementById('admin-list-main-banners');
+            listDiv.innerHTML = '';
+            const banners = storeConfig.mainBanners || [];
+
+            banners.forEach((b, index) => {
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                div.innerHTML = `
+                    <div style="width: 50px; height: 50px; background-image: url('${b.img}'); background-size: cover; background-position: center; border-radius: 8px;"></div>
+                    <div style="flex:1; margin-left: 10px;">
+                        <strong style="color: white">${b.title}</strong> <span style="font-size: 0.7rem; background:#ff416c; color:white; padding: 2px 5px; border-radius: 4px;">${b.badge}</span><br>
+                        <span style="font-size: 0.8rem; color: #a0a0a0;">${b.desc}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-icon btn-edit" onclick="editBanner(${index})" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" onclick="deleteBanner(${index})" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function editBanner(index) {
+            editBannerIndex = index;
+            const b = storeConfig.mainBanners[index];
+            document.getElementById('new-banner-badge').value = b.badge;
+            document.getElementById('new-banner-title').value = b.title;
+            document.getElementById('new-banner-desc').value = b.desc;
+            document.getElementById('new-banner-image').value = b.img;
+            document.getElementById('new-banner-btntext').value = b.btnText;
+            document.getElementById('new-banner-btnlink').value = b.btnLink;
+
+            document.getElementById('banner-form-title').innerText = "Editar Banner";
+            document.getElementById('btn-save-banner').innerText = "Actualizar Banner";
+            document.getElementById('btn-cancel-banner').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEditBanner() {
+            editBannerIndex = -1;
+            document.getElementById('new-banner-badge').value = '';
+            document.getElementById('new-banner-title').value = '';
+            document.getElementById('new-banner-desc').value = '';
+            document.getElementById('new-banner-image').value = '';
+            document.getElementById('new-banner-btntext').value = '';
+            document.getElementById('new-banner-btnlink').value = '';
+
+            document.getElementById('banner-form-title').innerText = "Agregar Nuevo Banner";
+            document.getElementById('btn-save-banner').innerText = "Guardar Banner";
+            document.getElementById('btn-cancel-banner').style.display = 'none';
+        }
+
+        function saveBanner() {
+            const badge = document.getElementById('new-banner-badge').value.trim();
+            const title = document.getElementById('new-banner-title').value.trim();
+            const desc = document.getElementById('new-banner-desc').value.trim();
+            const img = document.getElementById('new-banner-image').value.trim();
+            const btnText = document.getElementById('new-banner-btntext').value.trim();
+            const btnLink = document.getElementById('new-banner-btnlink').value.trim();
+
+            if (!title) return alert('El título es requerido.');
+
+            if (!storeConfig.mainBanners) storeConfig.mainBanners = [];
+
+            if (editBannerIndex !== -1) {
+                storeConfig.mainBanners[editBannerIndex] = { badge, title, desc, img, btnText, btnLink };
+            } else {
+                if (storeConfig.mainBanners.length >= 5) return alert('El máximo de banners permitidos es 5. Elimina uno primero.');
+                storeConfig.mainBanners.push({ badge, title, desc, img, btnText, btnLink });
+            }
+
+            db.ref('storeConfig').set(storeConfig);
+
+            cancelEditBanner();
+            renderBannersList();
+        }
+
+        function deleteBanner(index) {
+            if (confirm('¿Eliminar banner?')) {
+                storeConfig.mainBanners.splice(index, 1);
+                db.ref('storeConfig').set(storeConfig);
+                renderBannersList();
             }
         }
 
@@ -1266,7 +1422,6 @@
                             <span style="font-size: 0.9rem; color: #f39c12;"><i class="fa-solid fa-tv"></i> Pantallas: ${screensSold}</span><br>
                             <div style="margin-top:0.5rem; display:flex; align-items:center; gap: 0.5rem; flex-wrap:wrap;">
                                 <span style="background: rgba(243,156,18,0.2); border: 1px solid #f39c12; color: #f39c12; padding: 2px 8px; border-radius:6px; font-size:0.85rem; font-weight:bold;"><i class="fa-solid fa-trophy"></i> Saldo Activo: $${netAccumulated.toLocaleString()}</span>
-                                <span style="font-size:0.75rem; color:#ccc;">(Acumulado total: $${totalAccumulated.toLocaleString()} | Ya canjeado: $${redeemed.toLocaleString()})</span>
                             </div>
                         </div>
                         <div>
@@ -1452,6 +1607,60 @@
             });
         }
 
+        function exportClientsCSV() {
+            db.ref('clientProfiles').once('value').then(snap => {
+                const profiles = snap.val() || {};
+                let csv = "Telefono,Nombre,PIN\n";
+                Object.keys(profiles).forEach(phone => {
+                    csv += `${phone},${profiles[phone].name || ''},${profiles[phone].pin || ''}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'clientes.csv';
+                a.click();
+            });
+        }
+
+        async function importClientsCSV() {
+            const csvText = document.getElementById('import-clients-csv').value.trim();
+            if (!csvText) return alert('Pega el texto CSV primero.');
+
+            const lines = csvText.split('\n');
+            let updates = {};
+            let count = 0;
+
+            for (let line of lines) {
+                if (line.includes('Telefono,Nombre,PIN')) continue; // Skip header
+                const parts = line.split(',');
+                if (parts.length >= 2) {
+                    let phone = parts[0].trim().replace(/\D/g, '');
+                    let name = parts[1].trim();
+                    let pin = (parts[2] || '').trim();
+                    if (phone.length >= 5) { // validish phone
+                        updates[`clientProfiles/${phone}/name`] = name;
+                        if (pin) updates[`clientProfiles/${phone}/pin`] = pin;
+                        count++;
+                    }
+                }
+            }
+
+            if (count > 0 && confirm(`¿Subir ${count} clientes a la base de datos?`)) {
+                try {
+                    await db.ref().update(updates);
+                    alert('¡Clientes importados exitosamente!');
+                    document.getElementById('import-clients-csv').value = '';
+                } catch (e) {
+                    console.error(e);
+                    alert('Error subiendo base de datos.');
+                }
+            } else if (count === 0) {
+                alert('No se detectaron filas válidas. Revisa el formato.');
+            }
+        }
+
         function renderAllClientsList() {
             const listDiv = document.getElementById('admin-list-all-clients');
             if (!listDiv) return;
@@ -1483,7 +1692,7 @@
                 div.style.gap = '1rem';
 
                 div.innerHTML = `
-                    <div style="display:flex; gap:1rem; width:100%; align-items:center;">
+                        <div style="display:flex; gap:1rem; width:100%; align-items:center;">
                         <div><i class="fa-solid fa-user" style="color:#2ab7ca; font-size:1.5rem"></i></div>
                         <div style="flex:1;">
                             <strong style="color: white; font-size:1.1rem">${c.name}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
@@ -1517,16 +1726,16 @@
 
                         const itemsStr = sale.items ? sale.items.map(i => {
                             let formatName = i.name;
-                            if (i.category && i.category.startsWith('combos')) formatName = `🎬 *${i.name}* (Combo Prediseñado)`;
+                            if (i.category && i.category.startsWith('combos')) formatName = `🎬 * ${i.name}* (Combo Prediseñado)`;
                             return formatName;
                         }).join(', ') : 'Pantallas';
                         const safeClientName = c.name.replace(/'/g, '');
-                        const totalDisp = sale.total ? `$${sale.total.toLocaleString()}` : 'No registrado';
+                        const totalDisp = sale.total ? `$${sale.total.toLocaleString()} ` : 'No registrado';
 
                         const saleCard = document.createElement('div');
                         saleCard.style.padding = '1rem';
                         saleCard.style.background = 'rgba(255,255,255,0.05)';
-                        saleCard.style.borderLeft = `4px solid ${statusColor}`;
+                        saleCard.style.borderLeft = `4px solid ${statusColor} `;
                         saleCard.style.borderRadius = '8px';
                         saleCard.innerHTML = `
                             <div style="display:flex; justify-content:space-between; margin-bottom: 0.3rem;">
@@ -1566,7 +1775,7 @@
 
         function deleteClientSale(phone, saleId) {
             if (confirm('¿Estás seguro de que quieres eliminar este registro? (Útil si fue una prueba o error)')) {
-                db.ref(`clientSales/${phone}/${saleId}`).remove().then(() => {
+                db.ref(`clientSales / ${phone}/${saleId}`).remove().then(() => {
                     alert('Registro eliminado del historial del cliente.');
                     fetchClientSalesHistory();
                 });
@@ -1745,7 +1954,10 @@
         let globalReminderQueue = [];
 
         function checkDailyAutoReminders(force = false) {
-            if (!force && (storeConfig.autoReminderEnabled === false || storeConfig.autoReminderEnabled === "false")) return;
+            const isTodayEnabled = storeConfig.autoReminderEnabled !== false && storeConfig.autoReminderEnabled !== "false";
+            const isTomorrowEnabled = storeConfig.autoReminderTomorrowEnabled !== false && storeConfig.autoReminderTomorrowEnabled !== "false";
+
+            if (!force && !isTodayEnabled && !isTomorrowEnabled) return;
 
             const configHour = parseInt(storeConfig.autoReminderHour) || 0;
             const currentHour = new Date().getHours();
@@ -1772,7 +1984,13 @@
                         const sale = salesMap[k];
                         const daysLeft = Math.ceil((sale.expirationDate - now) / (1000 * 60 * 60 * 24));
 
-                        if (daysLeft === 0 || daysLeft === 1) {
+                        if (daysLeft === 0 && isTodayEnabled) {
+                            let cName = sale.clientName || 'Cliente';
+                            if (!sale.clientName && data.clientProfiles && data.clientProfiles[phone]) {
+                                cName = data.clientProfiles[phone].name;
+                            }
+                            globalReminderQueue.push({ type: 'direct', phone: phone, name: cName, sale: sale, daysLeft: daysLeft });
+                        } else if (daysLeft === 1 && isTomorrowEnabled) {
                             let cName = sale.clientName || 'Cliente';
                             if (!sale.clientName && data.clientProfiles && data.clientProfiles[phone]) {
                                 cName = data.clientProfiles[phone].name;
@@ -1789,7 +2007,9 @@
                         const sale = salesMap[k];
                         const daysLeft = Math.ceil((sale.expirationDate - now) / (1000 * 60 * 60 * 24));
 
-                        if (daysLeft === 0 || daysLeft === 1) {
+                        if (daysLeft === 0 && isTodayEnabled) {
+                            globalReminderQueue.push({ type: 'seller', phone: sale.clientPhone || '', seller: sellerName, name: sale.clientName || 'Cliente', sale: sale, daysLeft: daysLeft });
+                        } else if (daysLeft === 1 && isTomorrowEnabled) {
                             globalReminderQueue.push({ type: 'seller', phone: sale.clientPhone || '', seller: sellerName, name: sale.clientName || 'Cliente', sale: sale, daysLeft: daysLeft });
                         }
                     });
