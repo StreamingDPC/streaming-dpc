@@ -18,6 +18,12 @@ let storeConfig = {};
 let products = [];
 let cart = [];
 
+// Notificación de Actualización
+if (!sessionStorage.getItem('bonoUpdateShown')) {
+    alert('Sistema de Bonos Individualizado Actualizado ✔️. Versión: 3.5.0\nSi ves este mensaje, asegúrate de revisar la "Configuración" en el panel Admin y colocar los montos de cada plataforma antes de probar ventas.');
+    sessionStorage.setItem('bonoUpdateShown', 'true');
+}
+
 // DOM Elements
 const productsGrid = document.getElementById('products-grid');
 const tabBtns = document.querySelectorAll('.tab-btn');
