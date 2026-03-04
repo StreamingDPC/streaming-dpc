@@ -918,36 +918,35 @@ function renderSellerDashboard() {
     db.ref(`sellerSales/${currentSellerName}`).once('value').then(snap => {
         const sales = snap.val();
         sellerSalesList.innerHTML = '';
-        if (!sales) {
-            sellerSalesList.innerHTML = '<p style="text-align:center; color:#ccc; margin-top:2rem;">Aún no tienes ventas registradas.</p>';
-            return;
+        let salesArray = [];
+        if (sales) {
+            salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
         }
 
-        // Convert to array and sort by latest date first
-        const salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
+        let totalAccumulated = 0;
+        salesArray.forEach(sale => {
+            if (sale.incentiveEarned) totalAccumulated += sale.incentiveEarned;
+        });
 
-        if (storeConfig.incentiveEnabled) {
-            let totalAccumulated = 0;
-            salesArray.forEach(sale => {
-                if (sale.incentiveEarned) totalAccumulated += sale.incentiveEarned;
-            });
-            const board = document.getElementById('seller-incentives-board');
-            const boardMsg = document.getElementById('seller-incentive-msg');
-            const boardAmount = document.getElementById('seller-incentive-amount');
-            let boardDetails = document.getElementById('seller-incentive-details-list');
+        const board = document.getElementById('seller-incentives-board');
+        const boardMsg = document.getElementById('seller-incentive-msg');
+        const boardAmount = document.getElementById('seller-incentive-amount');
+        let boardDetails = document.getElementById('seller-incentive-details-list');
 
-            if (!boardDetails && board) {
-                boardDetails = document.createElement('div');
-                boardDetails.id = 'seller-incentive-details-list';
-                board.appendChild(boardDetails);
-            }
+        if (!boardDetails && board) {
+            boardDetails = document.createElement('div');
+            boardDetails.id = 'seller-incentive-details-list';
+            board.appendChild(boardDetails);
+        }
 
-            if (board) {
-                board.style.display = 'block';
+        if (board) {
+            board.style.display = 'block';
+            boardAmount.innerHTML = totalAccumulated.toLocaleString();
+
+            if (storeConfig.incentiveEnabled) {
                 boardMsg.innerHTML = storeConfig.incentiveMessage || 'Sigue vendiendo para acumular increíbles bonos y recompensas.';
-                boardAmount.innerHTML = totalAccumulated.toLocaleString();
-
                 if (boardDetails) {
+                    boardDetails.style.display = 'block';
                     let activeTableHtml = `
                         <div style="font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.15); border-radius: 8px; padding: 10px; margin-top: 15px; color: #ccc;">
                             <strong style="color:white;"><i class="fa-solid fa-list-check" style="color:#f39c12"></i> Tabla de Ganancias Activas:</strong><br><br>
@@ -966,10 +965,15 @@ function renderSellerDashboard() {
                     `;
                     boardDetails.innerHTML = activeTableHtml;
                 }
+            } else {
+                boardMsg.innerHTML = 'Las recompensas activas están temporalmente pausadas, pero aquí está tu acumulado.';
+                if (boardDetails) boardDetails.style.display = 'none';
             }
-        } else {
-            const board = document.getElementById('seller-incentives-board');
-            if (board) board.style.display = 'none';
+        }
+
+        if (!sales) {
+            sellerSalesList.innerHTML = '<p style="text-align:center; color:#ccc; margin-top:2rem;">Aún no tienes ventas registradas.</p>';
+            return;
         }
 
         salesArray.forEach(sale => {
