@@ -148,6 +148,44 @@ function setupConfigUI() {
             bannerDiv.style.display = 'none';
         }
     }
+
+    // Featured Hero Banner
+    const featuredContainer = document.getElementById('featured-hero-container');
+    const heroTitleCont = document.querySelector('.hero');
+    if (featuredContainer) {
+        if (storeConfig.mainBannerEnabled) {
+            const badge = storeConfig.mainBannerBadge || 'GRAN ESTRENO';
+            const title = storeConfig.mainBannerTitle || 'Película Destacada';
+            const desc = storeConfig.mainBannerDesc || 'Disponible ahora en nuestra plataforma.';
+            const img = storeConfig.mainBannerImage || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+            const btnText = storeConfig.mainBannerBtnText || 'Ver Estrenos';
+            let btnLink = storeConfig.mainBannerBtnLink || 'estrenos';
+
+            let btnHtml = '';
+            if (btnLink.startsWith('http')) {
+                btnHtml = `<a href="${btnLink}" target="_blank" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</a>`;
+            } else {
+                // Click on the specified tab
+                btnHtml = `<button onclick="document.querySelector('.tab-btn[data-tab=\\'${btnLink}\\']')?.click();" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
+            }
+
+            featuredContainer.innerHTML = `
+                <div class="featured-banner" style="background-image: url('${img}');">
+                    <div class="featured-content">
+                        <span class="featured-badge">${badge}</span>
+                        <h2 class="featured-title">${title}</h2>
+                        <p class="featured-desc">${desc}</p>
+                        ${btnHtml}
+                    </div>
+                </div>
+            `;
+            featuredContainer.style.display = 'block';
+            if (heroTitleCont) heroTitleCont.style.display = 'none'; // Hide generic title when banner is up
+        } else {
+            featuredContainer.style.display = 'none';
+            if (heroTitleCont) heroTitleCont.style.display = 'block'; // Show generic title again
+        }
+    }
 }
 
 function getPrice(product) {

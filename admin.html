@@ -634,6 +634,49 @@
                     </div>
                 </div>
 
+                <div class="form-grid"
+                    style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <h3 style="margin-bottom: 0.5rem; color: #ff416c;"><i class="fa-solid fa-star"
+                                style="color:#ff416c;"></i> Banner de Estreno Principal</h3>
+                        <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Muestra un gran banner
+                            promocional en la parte superior de la página para enganchar a los clientes con un gran
+                            estreno o anuncio.</p>
+                    </div>
+                    <div class="form-col">
+                        <label>Activar Banner Principal</label>
+                        <select id="conf-mainBannerEnabled">
+                            <option value="false">Apagado</option>
+                            <option value="true">Activo / Encendido</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Etiqueta Pequenia (Ej: GRAN ESTRENO)</label>
+                        <input type="text" id="conf-mainBannerBadge" placeholder="Ej: GRAN ESTRENO">
+                    </div>
+                    <div class="form-col">
+                        <label>Título Principal</label>
+                        <input type="text" id="conf-mainBannerTitle" placeholder="Ej: Deadpool & Wolverine">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>Descripción Corta</label>
+                        <input type="text" id="conf-mainBannerDesc"
+                            placeholder="Ej: Ya disponible en máxima calidad...">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>URL de la Imagen de Fondo (Horizontal recomendada)</label>
+                        <input type="text" id="conf-mainBannerImage" placeholder="Ej: https://.../imagen.jpg">
+                    </div>
+                    <div class="form-col">
+                        <label>Texto del Botón</label>
+                        <input type="text" id="conf-mainBannerBtnText" placeholder="Ej: Ver Producto">
+                    </div>
+                    <div class="form-col">
+                        <label>Acción del Botón (Pestaña o Link)</label>
+                        <input type="text" id="conf-mainBannerBtnLink" placeholder="Ej: estrenos (o una URL completa)">
+                    </div>
+                </div>
+
                 <div class="form-col"
                     style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
                     <label>Contraseña Acceso Vendedores</label>
@@ -736,6 +779,14 @@
             if (document.getElementById('conf-clientBannerText')) document.getElementById('conf-clientBannerText').value = storeConfig.clientBannerText || '';
             if (document.getElementById('conf-sellerBannerEnabled')) document.getElementById('conf-sellerBannerEnabled').value = storeConfig.sellerBannerEnabled === true ? 'true' : 'false';
             if (document.getElementById('conf-sellerBannerText')) document.getElementById('conf-sellerBannerText').value = storeConfig.sellerBannerText || '';
+
+            if (document.getElementById('conf-mainBannerEnabled')) document.getElementById('conf-mainBannerEnabled').value = storeConfig.mainBannerEnabled === true ? 'true' : 'false';
+            if (document.getElementById('conf-mainBannerBadge')) document.getElementById('conf-mainBannerBadge').value = storeConfig.mainBannerBadge || '';
+            if (document.getElementById('conf-mainBannerTitle')) document.getElementById('conf-mainBannerTitle').value = storeConfig.mainBannerTitle || '';
+            if (document.getElementById('conf-mainBannerDesc')) document.getElementById('conf-mainBannerDesc').value = storeConfig.mainBannerDesc || '';
+            if (document.getElementById('conf-mainBannerImage')) document.getElementById('conf-mainBannerImage').value = storeConfig.mainBannerImage || '';
+            if (document.getElementById('conf-mainBannerBtnText')) document.getElementById('conf-mainBannerBtnText').value = storeConfig.mainBannerBtnText || '';
+            if (document.getElementById('conf-mainBannerBtnLink')) document.getElementById('conf-mainBannerBtnLink').value = storeConfig.mainBannerBtnLink || '';
 
             if (document.getElementById('conf-clientPromoDiscount')) document.getElementById('conf-clientPromoDiscount').value = storeConfig.clientPromoDiscount || 0;
             if (document.getElementById('conf-clientPromoLimit')) document.getElementById('conf-clientPromoLimit').value = storeConfig.clientPromoLimit || 0;
@@ -980,6 +1031,14 @@
 
             storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
             storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 0;
+
+            if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
+            if (document.getElementById('conf-mainBannerBadge')) storeConfig.mainBannerBadge = document.getElementById('conf-mainBannerBadge').value;
+            if (document.getElementById('conf-mainBannerTitle')) storeConfig.mainBannerTitle = document.getElementById('conf-mainBannerTitle').value;
+            if (document.getElementById('conf-mainBannerDesc')) storeConfig.mainBannerDesc = document.getElementById('conf-mainBannerDesc').value;
+            if (document.getElementById('conf-mainBannerImage')) storeConfig.mainBannerImage = document.getElementById('conf-mainBannerImage').value;
+            if (document.getElementById('conf-mainBannerBtnText')) storeConfig.mainBannerBtnText = document.getElementById('conf-mainBannerBtnText').value;
+            if (document.getElementById('conf-mainBannerBtnLink')) storeConfig.mainBannerBtnLink = document.getElementById('conf-mainBannerBtnLink').value;
 
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
 
