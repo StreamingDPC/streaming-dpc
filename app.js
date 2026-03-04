@@ -92,6 +92,9 @@ const storeLinkInput = document.getElementById('store-link-input');
 const storeWhatsappInput = document.getElementById('store-whatsapp');
 const storeFacebookInput = document.getElementById('store-facebook');
 const storeInstagramInput = document.getElementById('store-instagram');
+const storeTiktokInput = document.getElementById('store-tiktok');
+const storeKwaiInput = document.getElementById('store-kwai');
+const storeYoutubeInput = document.getElementById('store-youtube');
 const storePaymentInfoInput = document.getElementById('store-payment-info');
 const storePricesList = document.getElementById('store-prices-list');
 const saveStoreBtn = document.getElementById('save-store-btn');
@@ -121,11 +124,17 @@ function setupConfigUI() {
     let waLinkHref = storeConfig.whatsappNumber ? `https://wa.me/${storeConfig.whatsappNumber}` : null;
     let fbLinkHref = storeConfig.facebookUrl || null;
     let igLinkHref = storeConfig.instagramUrl || null;
+    let tkLinkHref = storeConfig.tiktokUrl || null;
+    let kwLinkHref = storeConfig.kwaiUrl || null;
+    let ytLinkHref = storeConfig.youtubeUrl || null;
 
     if (publicSellerStoreData) {
         if (publicSellerStoreData.whatsapp) waLinkHref = `https://wa.me/${publicSellerStoreData.whatsapp}`;
         if (publicSellerStoreData.facebookUrl) fbLinkHref = publicSellerStoreData.facebookUrl;
         if (publicSellerStoreData.instagramUrl) igLinkHref = publicSellerStoreData.instagramUrl;
+        if (publicSellerStoreData.tiktokUrl) tkLinkHref = publicSellerStoreData.tiktokUrl;
+        if (publicSellerStoreData.kwaiUrl) kwLinkHref = publicSellerStoreData.kwaiUrl;
+        if (publicSellerStoreData.youtubeUrl) ytLinkHref = publicSellerStoreData.youtubeUrl;
     }
 
     const waLink = document.getElementById('footer-wa');
@@ -145,6 +154,24 @@ function setupConfigUI() {
         igLink.href = igLinkHref;
         igLink.style.display = 'inline-block';
     } else if (igLink) igLink.style.display = 'none';
+
+    const tkLink = document.getElementById('footer-tk');
+    if (tkLink && tkLinkHref) {
+        tkLink.href = tkLinkHref;
+        tkLink.style.display = 'inline-block';
+    } else if (tkLink) tkLink.style.display = 'none';
+
+    const kwLink = document.getElementById('footer-kw');
+    if (kwLink && kwLinkHref) {
+        kwLink.href = kwLinkHref;
+        kwLink.style.display = 'inline-block';
+    } else if (kwLink) kwLink.style.display = 'none';
+
+    const ytLink = document.getElementById('footer-yt');
+    if (ytLink && ytLinkHref) {
+        ytLink.href = ytLinkHref;
+        ytLink.style.display = 'inline-block';
+    } else if (ytLink) ytLink.style.display = 'none';
 
     // Toggle Reseller colors
     if (isSellerMode) {
@@ -806,6 +833,9 @@ function setupEventListeners() {
             storeWhatsappInput.value = data.whatsapp || '';
             if (storeFacebookInput) storeFacebookInput.value = data.facebookUrl || '';
             if (storeInstagramInput) storeInstagramInput.value = data.instagramUrl || '';
+            if (storeTiktokInput) storeTiktokInput.value = data.tiktokUrl || '';
+            if (storeKwaiInput) storeKwaiInput.value = data.kwaiUrl || '';
+            if (storeYoutubeInput) storeYoutubeInput.value = data.youtubeUrl || '';
             if (storePaymentInfoInput) storePaymentInfoInput.value = data.paymentInfo || '';
             const existingPrices = data.prices || {};
 
@@ -847,6 +877,9 @@ function setupEventListeners() {
             if (!wpp) return alert('Debes agregar tu número de WhatsApp para poder recibir los pedidos de tus clientes.');
             const fbUrl = storeFacebookInput ? storeFacebookInput.value.trim() : '';
             const igUrl = storeInstagramInput ? storeInstagramInput.value.trim() : '';
+            const tkUrl = storeTiktokInput ? storeTiktokInput.value.trim() : '';
+            const kwUrl = storeKwaiInput ? storeKwaiInput.value.trim() : '';
+            const ytUrl = storeYoutubeInput ? storeYoutubeInput.value.trim() : '';
 
             let customPrices = {};
             document.querySelectorAll('.store-custom-price').forEach(input => {
@@ -859,6 +892,9 @@ function setupEventListeners() {
                 whatsapp: wpp,
                 facebookUrl: fbUrl,
                 instagramUrl: igUrl,
+                tiktokUrl: tkUrl,
+                kwaiUrl: kwUrl,
+                youtubeUrl: ytUrl,
                 prices: customPrices
             };
 
