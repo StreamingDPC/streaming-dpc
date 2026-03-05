@@ -1026,13 +1026,19 @@ function setupEventListeners() {
         if (!isRecurrent) {
             let incentiveEarned = 0;
             let incentiveDetails = [];
+
+            // DEBUG SYSTEM: Collect calculation steps
+            let debugLog = `DEBUG INFO:\nincentiveEnabled=${storeConfig.incentiveEnabled}\n`;
+
             if (storeConfig.incentiveEnabled) {
                 stats.processedCart.forEach(item => {
                     if (item.category === 'individual') {
                         let b = 0; let name = '';
                         const brandStr = (item.brand || item.name).toLowerCase();
-                        if (brandStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
-                        else if (brandStr.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; }
+                        debugLog += `- Item: ${item.name} | Cat: ${item.category} | BrandStr: ${brandStr}\n`;
+
+                        if (brandStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; debugLog += `  -> Match Netflix! Valor config: ${storeConfig.incentiveNetflix}\n`; }
+                        else if (brandStr.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; debugLog += `  -> Match Disney! Valor config: ${storeConfig.incentiveDisney}\n`; }
                         else if (brandStr.includes('max')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
                         else if (brandStr.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; name = 'Prime Video'; }
                         else if (brandStr.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; name = 'Paramount+'; }
@@ -1044,6 +1050,8 @@ function setupEventListeners() {
                         if (b > 0) {
                             incentiveEarned += b;
                             incentiveDetails.push(`${name} (+$${b})`);
+                        } else {
+                            debugLog += `  -> NO se sumó bono porque b=${b}\n`;
                         }
                     }
                     else if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
@@ -1053,6 +1061,11 @@ function setupEventListeners() {
                     else if (item.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); }
                     else if (item.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); }
                 });
+            }
+
+            debugLog += `>>> TOTAL INCENTIVE CALCULADO: ${incentiveEarned}\n`;
+            if (isSellerMode) {
+                alert(debugLog);
             }
 
             const saleData = {
