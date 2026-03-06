@@ -361,6 +361,15 @@ window.openVideoModal = function (url) {
     modal.style.display = 'block';
 }
 
+window.openImageViewer = function (imgSrc) {
+    const modal = document.getElementById('image-viewer-modal');
+    const imgEl = document.getElementById('image-viewer-img');
+    if (modal && imgEl) {
+        imgEl.src = imgSrc;
+        modal.style.display = 'flex';
+    }
+}
+
 function getPrice(product) {
     if (isSellerMode && product.sellerPrice) {
         return product.sellerPrice;
@@ -443,10 +452,24 @@ function renderProducts(category) {
             ? `<button class="btn-add" onclick="addToCart(${product.id})">Agregar</button>`
             : `<button class="btn-add" style="background:#ff4d4d; color:white; border-color:#ff4d4d; cursor:not-allowed;" disabled>Agotado</button>`;
 
-        card.innerHTML = `
+        let imgHtml = '';
+        if (product.category === 'promociones' || product.category === 'promociones_finde') {
+            imgHtml = `
+            <div style="text-align:center; margin-bottom:1rem; cursor:zoom-in; position:relative; display:inline-block;" onclick="openImageViewer('${imgUrl}')">
+                <img src="${imgUrl}" alt="${product.brand}" style="width:100%; max-width:140px; height:85px; object-fit:contain; border-radius:8px;">
+                <div style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); padding:4px; border-radius:4px; border:1px solid rgba(255,255,255,0.2);">
+                    <i class="fa-solid fa-magnifying-glass" style="color:white; font-size:0.8rem;"></i>
+                </div>
+            </div>`;
+        } else {
+            imgHtml = `
             <div style="text-align:center; margin-bottom:1rem">
                 <img src="${imgUrl}" alt="${product.brand}" style="width:100%; max-width:140px; height:85px; object-fit:contain">
-            </div>
+            </div>`;
+        }
+
+        card.innerHTML = `
+            ${imgHtml}
             <span class="brand-badge">${product.brand}</span>
             <h3 class="product-title">${product.name}</h3>
             <p class="product-desc" style="margin-bottom: 0.5rem">Pantalla original premium con garantía.</p>
@@ -823,6 +846,19 @@ function setupEventListeners() {
             clientPhoneLoggedIn = '';
             clientDashboardModal.style.display = 'none';
             alert('Sesión cerrada. Vuelve pronto.');
+        });
+    }
+
+    const imageViewerClose = document.getElementById('image-viewer-close');
+    const imageViewerModal = document.getElementById('image-viewer-modal');
+    if (imageViewerClose && imageViewerModal) {
+        imageViewerClose.addEventListener('click', () => {
+            imageViewerModal.style.display = 'none';
+        });
+        imageViewerModal.addEventListener('click', (e) => {
+            if (e.target === imageViewerModal) {
+                imageViewerModal.style.display = 'none';
+            }
         });
     }
 
