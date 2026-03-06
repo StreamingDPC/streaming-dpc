@@ -1476,7 +1476,8 @@
                     <div><i class="fa-solid fa-user-tie" style="color:#c48dfc; font-size:1.5rem"></i></div>
                     <div>
                         <strong style="color: white; font-size:1.1rem">${s.name}</strong><br>
-                        <span style="font-size: 0.8rem; color: #a0a0a0;">Contraseña: ${s.password}</span>
+                        <span style="font-size: 0.8rem; color: #a0a0a0;">Contraseña: ${s.password}</span><br>
+                        <span style="font-size: 0.8rem; color: #f39c12;">Ventas Extras: ${s.extraSalesEnabled ? 'Sí (Límite ' + (s.extraProductsLimit || 0) + ')' : 'No'}</span>
                     </div>
                     <div class="item-actions">
                         <button class="btn-icon btn-edit" onclick="editSeller(${index})" title="Editar Vendedor">
@@ -1496,6 +1497,10 @@
             const s = storeConfig.sellers[index];
             document.getElementById('new-seller-name').value = s.name;
             document.getElementById('new-seller-pass').value = s.password;
+            const selExtras = document.getElementById('new-seller-extras-enabled');
+            if (selExtras) selExtras.value = s.extraSalesEnabled === true ? 'true' : 'false';
+            const selLimit = document.getElementById('new-seller-extras-limit');
+            if (selLimit) selLimit.value = s.extraProductsLimit || 0;
 
             document.getElementById('btn-save-seller').innerText = "Actualizar Vendedor";
             document.getElementById('btn-cancel-seller').style.display = 'block';
@@ -1506,6 +1511,10 @@
             editSellerIndex = -1;
             document.getElementById('new-seller-name').value = '';
             document.getElementById('new-seller-pass').value = '';
+            const selExtras = document.getElementById('new-seller-extras-enabled');
+            if (selExtras) selExtras.value = 'false';
+            const selLimit = document.getElementById('new-seller-extras-limit');
+            if (selLimit) selLimit.value = '0';
             document.getElementById('btn-save-seller').innerText = "Añadir Vendedor";
             document.getElementById('btn-cancel-seller').style.display = 'none';
         }
@@ -1515,12 +1524,17 @@
             const password = document.getElementById('new-seller-pass').value.trim();
             if (!name || !password) return alert('Completa nombre y contraseña.');
 
+            const selExtras = document.getElementById('new-seller-extras-enabled');
+            const extraSalesEnabled = selExtras ? selExtras.value === 'true' : false;
+            const selLimit = document.getElementById('new-seller-extras-limit');
+            const extraProductsLimit = selLimit ? parseInt(selLimit.value) || 0 : 0;
+
             if (!storeConfig.sellers) storeConfig.sellers = [];
 
             if (editSellerIndex !== -1) {
-                storeConfig.sellers[editSellerIndex] = { name, password };
+                storeConfig.sellers[editSellerIndex] = { name, password, extraSalesEnabled, extraProductsLimit };
             } else {
-                storeConfig.sellers.push({ name, password });
+                storeConfig.sellers.push({ name, password, extraSalesEnabled, extraProductsLimit });
             }
 
             db.ref('storeConfig').set(storeConfig).then(() => {

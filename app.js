@@ -412,9 +412,7 @@ function renderProducts(category) {
     const filtered = category === 'all'
         ? products.filter(p => {
             if (p.active === false) return false;
-            if (p.category === 'ventas_extras' && p.owner !== scopeOwner && p.owner !== 'Administrador (Global)') return false;
-            // Compat with previously global without owner: Assume if no owner, it belongs to global
-            if (p.category === 'ventas_extras' && scopeOwner !== 'admin' && (!p.owner || p.owner === 'admin')) return false;
+            if (p.category === 'ventas_extras') return false; // Exclude from 'Todos'
             return true;
         })
         : products.filter(p => {
