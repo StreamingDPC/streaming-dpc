@@ -453,7 +453,7 @@ function renderProducts(category) {
             : `<button class="btn-add" style="background:#ff4d4d; color:white; border-color:#ff4d4d; cursor:not-allowed;" disabled>Agotado</button>`;
 
         let imgHtml = '';
-        if (product.category === 'promociones' || product.category === 'promociones_finde') {
+        if (product.category === 'promociones' || product.category === 'promociones_finde' || product.category === 'ventas_extras') {
             imgHtml = `
             <div style="text-align:center; margin-bottom:1rem; cursor:zoom-in; position:relative; display:inline-block;" onclick="openImageViewer('${imgUrl}')">
                 <img src="${imgUrl}" alt="${product.brand}" style="width:100%; max-width:140px; height:85px; object-fit:contain; border-radius:8px;">
@@ -472,7 +472,7 @@ function renderProducts(category) {
             ${imgHtml}
             <span class="brand-badge">${product.brand}</span>
             <h3 class="product-title">${product.name}</h3>
-            <p class="product-desc" style="margin-bottom: 0.5rem">Pantalla original premium con garantía.</p>
+            <p class="product-desc" style="margin-bottom: 0.5rem">${product.desc || 'Pantalla original premium con garantía.'}</p>
             ${sellerBadge}
             <div class="price-row" style="margin-top:1rem">
                 <span class="price">$${displayPrice.toLocaleString()}</span>
@@ -1191,6 +1191,22 @@ function setupEventListeners() {
             const cleanPhoneTracking = cPhone ? cPhone.replace(/\D/g, '') : '';
             if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
                 db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
+            }
+
+            let updatedProducts = false;
+            stats.processedCart.forEach(item => {
+                const productDbNode = products.find(p => p.id === item.id);
+                if (productDbNode && productDbNode.stock > 0) {
+                    productDbNode.stock -= 1;
+                    if (productDbNode.stock <= 0) {
+                        productDbNode.stock = 0;
+                        productDbNode.inStock = false;
+                    }
+                    updatedProducts = true;
+                }
+            });
+            if (updatedProducts) {
+                db.ref('products').set(products);
             }
         }
 

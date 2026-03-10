@@ -55,24 +55,42 @@
     <div class="login-container">
         <div class="login-card">
             <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
-                alt="Streaming DPC" style="height: 60px; border-radius: 8px; margin-bottom: 1rem; object-fit: contain;">
+                alt="Streaming DPC" style="height: 80px; border-radius: 8px; margin-bottom: 1rem; object-fit: contain;">
             <h2 style="margin-bottom: 2rem;">Panel de Admin</h2>
             <input type="password" id="admin-pass" placeholder="Ingresa la contraseña">
             <button class="login-btn" onclick="checkPass()">Entrar</button>
             <p id="error" style="color: #ff4d4d; margin-top: 1rem; display: none;">Contraseña incorrecta</p>
         </div>
     </div>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBscP8FT1dcnHlSFMXc3DlfXSgRO9ET9s4",
+            authDomain: "streamingdpc-7e7fa.firebaseapp.com",
+            databaseURL: "https://streamingdpc-7e7fa-default-rtdb.firebaseio.com",
+            projectId: "streamingdpc-7e7fa",
+            storageBucket: "streamingdpc-7e7fa.firebasestorage.app",
+            messagingSenderId: "831116907849",
+            appId: "1:831116907849:web:ee8e744db342970fd0b698"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         function checkPass() {
             const pass = document.getElementById('admin-pass').value;
-            // Por seguridad inicial, definimos una contraseña simple. 
-            // Esto es un prototipo local.
-            if (pass === "admin123") {
-                localStorage.setItem('adminLoggedIn', 'true');
-                window.location.href = 'admin.html';
-            } else {
-                document.getElementById('error').style.display = 'block';
-            }
+            db.ref('storeConfig/adminPassword').once('value').then(snap => {
+                const dbPass = snap.val() || 'admin123';
+                if (pass === dbPass) {
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    window.location.href = 'admin.html';
+                } else {
+                    document.getElementById('error').style.display = 'block';
+                }
+            }).catch(err => {
+                alert("Error de conexión, intenta de nuevo.");
+            });
         }
     </script>
 </body>

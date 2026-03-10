@@ -261,12 +261,20 @@
                         <input type="text" id="new-brand" placeholder="Ej: Netflix, Combo, Disney+">
                     </div>
                     <div class="form-col" style="grid-column: span 2;">
+                        <label>Descripción Corta (Predeterminado: Pantalla original premium con garantía.)</label>
+                        <input type="text" id="new-desc" placeholder="Pantalla original premium con garantía.">
+                    </div>
+                    <div class="form-col" style="grid-column: span 2;">
                         <label>Imagen Personalizada (opcional)</label>
                         <input type="text" id="new-image" placeholder="Ruta local (assets/...) o URL">
                         <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">
                             * Si dejas esto vacío, el sistema intentará asignar un logo automáticamente basado en la
                             Marca.
                         </p>
+                    </div>
+                    <div class="form-col">
+                        <label>Cantidad en Stock (Opcional, 0 = Sin límite)</label>
+                        <input type="number" id="new-stock" placeholder="Ej: 5" value="0">
                     </div>
                 </div>
 
@@ -822,6 +830,14 @@
                     tienda verá los Precios de Vendedor.</p>
             </div>
 
+            <div class="form-col"
+                style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                <label>Contraseña de Acceso Administrador (Este Panel)</label>
+                <input type="text" id="conf-adminPassword" placeholder="Ej: admin123">
+                <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Quien digite esta clave en el login de
+                    administradores podrá acceder y modificar toda la tienda.</p>
+            </div>
+
             <button class="save-btn" onclick="saveConfig()">Guardar Configuración</button>
         </div>
     </div>
@@ -918,6 +934,7 @@
             document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
 
             if (document.getElementById('conf-sellerPassword')) document.getElementById('conf-sellerPassword').value = storeConfig.sellerPassword || 'admin';
+            if (document.getElementById('conf-adminPassword')) document.getElementById('conf-adminPassword').value = storeConfig.adminPassword || 'admin123';
 
             if (document.getElementById('conf-sellerDiscountEnabled')) document.getElementById('conf-sellerDiscountEnabled').value = storeConfig.sellerDiscountEnabled === true ? 'true' : 'false';
             if (document.getElementById('conf-sellerDiscountAmount')) document.getElementById('conf-sellerDiscountAmount').value = storeConfig.sellerDiscountAmount || 0;
@@ -1024,6 +1041,7 @@
                         <br>
                         <span style="font-size: 0.8rem; color: var(--text-primary)">$${p.price.toLocaleString()}</span> - 
                         <span style="font-size: 0.8rem; color: #ccc;">${p.category} | ${p.brand}</span>
+                        ${p.stock > 0 ? `<br><span style="color:#f39c12; font-size: 0.75rem; font-weight: bold;">[Stock: ${p.stock}]</span>` : ''}
                         ${!inStock ? '<br><span style="color:#ff4d4d; font-size: 0.75rem; font-weight: bold;">[AGOTADO]</span>' : ''}
                     </div>
                     <div class="item-actions">
@@ -1094,6 +1112,8 @@
             document.getElementById('owner-col').style.display = p.category === 'ventas_extras' ? 'block' : 'none';
             document.getElementById('new-brand').value = p.brand;
             document.getElementById('new-image').value = p.image || '';
+            document.getElementById('new-desc').value = p.desc || '';
+            document.getElementById('new-stock').value = p.stock || 0;
 
             document.getElementById('form-title').innerText = "Editar Producto";
             document.querySelector('.save-btn').innerText = "Actualizar Producto";
@@ -1109,6 +1129,8 @@
             document.getElementById('new-seller-price').value = '';
             document.getElementById('new-brand').value = '';
             document.getElementById('new-image').value = '';
+            document.getElementById('new-desc').value = '';
+            document.getElementById('new-stock').value = '0';
             document.getElementById('owner-col').style.display = 'none';
             document.getElementById('new-owner').value = 'admin';
 
@@ -1122,8 +1144,10 @@
             const price = parseInt(document.getElementById('new-price').value);
             const sellerPrice = parseInt(document.getElementById('new-seller-price').value) || price;
             const category = document.getElementById('new-category').value;
-            const owner = category === 'ventas_extras' ? document.getElementById('new-owner').value : undefined;
+            const owner = category === 'ventas_extras' ? document.getElementById('new-owner').value : null;
             const brand = document.getElementById('new-brand').value;
+            const desc = document.getElementById('new-desc').value.trim();
+            const stock = parseInt(document.getElementById('new-stock').value) || 0;
             let image = document.getElementById('new-image').value;
 
             if (!name || isNaN(price)) return alert('Completa los campos de Nombre y Precio');
@@ -1162,6 +1186,8 @@
                     category,
                     owner,
                     brand,
+                    desc,
+                    stock,
                     image,
                     active: true
                 };
@@ -1171,8 +1197,10 @@
                 dynamicProducts[editIndex].price = price;
                 dynamicProducts[editIndex].sellerPrice = sellerPrice;
                 dynamicProducts[editIndex].category = category;
-                dynamicProducts[editIndex].owner = owner;
+                dynamicProducts[editIndex].owner = owner || null;
                 dynamicProducts[editIndex].brand = brand;
+                dynamicProducts[editIndex].desc = desc;
+                dynamicProducts[editIndex].stock = stock;
                 dynamicProducts[editIndex].image = image;
                 // doesn't touch active status
                 cancelEdit();
@@ -1243,6 +1271,7 @@
             if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
 
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
+            storeConfig.adminPassword = document.getElementById('conf-adminPassword').value || 'admin123';
 
             storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
             storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
