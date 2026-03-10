@@ -84,7 +84,7 @@ header {
     padding: 1.5rem 1rem;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 950;
     background: rgba(5, 5, 7, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
