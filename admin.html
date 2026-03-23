@@ -286,7 +286,8 @@
                         <select id="new-allow-exhausted-seller">
                             <option value="">-- Ninguno --</option>
                         </select>
-                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">El vendedor seleccionado podrá ver y comprar esta pantalla aunque esté marcada como [AGOTADO].</p>
+                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">El vendedor seleccionado podrá
+                            ver y comprar esta pantalla aunque esté marcada como [AGOTADO].</p>
                     </div>
                 </div>
 
@@ -1436,7 +1437,7 @@
             if (document.getElementById('conf-incentiveMessage')) document.getElementById('conf-incentiveMessage').value = storeConfig.incentiveMessage || '';
             if (document.getElementById('conf-incentiveNetflix')) document.getElementById('conf-incentiveNetflix').value = storeConfig.incentiveNetflix || 0;
             if (document.getElementById('conf-incentiveDisney')) document.getElementById('conf-incentiveDisney').value = storeConfig.incentiveDisney || 0;
-            if (document.getElementById('conf-incentiveMax')) document.getElementById('conf-incentiveMax').value = storeConfig.incentiveMax || 0;
+            if (document.getElementById('conf-incentiveHbo')) document.getElementById('conf-incentiveHbo').value = storeConfig.incentiveHbo || storeConfig.incentiveMax || 0;
             if (document.getElementById('conf-incentivePrime')) document.getElementById('conf-incentivePrime').value = storeConfig.incentivePrime || 0;
             if (document.getElementById('conf-incentiveParamount')) document.getElementById('conf-incentiveParamount').value = storeConfig.incentiveParamount || 0;
             if (document.getElementById('conf-incentiveVix')) document.getElementById('conf-incentiveVix').value = storeConfig.incentiveVix || 0;
@@ -1788,23 +1789,26 @@
             storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
             storeConfig.adminPassword = document.getElementById('conf-adminPassword').value || 'admin123';
 
-            storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
-            storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
-            storeConfig.incentiveNetflix = parseInt(document.getElementById('conf-incentiveNetflix').value) || 0;
-            storeConfig.incentiveDisney = parseInt(document.getElementById('conf-incentiveDisney').value) || 0;
-            storeConfig.incentiveMax = parseInt(document.getElementById('conf-incentiveMax').value) || 0;
-            storeConfig.incentivePrime = parseInt(document.getElementById('conf-incentivePrime').value) || 0;
-            storeConfig.incentiveParamount = parseInt(document.getElementById('conf-incentiveParamount').value) || 0;
-            storeConfig.incentiveVix = parseInt(document.getElementById('conf-incentiveVix').value) || 0;
-            storeConfig.incentiveIptv = parseInt(document.getElementById('conf-incentiveIptv').value) || 0;
-            storeConfig.incentiveCrunchyroll = parseInt(document.getElementById('conf-incentiveCrunchyroll').value) || 0;
-            storeConfig.incentiveApple = parseInt(document.getElementById('conf-incentiveApple').value) || 0;
-            storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
-            storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
-            storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;
-            storeConfig.incentiveCombo5 = parseInt(document.getElementById('conf-incentiveCombo5').value) || 0;
-            storeConfig.incentiveFinde = parseInt(document.getElementById('conf-incentiveFinde').value) || 0;
-            storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
+            if (document.getElementById('conf-incentiveEnabled')) storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
+            if (document.getElementById('conf-incentiveMessage')) storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
+            if (document.getElementById('conf-incentiveNetflix')) {
+                storeConfig.incentiveNetflix = parseInt(document.getElementById('conf-incentiveNetflix').value) || 0;
+                storeConfig.incentiveDisney = parseInt(document.getElementById('conf-incentiveDisney').value) || 0;
+                storeConfig.incentiveHbo = parseInt(document.getElementById('conf-incentiveHbo').value) || 0;
+                storeConfig.incentiveMax = storeConfig.incentiveHbo;
+                storeConfig.incentivePrime = parseInt(document.getElementById('conf-incentivePrime').value) || 0;
+                storeConfig.incentiveParamount = parseInt(document.getElementById('conf-incentiveParamount').value) || 0;
+                storeConfig.incentiveVix = parseInt(document.getElementById('conf-incentiveVix').value) || 0;
+                storeConfig.incentiveIptv = parseInt(document.getElementById('conf-incentiveIptv').value) || 0;
+                storeConfig.incentiveCrunchyroll = parseInt(document.getElementById('conf-incentiveCrunchyroll').value) || 0;
+                storeConfig.incentiveApple = parseInt(document.getElementById('conf-incentiveApple').value) || 0;
+                storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
+                storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
+                storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;
+                storeConfig.incentiveCombo5 = parseInt(document.getElementById('conf-incentiveCombo5').value) || 0;
+                storeConfig.incentiveFinde = parseInt(document.getElementById('conf-incentiveFinde').value) || 0;
+                storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
+            }
 
             if (document.getElementById('conf-tabOrder')) {
                 const arr = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim()).filter(s => s);
