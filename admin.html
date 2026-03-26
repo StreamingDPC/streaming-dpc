@@ -507,12 +507,16 @@
                             <label>Ciudad Guardada:</label>
                             <input type="text" id="edit-client-city">
                         </div>
+                        <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1;">
+                            <label>Seleccionar Producto/Venta a Editar Fechas:</label>
+                            <select id="edit-client-select-sale" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; border-radius: 8px;" onchange="onEditClientSaleChange()"></select>
+                        </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
-                            <label>Fecha de Inicio (Última Compra):</label>
+                            <label>Fecha de Inicio:</label>
                             <input type="date" id="edit-client-start-date">
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
-                            <label>Fecha de Fin (Última Compra):</label>
+                            <label>Fecha de Fin:</label>
                             <input type="date" id="edit-client-end-date">
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
@@ -2659,6 +2663,27 @@
             window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
         }
 
+        function updateEditClientDatesUI(saleObj) {
+            if (saleObj.date) {
+                const sd = new Date(saleObj.date);
+                document.getElementById('edit-client-start-date').value = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+            } else document.getElementById('edit-client-start-date').value = '';
+
+            if (saleObj.expirationDate) {
+                const ed = new Date(saleObj.expirationDate);
+                document.getElementById('edit-client-end-date').value = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-${String(ed.getDate()).padStart(2, '0')}`;
+            } else document.getElementById('edit-client-end-date').value = '';
+        }
+
+        window.onEditClientSaleChange = function() {
+            const selectElement = document.getElementById('edit-client-select-sale');
+            const selectedKey = selectElement.value;
+            if (window.currentClientSales && selectedKey && window.currentClientSales[selectedKey]) {
+                window.currentEditingSaleKey = selectedKey;
+                updateEditClientDatesUI(window.currentClientSales[selectedKey]);
+            }
+        };
+
         function clickEditClient(phone) {
             document.getElementById('search-client-phone').value = phone;
             searchClient();
@@ -2680,20 +2705,32 @@
 
                 // Get the most recent details
                 const sortedKeys = Object.keys(sales).sort((k1, k2) => sales[k2].date - sales[k1].date);
+                window.currentClientSales = sales;
+
+                const selectElement = document.getElementById('edit-client-select-sale');
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+                    sortedKeys.forEach(k => {
+                        const s = sales[k];
+                        const opt = document.createElement('option');
+                        opt.value = k;
+                        const itemsText = s.items ? s.items.map(i => i.name).join(', ') : 'Pantalla';
+                        const dateText = s.date ? new Date(s.date).toLocaleDateString() : 'N/A';
+                        let fName = itemsText;
+                        if (fName.length > 50) fName = fName.substring(0, 47) + '...';
+                        opt.text = `${fName} (Comprado: ${dateText})`;
+                        selectElement.appendChild(opt);
+                    });
+                }
+
                 window.currentEditingSaleKey = sortedKeys[0];
+                if (selectElement) selectElement.value = window.currentEditingSaleKey;
+
                 let latestSale = sales[window.currentEditingSaleKey];
                 document.getElementById('edit-client-name').value = latestSale.clientName || '';
                 document.getElementById('edit-client-city').value = latestSale.clientCity || '';
 
-                if (latestSale.date) {
-                    const sd = new Date(latestSale.date);
-                    document.getElementById('edit-client-start-date').value = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
-                } else document.getElementById('edit-client-start-date').value = '';
-
-                if (latestSale.expirationDate) {
-                    const ed = new Date(latestSale.expirationDate);
-                    document.getElementById('edit-client-end-date').value = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-${String(ed.getDate()).padStart(2, '0')}`;
-                } else document.getElementById('edit-client-end-date').value = '';
+                updateEditClientDatesUI(latestSale);
 
                 // Fetch PIN if any
                 const pinSnap = await db.ref(`clientProfiles/${phone}/pin`).once('value');
