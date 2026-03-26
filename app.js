@@ -1321,14 +1321,37 @@ function setupEventListeners() {
                 finalSellerDestination = extrasOriginalOwner;
             }
 
-            if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
-                db.ref(`sellerSales/${finalSellerDestination}`).push(saleData);
-            }
-
             // Always save to client historical indexed by their clean phone
             const cleanPhoneTracking = cPhone ? cPhone.replace(/\D/g, '') : '';
-            if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
-                db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
+            
+            if (window.renewalSaleId) {
+                // UPDATE EL MISMO REGISTRO, NO GENERAR UNO NUEVO
+                if (window.renewalSource === 'seller') {
+                    if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
+                        db.ref(`sellerSales/${finalSellerDestination}/${window.renewalSaleId}`).set(saleData);
+                    }
+                    if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
+                        db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
+                    }
+                } else if (window.renewalSource === 'client') {
+                    if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
+                        db.ref(`clientSales/${cleanPhoneTracking}/${window.renewalSaleId}`).set(saleData);
+                    }
+                    // Si el cliente renueva, para que el admin lo vea en su lista, usualmente lo notifica por whatsapp. 
+                    // No crearemos un registro nuevo global para evitar el duplicado pedido expresamente.
+                }
+
+                window.renewalSaleId = null;
+                window.renewalSource = null;
+            } else {
+                // NUEVA VENTA
+                if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
+                    db.ref(`sellerSales/${finalSellerDestination}`).push(saleData);
+                }
+
+                if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
+                    db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
+                }
             }
 
             let updatedProducts = false;
@@ -1494,7 +1517,7 @@ function renderSellerDashboard() {
                 ${sale.incentiveEarned ? `<div style="background: rgba(243,156,18,0.2); border: 1px dashed #f39c12; color: #f39c12; font-size: 0.8rem; padding: 5px 10px; border-radius: 6px; margin-bottom: 0.8rem;"><b>Bono Ganado:</b> +$${sale.incentiveEarned.toLocaleString()} <span style="font-size:0.75rem;">(${sale.incentiveDetails ? sale.incentiveDetails.join(', ') : ''})</span></div>` : ''}
                 <p style="font-size:0.85rem; color:var(--text-primary); margin-bottom:1rem;">📺 ${itemsStr}</p>
                 <div style="display:flex; gap: 0.5rem; flex-wrap:wrap;">
-                    <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone}', '${sale.clientCity}', '${encodeURIComponent(JSON.stringify(sale.items || []))}')" 
+                    <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone}', '${sale.clientCity}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${sale.id}', 'seller')" 
                         style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color:black;">
                         <i class="fa-solid fa-redo"></i> Renovar
                     </button>
@@ -1509,7 +1532,9 @@ function renderSellerDashboard() {
     });
 }
 
-window.renewFromDash = function (cName, cPhone, cCity, itemsJsonEncoded) {
+window.renewFromDash = function (cName, cPhone, cCity, itemsJsonEncoded, saleId = null, source = 'client') {
+    window.renewalSaleId = saleId;
+    window.renewalSource = source;
     try {
         const itemsToRenew = JSON.parse(decodeURIComponent(itemsJsonEncoded));
 
@@ -1610,7 +1635,7 @@ function renderClientDashboard() {
                 </div>
                 <p style="font-size:0.85rem; color:var(--text-primary); margin-bottom:1rem;">📺 ${itemsStr}</p>
                 <div style="display:flex; gap: 0.5rem; flex-wrap:wrap;">
-                    <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone || clientPhoneLoggedIn}', '${sale.clientCity || ''}', '${encodeURIComponent(JSON.stringify(sale.items || []))}')" 
+                    <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone || clientPhoneLoggedIn}', '${sale.clientCity || ''}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${sale.id}', 'client')" 
                         style="width: 100%; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color:black;">
                         <i class="fa-solid fa-redo"></i> Renovar mis pantallas
                     </button>
