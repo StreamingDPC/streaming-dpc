@@ -18,6 +18,12 @@ let storeConfig = {};
 let products = [];
 let cart = [];
 
+const formatWaPhone = (phone) => {
+    if (!phone) return '';
+    let p = String(phone).replace(/\D/g, '');
+    return (p.length === 10 && p.startsWith('3')) ? '57' + p : p;
+};
+
 // DOM Elements
 const productsGrid = document.getElementById('products-grid');
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -190,7 +196,7 @@ function setupConfigUI() {
 
     if (publicSellerRef) {
         if (publicSellerStoreData) {
-            waLinkHref = publicSellerStoreData.whatsapp ? `https://wa.me/${publicSellerStoreData.whatsapp}` : null;
+            waLinkHref = publicSellerStoreData.whatsapp ? `https://wa.me/${formatWaPhone(publicSellerStoreData.whatsapp)}` : null;
             fbLinkHref = publicSellerStoreData.facebookUrl || null;
             igLinkHref = publicSellerStoreData.instagramUrl || null;
             tkLinkHref = publicSellerStoreData.tiktokUrl || null;
@@ -198,7 +204,7 @@ function setupConfigUI() {
             ytLinkHref = publicSellerStoreData.youtubeUrl || null;
         }
     } else {
-        waLinkHref = storeConfig.whatsappNumber ? `https://wa.me/${storeConfig.whatsappNumber}` : null;
+        waLinkHref = storeConfig.whatsappNumber ? `https://wa.me/${formatWaPhone(storeConfig.whatsappNumber)}` : null;
         fbLinkHref = storeConfig.facebookUrl || null;
         igLinkHref = storeConfig.instagramUrl || null;
         tkLinkHref = storeConfig.tiktokUrl || null;
@@ -498,12 +504,42 @@ function renderProducts(category) {
         let sellerBadge = isSellerMode ? `<span style="background:#27ae60; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; margin-left:0.5rem">Precio Vendedor</span>` : '';
         let inStock = product.inStock !== false;
 
-        // Allow bypassing 'Agotado' status if the seller is specifically authorized 
-        // to renew this exhausted screen.
-        if (!inStock && isSellerMode && currentSellerName && product.allowExhaustedSeller) {
-            const allowedList = product.allowExhaustedSeller.split(',').map(x => x.trim());
-            if (allowedList.includes(currentSellerName)) {
+        let bypassReserveUser = null;
+        if (isSellerMode && currentSellerName) {
+            bypassReserveUser = currentSellerName;
+        } else if (!isSellerMode && window.clientPhoneLoggedIn) {
+            bypassReserveUser = window.clientPhoneLoggedIn;
+        }
+
+        // Allow bypassing 'Agotado' status if specifically authorized 
+        if (!inStock && bypassReserveUser) {
+            let userRules = null;
+            if (product.reserveRules && product.reserveRules[bypassReserveUser]) {
+                userRules = product.reserveRules[bypassReserveUser];
+            } else if (product.allowExhaustedSeller) {
+                const allowedList = product.allowExhaustedSeller.split(',').map(x => x.trim());
+                if (allowedList.includes(bypassReserveUser)) {
+                    userRules = { stock: null, date: '' };
+                }
+            }
+
+            if (userRules) {
+                if (userRules.date) {
+                    const expiryTime = new Date(userRules.date + "T23:59:59").getTime();
+                    if (Date.now() > expiryTime) {
+                        userRules = null;
+                    }
+                }
+                if (userRules && userRules.stock !== null && userRules.stock !== undefined) {
+                    if (userRules.stock <= 0) {
+                        userRules = null;
+                    }
+                }
+            }
+
+            if (userRules) {
                 inStock = true;
+                product._usingReserve = bypassReserveUser;
             }
         }
 
@@ -822,7 +858,7 @@ function setupEventListeners() {
             const encoded = encodeURIComponent(rawMsg);
 
             if (phoneSegment) {
-                window.open(`https://wa.me/${phoneSegment}?text=${encoded}`, '_blank');
+                window.open(`https://wa.me/${formatWaPhone(phoneSegment)}?text=${encoded}`, '_blank');
             } else {
                 window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
             }
@@ -892,7 +928,7 @@ function setupEventListeners() {
         forgotPinBtn.addEventListener('click', () => {
             const adminWa = storeConfig.whatsappNumber || '573155182545';
             const text = encodeURIComponent(`Hola, olvidé el PIN de mi cuenta en Streaming DPC. Mi número registrado es ${windowTempClientPhone}. Solicito un reseteo por favor.`);
-            window.open(`https://wa.me/${adminWa}?text=${text}`, '_blank');
+            window.open(`https://wa.me/${formatWaPhone(adminWa)}?text=${text}`, '_blank');
         });
     }
 
@@ -1357,13 +1393,21 @@ function setupEventListeners() {
             let updatedProducts = false;
             stats.processedCart.forEach(item => {
                 const productDbNode = products.find(p => p.id === item.id);
-                if (productDbNode && productDbNode.stock > 0) {
-                    productDbNode.stock -= 1;
-                    if (productDbNode.stock <= 0) {
-                        productDbNode.stock = 0;
-                        productDbNode.inStock = false;
+                if (productDbNode) {
+                    if (item._usingReserve && productDbNode.reserveRules && productDbNode.reserveRules[item._usingReserve]) {
+                        let currentRStock = productDbNode.reserveRules[item._usingReserve].stock;
+                        if (currentRStock !== null && currentRStock !== undefined && currentRStock > 0) {
+                            productDbNode.reserveRules[item._usingReserve].stock = currentRStock - 1;
+                            updatedProducts = true;
+                        }
+                    } else if (productDbNode.stock > 0) {
+                        productDbNode.stock -= 1;
+                        if (productDbNode.stock <= 0) {
+                            productDbNode.stock = 0;
+                            productDbNode.inStock = false;
+                        }
+                        updatedProducts = true;
                     }
-                    updatedProducts = true;
                 }
             });
             if (updatedProducts) {
@@ -1384,7 +1428,7 @@ function setupEventListeners() {
             message += `Quedo atento a la activación de mis pantallas.`;
 
             const encoded = encodeURIComponent(message);
-            window.open(`https://wa.me/${checkoutWhatsappNumber}?text=${encoded}`, '_blank');
+            window.open(`https://wa.me/${formatWaPhone(checkoutWhatsappNumber)}?text=${encoded}`, '_blank');
 
             // Vaciar el carrito y cerrar
             cart = [];
@@ -1574,7 +1618,7 @@ window.renewFromDash = function (cName, cPhone, cCity, itemsJsonEncoded, saleId 
     }
 }
 
-window.sendReminderFromDash = function (saleId, cName, cPhone, itemsEncoded) {
+window.sendReminderFromDash = async function (saleId, cName, cPhone, itemsEncoded) {
     if (!reminderEditorModal) return;
 
     const items = decodeURIComponent(itemsEncoded);
@@ -1582,6 +1626,18 @@ window.sendReminderFromDash = function (saleId, cName, cPhone, itemsEncoded) {
 
     // Replace variables
     let msg = template.replace(/{cliente}/g, cName).replace(/{pantallas}/g, items);
+
+    let clientPin = "No asignado";
+    if (cPhone) {
+        let cleanPhone = cPhone.replace(/\D/g, '');
+        try {
+            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+            if (snap.exists() && snap.val()) {
+                clientPin = snap.val();
+            }
+        } catch(e) {}
+    }
+    msg += `\n\nCelular: ${cPhone || 'N/A'} y Pin: ${clientPin}`;
 
     remindSaleIdInput.value = saleId;
     remindPhoneInput.value = cPhone || '';
@@ -1619,7 +1675,20 @@ function renderClientDashboard() {
             div.style.borderRadius = '8px';
 
             const itemsStr = sale.items ? sale.items.map(i => i.name).join(', ') : 'Pantallas';
-            const sellerAttribution = sale.sellerName && sale.sellerName !== 'Página Web Oficial' ? `<span style="font-size:0.75rem; color:#a0a0a0; display:block; margin-bottom:0.5rem;">Atendido por: ${sale.sellerName}</span>` : '';
+            
+            const sellerNetworksHtmlId = 'seller-networks-' + Math.random().toString(36).substr(2, 9);
+            let sellerAttribution = '';
+
+            if (sale.sellerName && sale.sellerName !== 'Página Web Oficial') {
+                sellerAttribution = `
+                    <div style="margin-bottom: 0.8rem; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                        <span style="font-size:0.8rem; color:#a0a0a0; display:block; margin-bottom:0.3rem;">Atendido por: <b style="color:var(--accent-primary);">${sale.sellerName}</b></span>
+                        <div id="${sellerNetworksHtmlId}" style="display:flex; gap: 12px; font-size: 1.4rem; flex-wrap:wrap; margin-top:0.5rem;">
+                            <span style="font-size:0.75rem; color:#ccc;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando redes...</span>
+                        </div>
+                    </div>
+                `;
+            }
 
             div.innerHTML = `
                 <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; flex-wrap:wrap; gap:0.5rem;">
@@ -1642,6 +1711,31 @@ function renderClientDashboard() {
                 </div>
             `;
             clientSalesList.appendChild(div);
+
+            if (sale.sellerName && sale.sellerName !== 'Página Web Oficial') {
+                db.ref(`sellerStores/${sale.sellerName}`).once('value').then(storeSnap => {
+                    const sData = storeSnap.val();
+                    const netDiv = document.getElementById(sellerNetworksHtmlId);
+                    if(netDiv) {
+                        if(sData) {
+                            let netsHtml = '';
+                            if(sData.whatsapp) netsHtml += `<a href="https://wa.me/${formatWaPhone(sData.whatsapp)}" target="_blank" style="color:#25D366; transition:transform 0.2s;"><i class="fa-brands fa-whatsapp"></i></a>`;
+                            if(sData.facebookUrl) netsHtml += `<a href="${sData.facebookUrl}" target="_blank" style="color:#1877F2; transition:transform 0.2s;"><i class="fa-brands fa-facebook"></i></a>`;
+                            if(sData.instagramUrl) netsHtml += `<a href="${sData.instagramUrl}" target="_blank" style="color:#E1306C; transition:transform 0.2s;"><i class="fa-brands fa-instagram"></i></a>`;
+                            if(sData.tiktokUrl) netsHtml += `<a href="${sData.tiktokUrl}" target="_blank" style="color:#ffffff; transition:transform 0.2s;"><i class="fa-brands fa-tiktok"></i></a>`;
+                            if(sData.kwaiUrl) netsHtml += `<a href="${sData.kwaiUrl}" target="_blank" style="color:#FF5E00; transition:transform 0.2s;"><i class="fa-solid fa-video"></i></a>`;
+                            if(sData.youtubeUrl) netsHtml += `<a href="${sData.youtubeUrl}" target="_blank" style="color:#FF0000; transition:transform 0.2s;"><i class="fa-brands fa-youtube"></i></a>`;
+                            
+                            netDiv.innerHTML = netsHtml || `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
+                        } else {
+                            netDiv.innerHTML = `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
+                        }
+                    }
+                }).catch(() => {
+                    const netDiv = document.getElementById(sellerNetworksHtmlId);
+                    if(netDiv) netDiv.innerHTML = `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
+                });
+            }
         });
     });
 }

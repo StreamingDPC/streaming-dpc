@@ -281,12 +281,26 @@
                         <label>Cantidad en Stock (Opcional, 0 = Sin límite)</label>
                         <input type="number" id="new-stock" placeholder="Ej: 5" value="0">
                     </div>
-                    <div class="form-col" style="grid-column: 1 / -1;">
+                    <div class="form-col" style="grid-column: 1 / -1; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                         <label>Habilitar para Renovación (Incluso Agotado)</label>
-                        <select id="new-allow-exhausted-seller" multiple style="height: auto; min-height: 80px;">
+                        <input type="text" id="search-allow-exhausted" placeholder="🔍 Buscar vendedor o cliente..." oninput="filterAllowExhausted()" style="margin-bottom: 0.5rem; background: var(--glass); color: white;">
+                        <select id="new-allow-exhausted-seller" multiple style="height: auto; min-height: 120px;">
                             <option value="">-- Ninguno --</option>
                         </select>
-                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Mantén presionado 'Ctrl' o 'Cmd' para seleccionar varios. Los vendedores seleccionados podrán ver y comprar esta pantalla aunque esté marcada como [AGOTADO].</p>
+                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Mantén presionado 'Ctrl' o 'Cmd' para seleccionar varios.</p>
+                        
+                        <div style="display:flex; gap:1rem; margin-top: 1rem; align-items:flex-start; flex-wrap:wrap;">
+                            <div style="flex:1; min-width: 120px;">
+                                <label style="font-size: 0.85rem; color:white;">Stock Reservado (Cant. por usuario)</label>
+                                <input type="number" id="new-allow-exhausted-stock" placeholder="Ej: 1" style="margin-top:0.3rem;">
+                                <small style="color:#ccc;">Vacío para ilimitado, o ingresa el límite.</small>
+                            </div>
+                            <div style="flex:1; min-width: 150px;">
+                                <label style="font-size: 0.85rem; color:white;">Fecha de Vencimiento de este stock</label>
+                                <input type="date" id="new-allow-exhausted-date" style="margin-top:0.3rem;">
+                                <small style="color:#ccc;">El stock se reiniciará si supera esta fecha.</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1518,11 +1532,34 @@
                 sellers.forEach(s => {
                     const opt = document.createElement('option');
                     opt.value = s.name;
-                    opt.text = s.name;
+                    opt.text = "👔 " + s.name;
                     if (currentAllows.includes(s.name)) {
                         opt.selected = true;
                     }
                     allowSelect.appendChild(opt);
+                });
+                if (window.allClientProfiles) {
+                    Object.keys(window.allClientProfiles).forEach(phone => {
+                        const name = window.allClientProfiles[phone].name || phone;
+                        const opt = document.createElement('option');
+                        opt.value = phone;
+                        opt.text = "👥 " + name + " (" + phone + ")";
+                        if (currentAllows.includes(phone)) {
+                            opt.selected = true;
+                        }
+                        allowSelect.appendChild(opt);
+                    });
+                }
+            }
+        }
+        
+        function filterAllowExhausted() {
+            const term = document.getElementById('search-allow-exhausted').value.toLowerCase();
+            const sel = document.getElementById('new-allow-exhausted-seller');
+            if (sel) {
+                Array.from(sel.options).forEach(opt => {
+                    if (opt.value === '') return;
+                    opt.style.display = opt.text.toLowerCase().includes(term) ? 'block' : 'none';
                 });
             }
         }
@@ -1635,8 +1672,26 @@
             document.getElementById('new-stock').value = p.stock || 0;
             if (document.getElementById('new-allow-exhausted-seller')) {
                 const sel = document.getElementById('new-allow-exhausted-seller');
-                const allows = (p.allowExhaustedSeller || '').split(',').map(x=>x.trim());
+                document.getElementById('search-allow-exhausted').value = '';
+                Array.from(sel.options).forEach(opt => opt.style.display = 'block'); // reset
+
+                const allows = Object.keys(p.reserveRules || {});
+                if (allows.length === 0 && p.allowExhaustedSeller) { // fallback
+                    p.allowExhaustedSeller.split(',').map(x=>x.trim()).forEach(a=> {
+                       if (a) allows.push(a); 
+                    });
+                }
+                
                 Array.from(sel.options).forEach(opt => opt.selected = allows.includes(opt.value));
+                
+                let defaultStock = '';
+                let defaultDate = '';
+                if (allows.length > 0 && p.reserveRules && p.reserveRules[allows[0]]) {
+                   defaultStock = p.reserveRules[allows[0]].stock !== undefined && p.reserveRules[allows[0]].stock !== null ? p.reserveRules[allows[0]].stock : '';
+                   defaultDate = p.reserveRules[allows[0]].date || '';
+                }
+                document.getElementById('new-allow-exhausted-stock').value = defaultStock;
+                document.getElementById('new-allow-exhausted-date').value = defaultDate;
             }
 
             document.getElementById('form-title').innerText = "Editar Producto";
@@ -1658,6 +1713,9 @@
             if (document.getElementById('new-allow-exhausted-seller')) {
                 const sel = document.getElementById('new-allow-exhausted-seller');
                 Array.from(sel.options).forEach(opt => opt.selected = false);
+                document.getElementById('new-allow-exhausted-stock').value = '';
+                document.getElementById('new-allow-exhausted-date').value = '';
+                document.getElementById('search-allow-exhausted').value = '';
             }
             document.getElementById('owner-col').style.display = 'none';
             document.getElementById('new-owner').value = 'admin';
@@ -1677,6 +1735,22 @@
             const desc = document.getElementById('new-desc').value.trim();
             const stock = parseInt(document.getElementById('new-stock').value) || 0;
             const allowExhaustedSeller = document.getElementById('new-allow-exhausted-seller') ? Array.from(document.getElementById('new-allow-exhausted-seller').selectedOptions).map(o => o.value).filter(v => v !== '').join(',') : '';
+            
+            let reserveRules = {};
+            const stockValStr = document.getElementById('new-allow-exhausted-stock').value;
+            const dateValStr = document.getElementById('new-allow-exhausted-date').value;
+            const reqStock = stockValStr ? parseInt(stockValStr) : null;
+            
+            if (document.getElementById('new-allow-exhausted-seller')) {
+                const selNodes = Array.from(document.getElementById('new-allow-exhausted-seller').selectedOptions).map(o => o.value).filter(v => v !== '');
+                selNodes.forEach(user => {
+                    reserveRules[user] = {
+                        stock: reqStock,
+                        date: dateValStr
+                    };
+                });
+            }
+
             let image = document.getElementById('new-image').value;
 
             if (!name || isNaN(price)) return alert('Completa los campos de Nombre y Precio');
@@ -1718,6 +1792,7 @@
                     desc,
                     stock,
                     allowExhaustedSeller,
+                    reserveRules,
                     image,
                     active: true
                 };
@@ -1732,6 +1807,7 @@
                 dynamicProducts[editIndex].desc = desc;
                 dynamicProducts[editIndex].stock = stock;
                 dynamicProducts[editIndex].allowExhaustedSeller = allowExhaustedSeller;
+                dynamicProducts[editIndex].reserveRules = reserveRules;
                 dynamicProducts[editIndex].image = image;
                 // doesn't touch active status
                 cancelEdit();
@@ -2330,7 +2406,7 @@
             }
         }
 
-        function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
+        async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = decodeURIComponent(itemsEncoded);
             let msg = `Hola *${sellerName}* 👋\n\nTe recuerdo que la cuenta de tu cliente *${clientName}* (📱 ${clientPhone})\n\nCon: ${itemsStr}\n👉 *FINALIZA PRONTO o YA VENCIÓ* 👈\n\nPor favor contáctalo para gestionar su renovación.`;
 
@@ -2341,6 +2417,18 @@
             if (storeConfig.paymentInfo) {
                 msg += `\n\n*Medios de Pago Autorizados:*\n${storeConfig.paymentInfo}`;
             }
+
+            let clientPin = "No asignado";
+            if (clientPhone) {
+                let cleanPhone = clientPhone.replace(/\D/g, '');
+                try {
+                    const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                    if (snap.exists() && snap.val()) {
+                        clientPin = snap.val();
+                    }
+                } catch(e) {}
+            }
+            msg += `\n\nCelular: ${clientPhone || 'N/A'} y Pin: ${clientPin}`;
 
             const encodedMsg = encodeURIComponent(msg);
             window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
@@ -2637,7 +2725,7 @@
             }
         }
 
-        function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
+        async function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = decodeURIComponent(itemsEncoded);
             let template = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️";
             let msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr);
@@ -2651,6 +2739,18 @@
             } else {
                 msg += `\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*`;
             }
+
+            let clientPin = "No asignado";
+            if (clientPhone) {
+                let cleanPhone = clientPhone.replace(/\D/g, '');
+                try {
+                    const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                    if (snap.exists() && snap.val()) {
+                        clientPin = snap.val();
+                    }
+                } catch(e) {}
+            }
+            msg += `\n\nCelular: ${clientPhone || 'N/A'} y Pin: ${clientPin}`;
 
             const encodedMsg = encodeURIComponent(msg);
 
@@ -2979,7 +3079,7 @@
             `;
         }
 
-        function startAutoRemindersQueue() {
+        async function startAutoRemindersQueue() {
             if (globalReminderQueue.length === 0) {
                 alert('Todos los recordatorios fueron revisados.');
                 dismissAutoReminders();
@@ -3001,10 +3101,35 @@
                     let msgSeller = `Hola *${r.seller}* 👋\n\nTe damos Aviso Previo que la cuenta de tu cliente *${r.name}* (📱 ${r.phone})\n\nCon: ${itemsStr}\n👉 *FINALIZA MAÑANA* 👈\n\nPor favor contáctalo para gestionar su renovación y evitar cortes.`;
                     if (r.sale.total > 0) msgSeller += `\n💰 *Total a Renovar con Administrador:* $${r.sale.total.toLocaleString()}`;
                     if (storeConfig.paymentInfo) msgSeller += `\n\n*Medios de Pago Autorizados:*\n${storeConfig.paymentInfo}`;
+
+                    let clientPin = "No asignado";
+                    if (r.phone) {
+                        let cleanPhone = r.phone.replace(/\D/g, '');
+                        try {
+                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                            if (snap.exists() && snap.val()) {
+                                clientPin = snap.val();
+                            }
+                        } catch(e) {}
+                    }
+                    msgSeller += `\n\nCelular: ${r.phone || 'N/A'} y Pin: ${clientPin}`;
+
                     window.open(`https://wa.me/?text=${encodeURIComponent(msgSeller)}`, '_blank');
                 } else {
                     if (r.sale.total > 0) msg += `\n\n💰 *Total a Renovar:* $${r.sale.total.toLocaleString()}`;
                     if (storeConfig.paymentInfo) msg += `\n\n*Medios de Pago:*\n${storeConfig.paymentInfo}`;
+
+                    let clientPin = "No asignado";
+                    if (r.phone) {
+                        let cleanPhone = r.phone.replace(/\D/g, '');
+                        try {
+                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                            if (snap.exists() && snap.val()) {
+                                clientPin = snap.val();
+                            }
+                        } catch(e) {}
+                    }
+                    msg += `\n\nCelular: ${r.phone || 'N/A'} y Pin: ${clientPin}`;
 
                     let waPhone = r.phone.replace(/\D/g, '');
                     if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
