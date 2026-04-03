@@ -1552,11 +1552,12 @@ function renderSellerDashboard() {
 
         salesArray.forEach(sale => {
             const now = Date.now();
+            const isExpired = now >= sale.expirationDate;
             const daysLeft = Math.ceil((sale.expirationDate - now) / (1000 * 60 * 60 * 24));
 
             let statusColor = '#4cd137'; // Active
-            if (daysLeft <= 3 && daysLeft >= 0) statusColor = '#f39c12'; // Ending soon
-            if (daysLeft < 0) statusColor = '#ff4d4d'; // Expired
+            if (!isExpired && daysLeft <= 3) statusColor = '#f39c12'; // Ending soon
+            if (isExpired) statusColor = '#ff4d4d'; // Expired
 
             const div = document.createElement('div');
             div.style.background = 'rgba(255,255,255,0.05)';
@@ -1570,7 +1571,7 @@ function renderSellerDashboard() {
                 <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; flex-wrap:wrap; gap:0.5rem;">
                     <strong style="color:white; font-size:1.1rem;">${sale.clientName}</strong>
                     <span style="background:${statusColor}; color:white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight:bold;">
-                        ${daysLeft >= 0 ? `Vence en ${daysLeft} días` : 'Vencida'}
+                        ${!isExpired ? `Vence en ${daysLeft} días` : 'Vencida'}
                     </span>
                 </div>
                 <!-- Fechas de Inicio y Fin -->
@@ -1689,11 +1690,12 @@ function renderClientDashboard() {
 
         salesArray.forEach(sale => {
             const now = Date.now();
+            const isExpired = now >= sale.expirationDate;
             const daysLeft = Math.ceil((sale.expirationDate - now) / (1000 * 60 * 60 * 24));
 
             let statusColor = '#4cd137'; // Active
-            if (daysLeft <= 3 && daysLeft >= 0) statusColor = '#f39c12'; // Ending soon
-            if (daysLeft < 0) statusColor = '#ff4d4d'; // Expired
+            if (!isExpired && daysLeft <= 3) statusColor = '#f39c12'; // Ending soon
+            if (isExpired) statusColor = '#ff4d4d'; // Expired
 
             const div = document.createElement('div');
             div.style.background = 'rgba(255,255,255,0.05)';
@@ -1721,7 +1723,7 @@ function renderClientDashboard() {
                 <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; flex-wrap:wrap; gap:0.5rem;">
                     <strong style="color:white; font-size:1.1rem;">${sale.clientName}</strong>
                     <span style="background:${statusColor}; color:white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight:bold;">
-                        ${daysLeft >= 0 ? `Vence en ${daysLeft} días` : 'Vencida'}
+                        ${!isExpired ? `Vence en ${daysLeft} días` : 'Vencida'}
                     </span>
                 </div>
                 ${sellerAttribution}
@@ -1731,7 +1733,7 @@ function renderClientDashboard() {
                 </div>
                 <p style="font-size:0.85rem; color:var(--text-primary); margin-bottom:1rem;">📺 ${itemsStr}</p>
                 <div style="display:flex; gap: 0.5rem; flex-wrap:wrap;">
-                    ${daysLeft >= 0 ? `
+                    ${!isExpired ? `
                     <button onclick="renewFromDash('${sale.clientName}', '${sale.clientPhone || clientPhoneLoggedIn}', '${sale.clientCity || ''}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${sale.id}', 'client')" 
                         style="width: 100%; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color:black;">
                         <i class="fa-solid fa-redo"></i> Renovar mis pantallas
