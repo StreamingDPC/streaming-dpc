@@ -1418,30 +1418,30 @@ function setupEventListeners() {
                     });
                 }
             }
+        } // CIERRE original de if (!isRecurrent)
 
-            let updatedProducts = false;
-            stats.processedCart.forEach(item => {
-                const productDbNode = products.find(p => p.id === item.id);
-                if (productDbNode) {
-                    if (item._usingReserve && productDbNode.reserveRules && productDbNode.reserveRules[item._usingReserve]) {
-                        let currentRStock = productDbNode.reserveRules[item._usingReserve].stock;
-                        if (currentRStock !== null && currentRStock !== undefined && currentRStock > 0) {
-                            productDbNode.reserveRules[item._usingReserve].stock = currentRStock - 1;
-                            updatedProducts = true;
-                        }
-                    } else if (productDbNode.stock > 0) {
-                        productDbNode.stock -= 1;
-                        if (productDbNode.stock <= 0) {
-                            productDbNode.stock = 0;
-                            productDbNode.inStock = false;
-                        }
+        let updatedProducts = false;
+        stats.processedCart.forEach(item => {
+            const productDbNode = products.find(p => p.id === item.id);
+            if (productDbNode) {
+                if (item._usingReserve && productDbNode.reserveRules && productDbNode.reserveRules[item._usingReserve]) {
+                    let currentRStock = productDbNode.reserveRules[item._usingReserve].stock;
+                    if (currentRStock !== null && currentRStock !== undefined && currentRStock > 0) {
+                        productDbNode.reserveRules[item._usingReserve].stock = currentRStock - 1;
                         updatedProducts = true;
                     }
+                } else if (productDbNode.stock > 0) {
+                    productDbNode.stock -= 1;
+                    if (productDbNode.stock <= 0) {
+                        productDbNode.stock = 0;
+                        productDbNode.inStock = false;
+                    }
+                    updatedProducts = true;
                 }
-            });
-            if (updatedProducts) {
-                db.ref('products').set(products);
             }
+        });
+        if (updatedProducts) {
+            db.ref('products').set(products);
         }
 
         const finalizeCheckout = (sellerStoreData) => {
@@ -1463,6 +1463,8 @@ function setupEventListeners() {
             cart = [];
             updateCartUI();
             if (cartModal) cartModal.style.display = 'none';
+            
+            setTimeout(() => window.location.reload(), 2000);
         };
 
         if (publicSellerRef || (extrasOriginalOwner && !isSellerMode && !publicSellerRef)) {
@@ -1725,9 +1727,13 @@ window.editClientFromDash = function (saleId, cName, cPhone, cCity) {
                             cUpd[`clientProfiles/${cleanPhoneOld}/name`] = newName;
                         }
                     });
-                    db.ref('/').update(cUpd);
+                    db.ref('/').update(cUpd).then(() => window.location.reload());
+                } else {
+                    window.location.reload();
                 }
             });
+        } else {
+            window.location.reload();
         }
     });
 };

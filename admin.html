@@ -547,6 +547,10 @@
                         <label>Teléfono Celular</label>
                         <input type="text" id="manual-client-phone" placeholder="Ej: 3001234567">
                     </div>
+                    <div class="form-col">
+                        <label>PIN de Acceso</label>
+                        <input type="text" id="manual-client-pin" placeholder="Opcional. Ej: 1234">
+                    </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla Inicial a Asignar</label>
                         <select id="manual-client-product" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;"></select>
@@ -2983,6 +2987,7 @@
                 }
 
                 alert('Datos de cliente actualizados correctamente en su historial y en registros de vendedores.');
+                window.location.reload();
             } catch (err) {
                 alert('Error conectando a la base de datos');
                 console.error(err);
@@ -3254,6 +3259,7 @@
         window.createClientManual = async function() {
             const name = document.getElementById('manual-client-name').value.trim();
             const phoneStr = document.getElementById('manual-client-phone').value.replace(/\D/g, '');
+            const pinStr = document.getElementById('manual-client-pin').value.trim();
             const prodId = document.getElementById('manual-client-product').value;
 
             if (!name) return alert('Debes ingresar el nombre del cliente.');
@@ -3297,13 +3303,12 @@
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
                 }
-                
-                document.getElementById('manual-client-name').value = '';
-                document.getElementById('manual-client-phone').value = '';
-                document.getElementById('manual-client-product').value = '';
 
-                // Refrescar vistas si están activas
-                renderAllClientsList();
+                if (pinStr) {
+                    await db.ref(`clientProfiles/${phoneStr}/pin`).set(pinStr);
+                }
+                
+                window.location.reload();
 
             } catch(e) {
                 alert('Error al crear el cliente: ' + e.message);
