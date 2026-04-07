@@ -551,6 +551,12 @@
                         <label>PIN de Acceso</label>
                         <input type="text" id="manual-client-pin" placeholder="Opcional. Ej: 1234">
                     </div>
+                    <div class="form-col">
+                        <label>Vendedor Asignado (Opcional)</label>
+                        <select id="manual-client-seller" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
+                             <option value="Página Web Oficial">Página Web Oficial (Admin)</option>
+                        </select>
+                    </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
                         <select id="manual-client-product" multiple style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; min-height: 180px;"></select>
@@ -604,6 +610,12 @@
 
                         <div class="form-col" style="grid-column: 1 / -1; margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 1rem;">
                             <label><i class="fa-solid fa-cart-plus"></i> Agregar Nuevas Pantallas Adicionales a este Cliente:</label>
+                            
+                            <label style="margin-top:0.5rem; display:block;">Asignar nueva compra al vendedor (Opcional):</label>
+                            <select id="edit-client-add-seller" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; margin-bottom: 0.5rem;">
+                                <option value="Página Web Oficial">Página Web Oficial (Admin)</option>
+                            </select>
+
                             <select id="edit-client-add-product" multiple style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; border-radius: 8px; min-height: 150px;"></select>
                             <p style="font-size:0.8rem; color:#a0a0a0; margin-top:0.3rem;">Ctrl (o Cmd en Mac) para selección múltiple.</p>
                             <button class="save-btn" style="background:#f39c12; margin-top: 1rem; width: auto; font-size: 0.9rem;" onclick="addProductsToExistingClient()"><i class="fa-solid fa-plus"></i> Añadir Pantallas como Nueva Compra</button>
@@ -3286,6 +3298,15 @@
                 if (select1) select1.innerHTML = '<option value="">-- No asignar pantalla inicial --</option>' + html;
                 if (select2) select2.innerHTML = '<option value="">-- No seleccionar / Ignorar --</option>' + html;
             }
+
+            if (storeConfig && storeConfig.sellers) {
+                let sellersHtml = '<option value="Página Web Oficial">Página Web Oficial (Admin)</option>';
+                storeConfig.sellers.forEach(s => sellersHtml += `<option value="${s.name}">${s.name}</option>`);
+                const seller1 = document.getElementById('manual-client-seller');
+                const seller2 = document.getElementById('edit-client-add-seller');
+                if (seller1) seller1.innerHTML = sellersHtml;
+                if (seller2) seller2.innerHTML = sellersHtml;
+            }
         };
 
         window.addProductsToExistingClient = async function() {
@@ -3305,7 +3326,7 @@
                 expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000),
                 items: [],
                 total: 0,
-                sellerName: 'Página Web Oficial',
+                sellerName: document.getElementById('edit-client-add-seller') ? document.getElementById('edit-client-add-seller').value : 'Página Web Oficial',
                 isPaid: true
             };
 
@@ -3326,8 +3347,8 @@
             if (saleData.items.length > 0) {
                 try {
                     await db.ref(`clientSales/${currentEditingClientPhone}`).push(saleData);
-                    await db.ref(`sellerSales/Página Web Oficial`).push(saleData);
-                    alert(`¡Nuevas pantallas agregadas satisfactoriamente al historial de ${currentEditingClientPhone} (${name})!`);
+                    await db.ref(`sellerSales/${saleData.sellerName}`).push(saleData);
+                    alert(`¡Nuevas pantallas agregadas satisfactoriamente al historial de ${currentEditingClientPhone} (${name}), bajo el vendedor asignado!`);
                     window.location.reload();
                 } catch(e) {
                     alert('Error añadiendo pantallas: ' + e.message);
@@ -3357,7 +3378,7 @@
                     expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000),
                     items: [],
                     total: 0,
-                    sellerName: 'Página Web Oficial',
+                    sellerName: document.getElementById('manual-client-seller') ? document.getElementById('manual-client-seller').value : 'Página Web Oficial',
                     isPaid: true
                 };
 
@@ -3380,8 +3401,8 @@
                 // Guardar como venta inicial si se seleccionó producto, o registro vacío si no
                 if (saleData.items.length > 0) {
                     await db.ref(`clientSales/${phoneStr}`).push(saleData);
-                    await db.ref(`sellerSales/Página Web Oficial`).push(saleData);
-                    alert(`¡Cliente '${name}' creado satisfactoriamente con sus pantallas asignadas!`);
+                    await db.ref(`sellerSales/${saleData.sellerName}`).push(saleData);
+                    alert(`¡Cliente '${name}' creado satisfactoriamente con sus pantallas asignadas bajo el vendedor asignado!`);
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
                 }
