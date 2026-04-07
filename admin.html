@@ -2483,7 +2483,7 @@
                                     onmouseover="this.style.background='rgba(76, 209, 55, 0.2)'" onmouseout="this.style.background='rgba(76, 209, 55, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Recordar
                                 </button>
-                                <button onclick="sendAdminRenovadaMessage('${safeClient}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0})" 
+                                <button onclick="sendAdminRenovadaMessage('${safeClient}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${safeSeller}', 'seller')" 
                                     style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem; transition: background 0.3s;"
                                     onmouseover="this.style.background='rgba(243, 156, 18, 0.2)'" onmouseout="this.style.background='rgba(243, 156, 18, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Renovada
@@ -2535,7 +2535,7 @@
             }
         }
 
-        function sendAdminRenovadaMessage(clientName, clientPhone, itemsEncoded, isMultiple, expirationDateTS) {
+        async function sendAdminRenovadaMessage(clientName, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId, sourceName, sourceType) {
             if (!clientPhone) return alert('Este cliente no tiene número registrado.');
             const itemsStr = decodeURIComponent(itemsEncoded);
             const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -2561,6 +2561,39 @@
             }
 
             window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+
+            // Lógica de Renovación Automática
+            setTimeout(async () => {
+                if(confirm(`¿Deseas registrar esta RENOVACIÓN automáticamente en el sistema?\n\n- Se extenderán 30 días a partir del vencimiento actual.\n- Se marcará como PAGADO.`)) {
+                    try {
+                        let dbPath = "";
+                        if(sourceType === 'seller') dbPath = `sellerSales/${sourceName}/${saleId}`;
+                        else if(sourceType === 'client') dbPath = `clientSales/${sourceName}/${saleId}`;
+
+                        if(!dbPath) return;
+
+                        const snapshot = await db.ref(dbPath).once('value');
+                        const sale = snapshot.val();
+                        if(!sale) return alert("No se encontró el registro original.");
+
+                        const currentExp = parseInt(sale.expirationDate) || Date.now();
+                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
+
+                        await db.ref(dbPath).update({
+                            expirationDate: newExp,
+                            isPaid: true
+                        });
+
+                        alert("¡Sistema Actualizado! La fecha de vencimiento se ha extendido 30 días.");
+                        if(sourceType === 'seller') fetchSellerSalesStats();
+                        else if(sourceType === 'client') renderAdminList();
+
+                    } catch(e) {
+                        console.error(e);
+                        alert("Error al actualizar la base de datos.");
+                    }
+                }
+            }, 1000);
         }
 
         async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
@@ -2817,7 +2850,7 @@
                                     onmouseover="this.style.background='rgba(42, 183, 202, 0.2)'" onmouseout="this.style.background='rgba(42, 183, 202, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Recordar
                                 </button>
-                                <button onclick="sendAdminRenovadaMessage('${safeClientName}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0})" 
+                                <button onclick="sendAdminRenovadaMessage('${safeClientName}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${c.phone}', 'client')" 
                                     style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem; transition: background 0.3s;"
                                     onmouseover="this.style.background='rgba(243, 156, 18, 0.2)'" onmouseout="this.style.background='rgba(243, 156, 18, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Renovada

@@ -1612,7 +1612,7 @@ function renderSellerDashboard() {
                         style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #4cd137; background: rgba(76, 209, 55, 0.1); color:#4cd137;">
                         <i class="fa-brands fa-whatsapp"></i> Recordar
                     </button>
-                    <button onclick="sendRenovadaFromDash('${safeClientName}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0})" 
+                    <button onclick="sendRenovadaFromDash('${safeClientName}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}')" 
                         style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12;">
                         <i class="fa-brands fa-whatsapp"></i> Renovada
                     </button>
@@ -1699,7 +1699,7 @@ window.sendReminderFromDash = async function (saleId, cName, cPhone, itemsEncode
     reminderEditorModal.style.display = 'block';
 }
 
-window.sendRenovadaFromDash = function (clientName, clientPhone, itemsEncoded, isMultiple, expirationDateTS) {
+window.sendRenovadaFromDash = function (clientName, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId = null) {
     if (!clientPhone) return alert('Este cliente no tiene número registrado.');
     const itemsStr = decodeURIComponent(itemsEncoded);
     const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -1725,6 +1725,35 @@ window.sendRenovadaFromDash = function (clientName, clientPhone, itemsEncoded, i
     }
 
     window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+
+    // Lógica de Renovación Automática
+    if (saleId && (typeof isSellerMode !== 'undefined' && isSellerMode)) {
+        setTimeout(async () => {
+            if (confirm(`¿Deseas registrar esta RENOVACIÓN automáticamente en tu panel?\n\n- Se extenderán 30 días a partir del vencimiento actual.\n- Se marcará como PAGADO.`)) {
+                try {
+                    const dbPath = `sellerSales/${currentSellerName}/${saleId}`;
+                    const snapshot = await db.ref(dbPath).once('value');
+                    const sale = snapshot.val();
+                    if (!sale) return alert("No se encontró el registro original.");
+
+                    const currentExp = parseInt(sale.expirationDate) || Date.now();
+                    const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
+
+                    await db.ref(dbPath).update({
+                        expirationDate: newExp,
+                        isPaid: true
+                    });
+
+                    alert("¡Sistema Actualizado! Tu venta ha sido renovada por 30 días.");
+                    renderSellerDashboard(); // Re-render logic
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Error al actualizar la base de datos.");
+                }
+            }
+        }, 1000);
+    }
 }
 
 window.editClientFromDash = function (saleId, cName, cPhone, cCity) {
