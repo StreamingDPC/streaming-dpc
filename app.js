@@ -1706,7 +1706,7 @@ window.sendRenovadaFromDash = function (clientName, clientPhone, itemsEncoded, i
     let monthText = 'el próximo mes';
     if (expirationDateTS && expirationDateTS !== 0) {
         const d = new Date(parseInt(expirationDateTS));
-        monthText = months[d.getMonth()];
+        monthText = `${d.getDate()} ${months[d.getMonth()]}`;
     }
 
     let msg = '';
