@@ -2443,8 +2443,8 @@
                             if (i.category && i.category.startsWith('combos')) formatName = `🎬 *${i.name}* (Combo Prediseñado)`;
                             return formatName;
                         }).join(', ') : 'Pantallas';
-                        const safeClient = (sale.clientName || 'Desconocido').replace(/'/g, '');
-                        const safeSeller = sName.replace(/'/g, '');
+                        const safeClient = encodeURIComponent(sale.clientName || 'Desconocido');
+                        const safeSeller = encodeURIComponent(sName);
                         const totalDisp = sale.total ? `$${sale.total.toLocaleString()}` : 'No registrado';
 
                         const startDate = sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A';
@@ -2535,9 +2535,12 @@
             }
         }
 
-        async function sendAdminRenovadaMessage(clientName, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId, sourceName, sourceType) {
+        async function sendAdminRenovadaMessage(clientNameEnc, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId, sourceNameEnc, sourceType) {
             if (!clientPhone) return alert('Este cliente no tiene número registrado.');
+            const clientName = decodeURIComponent(clientNameEnc);
+            const sourceName = decodeURIComponent(sourceNameEnc);
             const itemsStr = decodeURIComponent(itemsEncoded);
+            
             const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             let monthText = 'el próximo mes';
             if (expirationDateTS && expirationDateTS !== 0) {
@@ -2564,33 +2567,47 @@
 
             // Lógica de Renovación Automática
             setTimeout(async () => {
-                if(confirm(`¿Deseas registrar esta RENOVACIÓN automáticamente en el sistema?\n\n- Se extenderán 30 días a partir del vencimiento actual.\n- Se marcará como PAGADO.`)) {
+                if(confirm(`¿Deseas registrar esta RENOVACIÓN automáticamente en el sistema?\n\n- Se extenderán 30 días a partir del vencimiento actual.\n- Se marcará como PAGADO en todas las listas.`)) {
                     try {
-                        let dbPath = "";
-                        if(sourceType === 'seller') dbPath = `sellerSales/${sourceName}/${saleId}`;
-                        else if(sourceType === 'client') dbPath = `clientSales/${sourceName}/${saleId}`;
+                        const cleanPhone = clientPhone.replace(/\D/g, '');
+                        let pathsToUpdate = [];
+                        
+                        // Determinar los caminos de base de datos a actualizar
+                        if(sourceType === 'seller') {
+                            pathsToUpdate.push(`sellerSales/${sourceName}/${saleId}`);
+                            // Intentar actualizar también en clientSales si existe
+                            pathsToUpdate.push(`clientSales/${cleanPhone}/${saleId}`);
+                        } else {
+                            pathsToUpdate.push(`clientSales/${cleanPhone}/${saleId}`);
+                        }
 
-                        if(!dbPath) return;
+                        let updatedCount = 0;
+                        for(const path of pathsToUpdate) {
+                            const snapshot = await db.ref(path).once('value');
+                            const sale = snapshot.val();
+                            if(sale) {
+                                const currentExp = parseInt(sale.expirationDate) || Date.now();
+                                const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
+                                
+                                await db.ref(path).update({
+                                    expirationDate: newExp,
+                                    isPaid: true
+                                });
+                                updatedCount++;
+                            }
+                        }
 
-                        const snapshot = await db.ref(dbPath).once('value');
-                        const sale = snapshot.val();
-                        if(!sale) return alert("No se encontró el registro original.");
-
-                        const currentExp = parseInt(sale.expirationDate) || Date.now();
-                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
-
-                        await db.ref(dbPath).update({
-                            expirationDate: newExp,
-                            isPaid: true
-                        });
-
-                        alert("¡Sistema Actualizado! La fecha de vencimiento se ha extendido 30 días.");
-                        if(sourceType === 'seller') fetchSellerSalesStats();
-                        else if(sourceType === 'client') fetchClientSalesHistory();
+                        if(updatedCount > 0) {
+                            alert("¡Sistema Actualizado con éxito!");
+                            fetchSellerSalesStats();
+                            fetchClientSalesHistory();
+                        } else {
+                            alert("Aviso: No se encontró el registro original para actualizar las fechas, pero el mensaje fue enviado.");
+                        }
 
                     } catch(e) {
                         console.error(e);
-                        alert("Error al actualizar la base de datos.");
+                        alert("Error técnico al actualizar la base de datos: " + e.message);
                     }
                 }
             }, 1000);
@@ -2850,7 +2867,7 @@
                                     onmouseover="this.style.background='rgba(42, 183, 202, 0.2)'" onmouseout="this.style.background='rgba(42, 183, 202, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Recordar
                                 </button>
-                                <button onclick="sendAdminRenovadaMessage('${safeClientName}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${c.phone}', 'client')" 
+                                <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(c.name)}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${c.phone}', 'client')" 
                                     style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem; transition: background 0.3s;"
                                     onmouseover="this.style.background='rgba(243, 156, 18, 0.2)'" onmouseout="this.style.background='rgba(243, 156, 18, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Renovada
