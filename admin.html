@@ -3247,11 +3247,37 @@
             const select = document.getElementById('manual-client-product');
             if (select && dynamicProducts) {
                 select.innerHTML = '<option value="">-- No asignar pantalla inicial --</option>';
+                
+                const categoryLabels = {
+                    'individual': 'Pantallas Individuales',
+                    'combos2': 'Combo 2 Pantallas',
+                    'combos3': 'Combo 3 Pantallas',
+                    'combos4': 'Combo 4 Pantallas',
+                    'combos5': 'Combo 5+ Pantallas',
+                    'promociones': 'Promociones (Mes)',
+                    'promociones_finde': 'Promociones Finde',
+                    'ventas_extras': 'Ventas Extras'
+                };
+
+                const grouped = {};
                 dynamicProducts.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.id;
-                    opt.text = `${p.name} ($${p.price.toLocaleString()}) - ${p.category}`;
-                    select.appendChild(opt);
+                    if (!grouped[p.category]) grouped[p.category] = [];
+                    grouped[p.category].push(p);
+                });
+
+                Object.keys(grouped).forEach(cat => {
+                    const groupLabel = categoryLabels[cat] || cat.toUpperCase();
+                    const optGroup = document.createElement('optgroup');
+                    optGroup.label = `--- ${groupLabel} ---`;
+                    
+                    grouped[cat].forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.text = `${p.name} ($${p.price.toLocaleString()})`;
+                        optGroup.appendChild(opt);
+                    });
+                    
+                    select.appendChild(optGroup);
                 });
             }
         };
