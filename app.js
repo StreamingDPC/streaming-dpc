@@ -1710,9 +1710,11 @@ window.sendRenovadaFromDash = function (clientPhone, itemsEncoded, isMultiple, e
 
     let msg = '';
     if (isMultiple) {
-        msg = `♦️♦️♦️ ** Tus Pantallas de *${itemsStr}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence ${monthText}*`;
+        const template = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+        msg = template.replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
     } else {
-        msg = `♦️♦️♦️ ** Tu Pantalla de *${itemsStr}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence ${monthText}*`;
+        const template = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+        msg = template.replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
     }
 
     const encodedMsg = encodeURIComponent(msg);
