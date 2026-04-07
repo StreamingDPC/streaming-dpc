@@ -942,6 +942,15 @@
                             para los que vencen HOY.</p>
                     </div>
 
+                    <div class="form-col" style="margin-bottom: 2rem;">
+                        <label>Mensaje Vencimiento MAÑANA (Aviso Previo)</label>
+                        <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                            <textarea id="conf-reminderTomorrowTemplate"
+                                style="height: 100px; padding: 10px; flex:1;"></textarea>
+                            <button class="save-btn" onclick="saveConfig()"
+                                style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);"
+                                title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
                         <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Mensaje suave que se manda 1
                             día
                             antes.</p>
@@ -1533,10 +1542,16 @@
             document.getElementById('conf-autoReminderEnabled').value = storeConfig.autoReminderEnabled === false ? "false" : "true";
             if (document.getElementById('conf-autoReminderTomorrowEnabled')) document.getElementById('conf-autoReminderTomorrowEnabled').value = storeConfig.autoReminderTomorrowEnabled === false ? "false" : "true";
             document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "0";
-            document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
+            if (document.getElementById('conf-reminderTomorrowTemplate')) {
+                document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
+            }
             
-            document.getElementById('conf-renovadaSingularTemplate').value = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
-            document.getElementById('conf-renovadaPluralTemplate').value = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+            if (document.getElementById('conf-renovadaSingularTemplate')) {
+                document.getElementById('conf-renovadaSingularTemplate').value = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+            }
+            if (document.getElementById('conf-renovadaPluralTemplate')) {
+                document.getElementById('conf-renovadaPluralTemplate').value = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+            }
 
             if (document.getElementById('conf-sellerPassword')) document.getElementById('conf-sellerPassword').value = storeConfig.sellerPassword || 'admin';
             if (document.getElementById('conf-adminPassword')) document.getElementById('conf-adminPassword').value = storeConfig.adminPassword || 'admin123';
