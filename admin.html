@@ -3100,6 +3100,20 @@
                             if (allSellers[sellerName][sId].clientPhone === currentEditingClientPhone) {
                                 updates[`sellerSales/${sellerName}/${sId}/clientName`] = newName;
                                 updates[`sellerSales/${sellerName}/${sId}/clientCity`] = newCity;
+                                
+                                // Si es la misma venta que se está editando en fechas, sincronizar también en el panel del vendedor
+                                if (sId === window.currentEditingSaleKey) {
+                                    const startVal = document.getElementById('edit-client-start-date').value;
+                                    if (startVal) {
+                                        const [sYear, sMo, sDa] = startVal.split('-');
+                                        updates[`sellerSales/${sellerName}/${sId}/date`] = new Date(sYear, sMo - 1, sDa, 12, 0, 0).getTime();
+                                    }
+                                    const endVal = document.getElementById('edit-client-end-date').value;
+                                    if (endVal) {
+                                        const [eYear, eMo, eDa] = endVal.split('-');
+                                        updates[`sellerSales/${sellerName}/${sId}/expirationDate`] = new Date(eYear, eMo - 1, eDa, 12, 0, 0).getTime();
+                                    }
+                                }
                             }
                         }
                     }

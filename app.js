@@ -1704,46 +1704,9 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
     const clientName = decodeURIComponent(clientNameEnc);
     const itemsStr = decodeURIComponent(itemsEncoded);
 
-    // Lógica de Renovación Automática PRIMERO
-    if (saleId && (typeof isSellerMode !== 'undefined' && isSellerMode)) {
-        if (confirm(`¿Deseas REGISTRAR esta RENOVACIÓN en tu panel ahora?\n\n- Se extenderán 30 días adicionales.\n- Se marcará como PAGADO.\n\n(Si pulsas Cancelar, solo se enviará el mensaje)`)) {
-            const cleanPhone = clientPhone.replace(/\D/g, '');
-            const sellerPath = `sellerSales/${currentSellerName}/${saleId}`;
-            const clientPath = `clientSales/${cleanPhone}/${saleId}`;
-
-            (async () => {
-                try {
-                    let updated = false;
-                    const snapSeller = await db.ref(sellerPath).once('value');
-                    const saleSeller = snapSeller.val();
-                    if (saleSeller) {
-                        const currentExp = parseInt(saleSeller.expirationDate) || Date.now();
-                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
-                        await db.ref(sellerPath).update({ expirationDate: newExp, isPaid: true });
-                        updated = true;
-                    }
-                    const snapClient = await db.ref(clientPath).once('value');
-                    if (snapClient.exists()) {
-                        const saleClient = snapClient.val();
-                        const currentExp = parseInt(saleClient.expirationDate) || Date.now();
-                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
-                        await db.ref(clientPath).update({ expirationDate: newExp, isPaid: true });
-                        updated = true;
-                    }
-
-                    if (updated) {
-                        alert("¡Sistema Actualizado con éxito!");
-                        if (typeof renderSellerDashboard === 'function') renderSellerDashboard();
-                    } else {
-                        alert("Aviso: No se encontró el registro para actualizar.");
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert("Error al actualizar base de datos.");
-                }
-            })();
-        }
-    }
+    // La lógica de renovación automática ha sido ELIMINADA del panel del vendedor
+    // para evitar que el vendedor sume días innecesariamente. 
+    // Ahora solo el ADMIN puede realizar renovaciones automáticas desde su panel.
 
     const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     let monthText = 'el próximo mes';
