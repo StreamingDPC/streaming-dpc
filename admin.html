@@ -2586,7 +2586,7 @@
 
                         alert("¡Sistema Actualizado! La fecha de vencimiento se ha extendido 30 días.");
                         if(sourceType === 'seller') fetchSellerSalesStats();
-                        else if(sourceType === 'client') renderAdminList();
+                        else if(sourceType === 'client') fetchClientSalesHistory();
 
                     } catch(e) {
                         console.error(e);
