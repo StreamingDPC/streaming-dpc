@@ -552,8 +552,9 @@
                         <input type="text" id="manual-client-pin" placeholder="Opcional. Ej: 1234">
                     </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
-                        <label>Seleccionar Pantalla Inicial a Asignar</label>
-                        <select id="manual-client-product" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;"></select>
+                        <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
+                        <select id="manual-client-product" multiple style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; min-height: 180px;"></select>
+                        <p style="font-size:0.8rem; color:#a0a0a0; margin-top:0.3rem;">Mantén presionada la tecla Ctrl (o Cmd en tu teclado) y haz clic para seleccionar varias pantallas al mismo tiempo.</p>
                     </div>
                 </div>
                 <button class="save-btn" style="background:#4cd137;" onclick="createClientManual()">Crear Cliente y Asignar Pantalla</button>
@@ -3286,7 +3287,8 @@
             const name = document.getElementById('manual-client-name').value.trim();
             const phoneStr = document.getElementById('manual-client-phone').value.replace(/\D/g, '');
             const pinStr = document.getElementById('manual-client-pin').value.trim();
-            const prodId = document.getElementById('manual-client-product').value;
+            const selectElem = document.getElementById('manual-client-product');
+            const selectedOptions = Array.from(selectElem.selectedOptions).map(o => o.value).filter(v => v !== "");
 
             if (!name) return alert('Debes ingresar el nombre del cliente.');
             if (!phoneStr || phoneStr.length < 5) return alert('Debes ingresar un número válido.');
@@ -3307,25 +3309,27 @@
                     isPaid: true
                 };
 
-                if (prodId) {
-                    const p = dynamicProducts.find(x => x.id.toString() === prodId);
-                    if (p) {
-                        saleData.items.push({
-                            id: p.id,
-                            name: p.name,
-                            customName: null,
-                            category: p.category,
-                            finalPrice: p.price
-                        });
-                        saleData.total = p.price;
-                    }
+                if (selectedOptions.length > 0) {
+                    selectedOptions.forEach(prodId => {
+                        const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                        if (p) {
+                            saleData.items.push({
+                                id: p.id,
+                                name: p.name,
+                                customName: null,
+                                category: p.category,
+                                finalPrice: p.price
+                            });
+                            saleData.total += p.price;
+                        }
+                    });
                 }
 
                 // Guardar como venta inicial si se seleccionó producto, o registro vacío si no
-                if (prodId) {
+                if (saleData.items.length > 0) {
                     await db.ref(`clientSales/${phoneStr}`).push(saleData);
                     await db.ref(`sellerSales/Página Web Oficial`).push(saleData);
-                    alert(`¡Cliente '${name}' creado satisfactoriamente con su pantalla asignada!`);
+                    alert(`¡Cliente '${name}' creado satisfactoriamente con sus pantallas asignadas!`);
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
                 }
