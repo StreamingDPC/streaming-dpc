@@ -687,7 +687,48 @@
                         onclick="showSubConf('seguridad', this)"
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);">Accesos
                         / Seguridad</button>
+                    <button class="save-btn sub-conf-btn" id="btn-conf-mensajes"
+                        onclick="showSubConf('mensajes', this)"
+                        style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);">Mensajes / CRM</button>
                 </div>
+
+<!-- SUB TAB: MENSAJES / CRM -->
+<div id="sub-conf-mensajes" class="sub-conf-content" style="display:none;">
+    <h3>Configuración Mensajes / CRM</h3>
+    <div class="form-grid" style="margin-bottom: 1rem;">
+        <div class="form-col">
+            <label>Plantilla de Mensaje (Paso 1)</label>
+            <textarea id="conf-msgTemplate1" rows="3" style="flex:1;" placeholder="Ej: Hola {cliente}, su pantalla está lista."></textarea>
+        </div>
+        <div class="form-col">
+            <label>Plantilla de Mensaje (Paso 2)</label>
+            <textarea id="conf-msgTemplate2" rows="3" style="flex:1;" placeholder="Ej: Gracias por su compra."></textarea>
+        </div>
+    </div>
+    <div class="form-grid" style="margin-bottom: 1rem;">
+        <div class="form-col">
+            <label>Enviar solo Paso 1</label>
+            <select id="conf-sendOnlyStep1" style="flex:1;">
+                <option value="false">No</option>
+                <option value="true">Sí</option>
+            </select>
+        </div>
+        <div class="form-col">
+            <label>Descuento Mensajes ($)</label>
+            <input type="number" id="conf-msgDiscountAmount" style="flex:1;" placeholder="Ej: 100"/>
+        </div>
+    </div>
+    <div class="form-col" style="margin-bottom: 1rem;">
+        <label>Galería de Fotos y Texto</label>
+        <div id="msg-photo-gallery" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+        <button class="save-btn" onclick="addPhotoTextToGallery()" style="margin-top:0.5rem; background:var(--accent-primary);">
+            <i class="fa-solid fa-plus"></i> Añadir Foto y Texto
+        </button>
+    </div>
+    <button class="save-btn" onclick="saveConfig()" style="margin-top:1rem; background:var(--accent-primary);">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar Configuración Mensajes
+    </button>
+</div>
 
                 <!-- SUB TAB: GENERAL -->
                 <div id="sub-conf-general" class="sub-conf-content" style="display:block;">
