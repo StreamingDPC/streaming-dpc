@@ -1410,8 +1410,10 @@
                 <!-- Botones se generan aqui -->
             </div>
             
-            <div style="margin-top:2rem; display:flex; justify-content:flex-end;">
-                <button class="save-btn" onclick="closeCRMSelector()" style="background:transparent; border:1px solid #555; width:auto;">Cancelar</button>
+            <div style="margin-top:2rem; display:flex; justify-content:center;">
+                <button onclick="closeCRMSelector()" class="save-btn" style="width:auto; padding:10px 40px; background:#444; border:1px solid #555;">
+                    <i class="fa-solid fa-check"></i> Finalizar Envíos
+                </button>
             </div>
         </div>
     </div>
@@ -2851,13 +2853,14 @@
         }
 
         let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '' };
-        window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin) {
+        window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc) {
             _crmTargetClient = { 
                 name: decodeURIComponent(nameEnc), 
                 phone: phone,
                 start: start,
                 end: end,
-                pin: pin
+                pin: pin,
+                itemsRaw: decodeURIComponent(itemsEnc || '')
             };
             const modal = document.getElementById('crm-selector-modal');
             const searchInput = document.getElementById('crm-platform-search');
@@ -2878,23 +2881,74 @@
 
             list.innerHTML = '';
             const dict = storeConfig.crmGalleryDict || {};
+            const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
+            
+            // Separar en recomendados y resto
             const keys = Object.keys(dict).filter(k => k.toLowerCase().includes(filter));
+            
+            const recommended = [];
+            const others = [];
+
+            keys.forEach(k => {
+                const kLower = k.toLowerCase();
+                // Ver si la clave está mencionada en lo que compró el cliente (ej: "Netflix" en "Combo: Netflix + Disney")
+                if (purchasedItemsStr.includes(kLower)) {
+                    recommended.push(k);
+                } else {
+                    others.push(k);
+                }
+            });
 
             if (keys.length === 0) {
-                list.innerHTML = `<p style="color:#777; grid-column: 1 / -1; text-align:center; padding:20px;">No se encontraron plataformas que coincidan.</p>`;
+                list.innerHTML = `<p style="color:#777; grid-column: 1 / -1; text-align:center; padding:20px;">No se encontraron categorías.</p>`;
                 return;
             }
 
-            keys.forEach(k => {
-                const btn = document.createElement('button');
-                btn.className = 'save-btn';
-                btn.style = 'margin:0; background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2; min-height:100px; justify-content:center;';
-                btn.innerHTML = `<i class="fa-solid fa-tv" style="color:var(--accent-primary); font-size:1.2rem;"></i> <span style="word-break: break-word;">${k}</span>`;
-                btn.onclick = () => sendCRMStep1Message(k);
-                btn.onmouseover = () => { btn.style.background='var(--accent-primary)'; btn.style.color='black'; btn.querySelector('i').style.color='black'; };
-                btn.onmouseout = () => { btn.style.background='rgba(255,255,255,0.05)'; btn.style.color='white'; btn.querySelector('i').style.color='var(--accent-primary)'; };
-                list.appendChild(btn);
-            });
+            // Pintar Recomendados primero
+            if (recommended.length > 0 && !filter) {
+                const title = document.createElement('p');
+                title.style = 'grid-column: 1 / -1; color: var(--accent-primary); font-weight: bold; margin: 10px 0 5px 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;';
+                title.innerHTML = '<i class="fa-solid fa-star"></i> Detectados en esta venta:';
+                list.appendChild(title);
+                recommended.forEach(k => list.appendChild(createPlatformButton(k, true)));
+                
+                const titleRest = document.createElement('p');
+                titleRest.style = 'grid-column: 1 / -1; color: #777; font-weight: bold; margin: 20px 0 5px 0; font-size: 0.8rem; text-transform: uppercase;';
+                titleRest.innerHTML = 'Resto de plataformas:';
+                list.appendChild(titleRest);
+            }
+
+            others.forEach(k => list.appendChild(createPlatformButton(k, false)));
+        }
+
+        function createPlatformButton(k, isRecommended) {
+            const btn = document.createElement('button');
+            btn.className = 'save-btn';
+            btn.style = `margin:0; background:${isRecommended ? 'rgba(155, 89, 182, 0.15)' : 'rgba(255,255,255,0.05)'}; border: 1px solid ${isRecommended ? '#9b59b6' : 'rgba(255,255,255,0.1)'}; font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2; min-height:100px; justify-content:center;`;
+            btn.id = 'btn-crm-' + k.replace(/\s+/g, '-');
+            btn.innerHTML = `<i class="fa-solid fa-tv" style="color:${isRecommended ? '#9b59b6' : 'var(--accent-primary)'}; font-size:1.2rem;"></i> <span style="word-break: break-word;">${k}</span>`;
+            
+            btn.onclick = () => {
+                sendCRMStep1Message(k);
+                btn.style.opacity = '0.5';
+                btn.style.filter = 'grayscale(1)';
+                btn.innerHTML += '<br><small style="color:#2ecc71; font-size:0.7rem;">¡Enviado!</small>';
+                btn.disabled = true;
+            };
+
+            btn.onmouseover = () => { 
+                if (!btn.disabled) {
+                    btn.style.background='var(--accent-primary)'; btn.style.color='black'; btn.querySelector('i').style.color='black'; 
+                }
+            };
+            btn.onmouseout = () => { 
+                if (!btn.disabled) {
+                    btn.style.background=isRecommended ? 'rgba(155, 89, 182, 0.15)' : 'rgba(255,255,255,0.05)'; 
+                    btn.style.color='white'; 
+                    btn.querySelector('i').style.color=isRecommended ? '#9b59b6' : 'var(--accent-primary)'; 
+                }
+            };
+            return btn;
         }
 
         window.closeCRMSelector = function() {
@@ -2902,7 +2956,6 @@
         }
 
         window.sendCRMStep1Message = function(platformName) {
-            closeCRMSelector();
             const { name, phone, start, end, pin } = _crmTargetClient;
             const dict = storeConfig.crmGalleryDict || {};
             const items = dict[platformName] || [];
@@ -3226,7 +3279,7 @@
                                     <i class="fa-brands fa-whatsapp"></i> Renovada
                                 </button>
                                 ${(!sale.sellerName || sale.sellerName === 'Página Web Oficial' || sale.sellerName === 'Admin') ? `
-                                <button onclick="openCRMPlatformSelector('${encodeURIComponent(c.name)}', '${c.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[c.phone] ? allClientProfiles[c.phone].pin : '')}')" 
+                                <button onclick="openCRMPlatformSelector('${encodeURIComponent(c.name)}', '${c.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[c.phone] ? allClientProfiles[c.phone].pin : '')}', '${encodeURIComponent(itemsStr)}')" 
                                     style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6; font-size:0.8rem; transition: background 0.3s;"
                                     onmouseover="this.style.background='rgba(155, 89, 182, 0.2)'" onmouseout="this.style.background='rgba(155, 89, 182, 0.1)'">
                                     <i class="fa-solid fa-paper-plane"></i> CRM
