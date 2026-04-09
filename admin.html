@@ -2664,9 +2664,26 @@
             }
 
             const encodedMsg = encodeURIComponent(msg);
-            let waPhone = clientPhone.toString().replace(/\D/g, '');
-            if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-            window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+            
+            // Si el cliente pertenece a un vendedor, el mensaje debe llegar al vendedor y no al cliente
+            const sNameOrPhone = sourceName;
+            if (sNameOrPhone && sNameOrPhone !== 'Página Web Oficial' && sNameOrPhone !== 'Admin' && sNameOrPhone !== clientPhone) {
+                db.ref(`sellerStores/${sNameOrPhone}/whatsapp`).once('value').then(snap => {
+                    const sWpp = snap.val();
+                    let sellerMsg = `✅ *Actualización de Renovación - Streaming DPC*\n\nHola *${sNameOrPhone}*, te informamos que la cuenta de tu cliente *${clientName}* (${clientPhone}) ha sido *RENOVADA* exitosamente.\n\n${msg}`;
+                    if (sWpp) {
+                        let sPhone = sWpp.toString().replace(/\D/g, '');
+                        if (sPhone.length === 10 && sPhone.startsWith('3')) sPhone = '57' + sPhone;
+                        window.open(`https://wa.me/${sPhone}?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                    } else {
+                        window.open(`https://wa.me/?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                    }
+                });
+            } else {
+                let waPhone = clientPhone.toString().replace(/\D/g, '');
+                if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+                window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+            }
         }
 
         async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
@@ -2923,7 +2940,7 @@
                                     onmouseover="this.style.background='rgba(42, 183, 202, 0.2)'" onmouseout="this.style.background='rgba(42, 183, 202, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Recordar
                                 </button>
-                                <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(c.name)}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${c.phone}', 'client')" 
+                                <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(c.name)}', '${c.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', 'client')" 
                                     style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem; transition: background 0.3s;"
                                     onmouseover="this.style.background='rgba(243, 156, 18, 0.2)'" onmouseout="this.style.background='rgba(243, 156, 18, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Renovada
@@ -2960,9 +2977,25 @@
                 if (newStatus && phoneString) {
                     if (confirm('¿Deseas enviar el mensaje de Pago Verificado por WhatsApp al cliente/vendedor?')) {
                         const msg = "¡Hola! Te confirmamos que tu *pago ha sido verificado y registrado exitosamente*. ✅\n\nGracias por tu confianza.";
-                        let waPhone = phoneString.replace(/\D/g, '');
-                        if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-                        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        
+                        // NEW LOGIC: If it's a seller's sale, personId is the seller name
+                        if (type === 'seller' && personId !== 'Página Web Oficial' && personId !== 'Admin') {
+                            db.ref(`sellerStores/${personId}/whatsapp`).once('value').then(snap => {
+                                const sWpp = snap.val();
+                                let sellerMsg = `✅ *Pago Verificado - Streaming DPC*\n\nHola *${personId}*, te confirmamos que el pago de la cuenta de tu cliente (${phoneString}) ha sido *VERIFICADO*.`;
+                                if (sWpp) {
+                                    let sPhone = sWpp.toString().replace(/\D/g, '');
+                                    if (sPhone.length === 10 && sPhone.startsWith('3')) sPhone = '57' + sPhone;
+                                    window.open(`https://wa.me/${sPhone}?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                                } else {
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                                }
+                            });
+                        } else {
+                            let waPhone = phoneString.replace(/\D/g, '');
+                            if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+                            window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }
                     }
                 }
                 alert(`Estado actualizado a ${newStatus ? 'Pagado' : 'Pendiente'}.`);

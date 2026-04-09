@@ -496,6 +496,7 @@ function renderProducts(category) {
         });
 
     filtered.forEach(product => {
+        product._usingReserve = null;
         const card = document.createElement('div');
         card.className = 'product-card';
         // Usar imagen por defecto si no tiene
@@ -1620,6 +1621,10 @@ function renderSellerDashboard() {
                         style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #c48dfc; background: rgba(196, 141, 252, 0.1); color:#c48dfc;">
                         <i class="fa-solid fa-pen"></i> Editar
                     </button>
+<button onclick="sendCRMMessageFromSale('${sale.id}', '${sale.clientName}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}')" 
+    style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2980b9; background: rgba(41, 128, 185, 0.1); color:#2980b9;">
+    <i class="fa-solid fa-paper-plane"></i> Enviar Mensaje CRM
+</button>
                 </div>
             `;
             sellerSalesList.appendChild(div);
@@ -1729,6 +1734,30 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
     if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
     window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
 }
+
+function sendCRMMessageFromSale(saleId, clientName, clientPhone, itemsEncoded) {
+    if (!clientPhone) { alert('Cliente sin número de teléfono.'); return; }
+    const itemsStr = decodeURIComponent(itemsEncoded);
+    let msg = storeConfig.msgTemplate1 || '';
+    msg = msg.replace(/{nombre}/g, clientName)
+             .replace(/{pantalla}/g, itemsStr)
+             .replace(/{inicio}/g, new Date().toLocaleDateString())
+             .replace(/{fin}/g, new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString());
+    const sendOnly = storeConfig.sendOnlyStep1 === true || storeConfig.sendOnlyStep1 === 'true';
+    if (!sendOnly) {
+        const tmpl2 = storeConfig.msgTemplate2 || '';
+        msg += '\n' + tmpl2.replace(/{nombre}/g, clientName).replace(/{pantalla}/g, itemsStr);
+        if (Array.isArray(storeConfig.msgGallery)) {
+            storeConfig.msgGallery.forEach(item => {
+                msg += '\n' + (item.text || '') + '\n' + (item.url || '');
+            });
+        }
+    }
+    const waPhone = clientPhone.replace(/\D/g, '');
+    const encodedMsg = encodeURIComponent(msg);
+    window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+}
+
 
 window.editClientFromDash = function (saleId, cName, cPhone, cCity) {
     const newName = prompt('Editar Nombre del Cliente:', cName);
