@@ -1383,14 +1383,22 @@
 
     <!-- MODAL PARA SELECCIONAR PANTALLA CRM -->
     <div id="crm-selector-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-        <div style="background:var(--bg-secondary); border: 1px solid var(--glass-border); max-width:500px; width:100%; border-radius:16px; padding:2rem; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="background:var(--bg-secondary); border: 1px solid var(--glass-border); max-width:700px; width:100%; border-radius:16px; padding:2rem; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
             <button onclick="closeCRMSelector()" style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
             <h2 style="color:var(--accent-primary); margin-bottom:1rem; display:flex; align-items:center; gap:0.8rem;">
                 <i class="fa-solid fa-paper-plane"></i> Enviar Mensaje CRM
             </h2>
-            <p style="color:#ccc; font-size:0.9rem; margin-bottom:1.5rem;">Selecciona la plataforma que el cliente está comprando para incluir sus fotos y datos en el mensaje:</p>
+            <p style="color:#ccc; font-size:0.9rem; margin-bottom:1rem;">Selecciona la plataforma que el cliente está comprando:</p>
             
-            <div id="crm-platforms-selection-list" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; max-height:300px; overflow-y:auto; padding-right:5px;">
+            <!-- BUSCADOR DE PLATAFORMAS -->
+            <div style="margin-bottom:1.5rem; position:relative;">
+                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:#777;"></i>
+                <input type="text" id="crm-platform-search" placeholder="Buscar plataforma (Netflix, Disney...)" 
+                    style="width:100%; padding:0.8rem 1rem 0.8rem 2.8rem; border-radius:10px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.05); color:white; outline:none;"
+                    onkeyup="filterCRMPlatforms(this.value)">
+            </div>
+
+            <div id="crm-platforms-selection-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:1rem; max-height:400px; overflow-y:auto; padding-right:5px;">
                 <!-- Botones se generan aqui -->
             </div>
             
@@ -2829,30 +2837,41 @@
                 pin: pin
             };
             const modal = document.getElementById('crm-selector-modal');
+            const searchInput = document.getElementById('crm-platform-search');
+            if (searchInput) searchInput.value = ''; // Limpiar búsqueda previa
+
+            if (!modal) return;
+            renderCRMPlatformsList(''); // Renderizar todo inicialmente
+            modal.style.display = 'flex';
+        }
+
+        window.filterCRMPlatforms = function(val) {
+            renderCRMPlatformsList(val.toLowerCase());
+        }
+
+        window.renderCRMPlatformsList = function(filter) {
             const list = document.getElementById('crm-platforms-selection-list');
-            if (!modal || !list) return;
+            if (!list) return;
 
             list.innerHTML = '';
             const dict = storeConfig.crmGalleryDict || {};
-            const keys = Object.keys(dict);
+            const keys = Object.keys(dict).filter(k => k.toLowerCase().includes(filter));
 
             if (keys.length === 0) {
-                alert('No tienes categorías configuradas en Mensajes / CRM.');
+                list.innerHTML = `<p style="color:#777; grid-column: 1 / -1; text-align:center; padding:20px;">No se encontraron plataformas que coincidan.</p>`;
                 return;
             }
 
             keys.forEach(k => {
                 const btn = document.createElement('button');
                 btn.className = 'save-btn';
-                btn.style = 'margin:0; background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2s;';
-                btn.innerHTML = `<i class="fa-solid fa-tv" style="color:var(--accent-primary);"></i> <span>${k}</span>`;
+                btn.style = 'margin:0; background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2; min-height:100px; justify-content:center;';
+                btn.innerHTML = `<i class="fa-solid fa-tv" style="color:var(--accent-primary); font-size:1.2rem;"></i> <span style="word-break: break-word;">${k}</span>`;
                 btn.onclick = () => sendCRMStep1Message(k);
                 btn.onmouseover = () => { btn.style.background='var(--accent-primary)'; btn.style.color='black'; btn.querySelector('i').style.color='black'; };
                 btn.onmouseout = () => { btn.style.background='rgba(255,255,255,0.05)'; btn.style.color='white'; btn.querySelector('i').style.color='var(--accent-primary)'; };
                 list.appendChild(btn);
             });
-
-            modal.style.display = 'flex';
         }
 
         window.closeCRMSelector = function() {
