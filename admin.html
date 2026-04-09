@@ -3827,20 +3827,22 @@
                 isPaid: true
             };
 
-            const isSeller = saleData.sellerName && saleData.sellerName !== 'Página Web Oficial' && saleData.sellerName !== 'Admin';
             let individualCount = 0;
             selectedOptions.forEach(prodId => {
                 const p = dynamicProducts.find(x => x.id.toString() === prodId);
-                if (p && p.category === 'individual') individualCount++;
+                if (p && p.category && p.category.toLowerCase().includes('individual')) individualCount++;
             });
+
+            console.log("[DEBUG DISCOUNT] Individuals found:", individualCount);
 
             selectedOptions.forEach(prodId => {
                 const p = dynamicProducts.find(x => x.id.toString() === prodId);
                 if (p) {
                     let finalPrice = p.price;
-                    // Descuento de 1000 por cada pantalla si selecciona 2 o más individuales y es para un vendedor
-                    if (isSeller && individualCount >= 2 && p.category === 'individual') {
+                    // Descuento de 1000 por cada pantalla si selecciona 2 o más individuales
+                    if (individualCount >= 2 && p.category && p.category.toLowerCase().includes('individual')) {
                         finalPrice -= 1000;
+                        console.log(`[DEBUG DISCOUNT] Applied 1000 discount to ${p.name}. Final: ${finalPrice}`);
                     }
 
                     saleData.items.push({
@@ -3893,19 +3895,21 @@
                 };
 
                 if (selectedOptions.length > 0) {
-                    const isSeller = saleData.sellerName && saleData.sellerName !== 'Página Web Oficial' && saleData.sellerName !== 'Admin';
                     let individualCount = 0;
                     selectedOptions.forEach(prodId => {
                         const p = dynamicProducts.find(x => x.id.toString() === prodId);
-                        if (p && p.category === 'individual') individualCount++;
+                        if (p && p.category && p.category.toLowerCase().includes('individual')) individualCount++;
                     });
+
+                    console.log("[DEBUG DISCOUNT] Individuals found (Manual Create):", individualCount);
 
                     selectedOptions.forEach(prodId => {
                         const p = dynamicProducts.find(x => x.id.toString() === prodId);
                         if (p) {
                             let finalPrice = p.price;
-                            if (isSeller && individualCount >= 2 && p.category === 'individual') {
+                            if (individualCount >= 2 && p.category && p.category.toLowerCase().includes('individual')) {
                                 finalPrice -= 1000;
+                                console.log(`[DEBUG DISCOUNT] Applied 1000 discount to ${p.name}. Final: ${finalPrice}`);
                             }
 
                             saleData.items.push({
