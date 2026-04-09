@@ -717,6 +717,13 @@
             <label>Descuento Mensajes ($)</label>
             <input type="number" id="conf-msgDiscountAmount" style="flex:1;" placeholder="Ej: 100"/>
         </div>
+        <div class="form-col">
+            <label>Usar Robot Local (Puerto D:\)</label>
+            <select id="conf-useLocalRobotCRM" style="flex:1;">
+                <option value="false">No (Enviar links web)</option>
+                <option value="true">Sí (Usar Robot para fotos locales)</option>
+            </select>
+        </div>
     </div>
     <div class="form-col" style="margin-bottom: 1rem;">
         <label>Contenido por Pantalla/Plataforma (Fotos y Textos CRM)</label>
@@ -1670,6 +1677,7 @@
             if (document.getElementById('conf-msgTemplate2')) document.getElementById('conf-msgTemplate2').value = storeConfig.msgTemplate2 || '';
             if (document.getElementById('conf-sendOnlyStep1')) document.getElementById('conf-sendOnlyStep1').value = storeConfig.sendOnlyStep1 === true ? 'true' : 'false';
             if (document.getElementById('conf-msgDiscountAmount')) document.getElementById('conf-msgDiscountAmount').value = storeConfig.msgDiscountAmount || 0;
+            if (document.getElementById('conf-useLocalRobotCRM')) document.getElementById('conf-useLocalRobotCRM').value = storeConfig.useLocalRobotCRM === true ? 'true' : 'false';
             renderMsgPhotoGallery();
 
             fetchClientSalesHistory();
@@ -2184,6 +2192,7 @@
             if (document.getElementById('conf-msgTemplate2')) storeConfig.msgTemplate2 = document.getElementById('conf-msgTemplate2').value;
             if (document.getElementById('conf-sendOnlyStep1')) storeConfig.sendOnlyStep1 = document.getElementById('conf-sendOnlyStep1').value === 'true';
             if (document.getElementById('conf-msgDiscountAmount')) storeConfig.msgDiscountAmount = parseInt(document.getElementById('conf-msgDiscountAmount').value) || 0;
+            if (document.getElementById('conf-useLocalRobotCRM')) storeConfig.useLocalRobotCRM = document.getElementById('conf-useLocalRobotCRM').value === 'true';
 
             const newCrmDict = {};
             const platformsContainer = document.getElementById('crm-platforms-container');
@@ -2857,7 +2866,7 @@
             const items = dict[platformName] || [];
 
             let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
-            let msg = template
+            let mainText = template
                 .replace(/{cliente}/ig, name)
                 .replace(/{nombre}/ig, name)
                 .replace(/{pantalla}/ig, platformName)
@@ -2865,23 +2874,51 @@
                 .replace(/{Fin}/ig, end)
                 .replace(/{pin}/ig, pin || 'N/A');
             
+            let allLocalPhotos = [];
+            let extraText = "";
+
             // Añadir fotos y sus textos
             if (items.length > 0) {
-                msg += "\n\n🚀 *DETALLES Y GUÍA:*";
+                extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
                 items.forEach((item, index) => {
-                    if (item.text) msg += `\n\n📌 *Paso ${index+1}:* ${item.text}`;
+                    if (item.text) extraText += `\n\n📌 *Paso ${index+1}:* ${item.text}`;
+                    
                     if (item.photo) {
                         const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
-                        urls.forEach(url => msg += `\n🔗 Foto guía: ${url}`);
+                        if (storeConfig.useLocalRobotCRM) {
+                            // Guardar rutas locales para el robot
+                            urls.forEach(url => allLocalPhotos.push(url));
+                        } else {
+                            // Enviar como links web normales
+                            urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
+                        }
                     }
                 });
             }
 
-            const encodedMsg = encodeURIComponent(msg);
-            let waPhone = phone.replace(/\D/g, '');
-            if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-            
-            window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+            const fullMsgForClient = mainText + extraText;
+
+            if (storeConfig.useLocalRobotCRM) {
+                // OPCIÓN 2: ENVIAR COMANDO AL ROBOT PROPIO
+                const adminPhone = storeConfig.whatsappNumber || '';
+                if (!adminPhone) return alert('Debes configurar tu número de WhatsApp en la pestaña Datos Generales.');
+                
+                let cleanAdmin = adminPhone.replace(/\D/g, '');
+                if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
+
+                // El robot captará este comando y enviará todo al cliente
+                const command = `CMD_CRM|TEL:${phone}|TX:${fullMsgForClient}|IMG:${allLocalPhotos.join(',')}`;
+                
+                if (confirm('Se enviará una orden de envío a tu Robot Local para que él mande las fotos del disco D: al cliente. ¿Continuar?')) {
+                    window.open(`https://wa.me/${cleanAdmin}?text=${encodeURIComponent(command)}`, '_blank');
+                }
+            } else {
+                // OPCIÓN 1: ENVÍO DIRECTO TRADICIONAL
+                const encodedMsg = encodeURIComponent(fullMsgForClient);
+                let waPhone = phone.replace(/\D/g, '');
+                if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+                window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+            }
         }
 
         async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
