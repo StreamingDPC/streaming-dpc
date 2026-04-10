@@ -4221,7 +4221,9 @@
                 if (saleData.items.length > 0) {
                     await db.ref(`clientSales/${phoneStr}`).push(saleData);
                     await db.ref(`sellerSales/${saleData.sellerName}`).push(saleData);
-                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : "\n⚠️ Esta venta NO sumó bono (revisa categorías o marcas).";
+                    
+                    let catDebug = saleData.items.map(i => i.category).join(', ');
+                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n⚠️ Esta venta NO sumó bono.\n(Dato técnico: Categoría detectada: "${catDebug}")`;
                     alert(`¡Cliente '${name}' creado satisfactoriamente!` + bonusMsg);
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
