@@ -4131,6 +4131,9 @@
                 // Register Client Profile first
                 await db.ref(`clientProfiles/${phoneStr}`).update({ name: name });
 
+                let incentiveEarned = 0;
+                let incentiveDetails = [];
+
                 const saleData = {
                     clientName: name,
                     clientCity: '',
@@ -4140,7 +4143,9 @@
                     items: [],
                     total: 0,
                     sellerName: document.getElementById('manual-client-seller') ? document.getElementById('manual-client-seller').value : 'Página Web Oficial',
-                    isPaid: true
+                    isPaid: true,
+                    incentiveEarned: 0,
+                    incentiveDetails: []
                 };
 
                 if (selectedOptions.length > 0) {
@@ -4169,8 +4174,40 @@
                                 finalPrice: finalPrice
                             });
                             saleData.total += finalPrice;
+
+                            // Cálculo de Incentivos (Bonos)
+                            if (storeConfig.incentiveEnabled) {
+                                if (p.category === 'individual' || p.category === 'ventas_extras') {
+                                    let b = 0; let name = '';
+                                    const matchStr = ((p.brand || '') + ' ' + (p.name || '')).toLowerCase();
+
+                                    if (matchStr.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; name = 'Netflix Privada'; }
+                                    else if (matchStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
+                                    else if (matchStr.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; }
+                                    else if (matchStr.includes('max') || matchStr.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
+                                    else if (matchStr.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; name = 'Prime Video'; }
+                                    else if (matchStr.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; name = 'Paramount+'; }
+                                    else if (matchStr.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; name = 'Vix'; }
+                                    else if (matchStr.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; name = 'IPTV'; }
+                                    else if (matchStr.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; name = 'Crunchyroll'; }
+                                    else if (matchStr.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; name = 'Apple TV'; }
+
+                                    if (b > 0) {
+                                        incentiveEarned += b;
+                                        incentiveDetails.push(`${name} (+$${b})`);
+                                    }
+                                }
+                                else if (p.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
+                                else if (p.category === 'combos3') { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); }
+                                else if (p.category === 'combos4') { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); }
+                                else if (p.category === 'combos5') { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); }
+                                else if (p.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); }
+                                else if (p.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); }
+                            }
                         }
                     });
+                    saleData.incentiveEarned = incentiveEarned;
+                    saleData.incentiveDetails = incentiveDetails;
                 }
 
                 // Guardar como venta inicial si se seleccionó producto, o registro vacío si no
