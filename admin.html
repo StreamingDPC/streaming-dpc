@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.7.5</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.7.6</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -556,6 +556,14 @@
                         <select id="manual-client-seller" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
                              <option value="Página Web Oficial">Página Web Oficial (Admin)</option>
                         </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Fecha Inicio (Opcional)</label>
+                        <input type="date" id="manual-client-start-date" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
+                    </div>
+                    <div class="form-col">
+                        <label>Fecha Vencimiento (Opcional)</label>
+                        <input type="date" id="manual-client-end-date" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
                     </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
@@ -4014,6 +4022,8 @@
             const name = document.getElementById('manual-client-name').value.trim();
             const phoneStr = document.getElementById('manual-client-phone').value.replace(/\D/g, '');
             const pinStr = document.getElementById('manual-client-pin').value.trim();
+            const startDateStr = document.getElementById('manual-client-start-date').value;
+            const endDateStr = document.getElementById('manual-client-end-date').value;
             const selectElem = document.getElementById('manual-client-product');
             const selectedOptions = Array.from(selectElem.selectedOptions).map(o => o.value).filter(v => v !== "");
 
@@ -4028,8 +4038,8 @@
                     clientName: name,
                     clientCity: '',
                     clientPhone: phoneStr,
-                    date: Date.now(),
-                    expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000),
+                    date: startDateStr ? new Date(startDateStr + 'T12:00:00').getTime() : Date.now(),
+                    expirationDate: endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : (Date.now() + (30 * 24 * 60 * 60 * 1000)),
                     items: [],
                     total: 0,
                     sellerName: document.getElementById('manual-client-seller') ? document.getElementById('manual-client-seller').value : 'Página Web Oficial',
