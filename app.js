@@ -1394,12 +1394,14 @@ function setupEventListeners() {
                             incentiveDetails.push(`${name} (+$${b})`);
                         }
                     }
-                    else if (cat.includes('combos2')) { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); console.log("Combo 2 bonus:", b); }
-                    else if (cat.includes('combos3')) { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); console.log("Combo 3 bonus:", b); }
-                    else if (cat.includes('combos4')) { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); console.log("Combo 4 bonus:", b); }
-                    else if (cat.includes('combos5')) { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); console.log("Combo 5 bonus:", b); }
-                    else if (cat.includes('promociones_finde')) { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); console.log("Promo Finde bonus:", b); }
-                    else if (cat.includes('promociones')) { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); console.log("Promo Mes bonus:", b); }
+                    else if (cat.includes('combo2')) { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); console.log("Combo 2 bonus:", b); }
+                    else if (cat.includes('combo3')) { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); console.log("Combo 3 bonus:", b); }
+                    else if (cat.includes('combo4')) { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); console.log("Combo 4 bonus:", b); }
+                    else if (cat.includes('combo5')) { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); console.log("Combo 5 bonus:", b); }
+                    else if (cat.includes('promocion') || cat.includes('promo')) { 
+                        if (cat.includes('finde')) { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); console.log("Promo Finde bonus:", b); }
+                        else { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); console.log("Promo Mes bonus:", b); }
+                    }
                 });
             }
             console.log("Total incentive earned:", incentiveEarned, "Details:", incentiveDetails);
