@@ -787,7 +787,11 @@ function setupEventListeners() {
                             const cName = sales[key].clientName;
                             const cPhone = sales[key].clientPhone || '';
                             const clientId = (cName + cPhone).toLowerCase().replace(/\s/g, '');
-                            if (cName && !uniqueClients[clientId]) {
+                            
+                            // Detalle 2: No mostrar CRM en la lista de clientes del vendedor
+                            const isCRM = cName && cName.toLowerCase().trim() === 'crm';
+
+                            if (cName && !isCRM && !uniqueClients[clientId]) {
                                 uniqueClients[clientId] = {
                                     name: cName,
                                     phone: cPhone,
@@ -1260,24 +1264,22 @@ function setupEventListeners() {
         let cPhone = "";
         let cDevices = [];
 
-        if (!isRecurrent) {
-            cName = document.getElementById('client-name').value.trim();
-            cCity = document.getElementById('client-city').value.trim();
-            cPhone = document.getElementById('client-phone').value.trim();
-            const checkedDev = document.querySelectorAll('#client-devices input[type="checkbox"]:checked');
-            checkedDev.forEach(c => cDevices.push(c.value));
+        cName = document.getElementById('client-name').value.trim();
+        cCity = document.getElementById('client-city').value.trim();
+        cPhone = document.getElementById('client-phone').value.trim();
+        const checkedDev = document.querySelectorAll('#client-devices input[type="checkbox"]:checked');
+        checkedDev.forEach(c => cDevices.push(c.value));
 
-            if (!cName) {
-                return alert('Por favor, indica el nombre del cliente.');
-            }
+        if (!cName) {
+            return alert('Por favor, indica el nombre del cliente.');
+        }
 
-            const cleanPhone = cPhone ? cPhone.replace(/\D/g, '') : '';
-            if (!cleanPhone || cleanPhone.length < 5) {
-                return alert('Por favor, indica un número de celular válido para registrar la compra.');
-            }
-            if (cleanPhone && storeConfig.blockedClients && storeConfig.blockedClients.includes(cleanPhone)) {
-                return alert('⚠️ Este número de celular ha sido bloqueado por el administrador. Contacta con soporte.');
-            }
+        const cleanPhone = cPhone ? cPhone.replace(/\D/g, '') : '';
+        if (!cleanPhone || cleanPhone.length < 5) {
+            return alert('Por favor, indica un número de celular válido para registrar la compra.');
+        }
+        if (cleanPhone && storeConfig.blockedClients && storeConfig.blockedClients.includes(cleanPhone)) {
+            return alert('⚠️ Este número de celular ha sido bloqueado por el administrador. Contacta con soporte.');
         }
 
         let stats = processCartDiscounts();
@@ -1353,8 +1355,7 @@ function setupEventListeners() {
             message += `\n💰 *Total a pagar:* $${fTotal.toLocaleString()}\n\n`;
         }
 
-        // Guardar venta en base de datos
-        if (!isRecurrent) {
+        // Guardar venta en base de datos (Detalle 1: Ahora registra siempre aunque sea cliente recurrente)
             let incentiveEarned = 0;
             let incentiveDetails = [];
 
@@ -1455,7 +1456,7 @@ function setupEventListeners() {
                     });
                 }
             }
-        } // CIERRE original de if (!isRecurrent)
+        // Fin de guardado en DB (Detalle 1: Corregido para que guarde siempre)
 
         let updatedProducts = false;
         stats.processedCart.forEach(item => {
@@ -1657,10 +1658,6 @@ function renderSellerDashboard() {
                         style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #c48dfc; background: rgba(196, 141, 252, 0.1); color:#c48dfc;">
                         <i class="fa-solid fa-pen"></i> Editar
                     </button>
-<button onclick="sendCRMMessageFromSale('${sale.id}', '${sale.clientName}', '${sale.clientPhone || ''}', '${encodeURIComponent(itemsStr)}')" 
-    style="flex: 1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2980b9; background: rgba(41, 128, 185, 0.1); color:#2980b9;">
-    <i class="fa-solid fa-paper-plane"></i> Enviar Mensaje CRM
-</button>
                 </div>
             `;
             sellerSalesList.appendChild(div);
