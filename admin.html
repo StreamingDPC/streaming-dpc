@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.8.4</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.8.5</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -4225,7 +4225,8 @@
                     await db.ref(`sellerSales/${saleData.sellerName}`).push(saleData);
                     
                     let catDebug = saleData.items.map(i => i.category || 'SIN_CATEGORIA').join(', ');
-                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n❌ NO SUMÓ BONO.\n[DEBUG]: Categoría='${catDebug}'`;
+                    let combo2Val = storeConfig.incentiveCombo2 || 'N/A';
+                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n❌ NO SUMÓ BONO.\n[DEBUG]: Cat='${catDebug}', Config_Combo2='${combo2Val}'`;
                     alert(`¡Cliente '${name}' registrado!` + bonusMsg);
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
