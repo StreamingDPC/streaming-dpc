@@ -1366,16 +1366,20 @@ function setupEventListeners() {
             let incentiveEarned = 0;
             let incentiveDetails = [];
 
+            console.log("Checking incentives... Enabled:", storeConfig.incentiveEnabled);
             if (storeConfig.incentiveEnabled) {
                 stats.processedCart.forEach(item => {
-                    if (item.category === 'individual') {
+                    console.log("Analyzing item for incentive:", item.name, "Category:", item.category);
+                    if (item.category === 'individual' || item.category === 'ventas_extras') {
                         let b = 0; let name = '';
                         // Usar tanto el brand como el name, por si el admin llenó mal el brand al añadir el producto.
                         const matchStr = ((item.brand || '') + ' ' + (item.name || '')).toLowerCase();
+                        console.log("Match string:", matchStr);
 
-                        if (matchStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
+                        if (matchStr.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; name = 'Netflix Privada'; }
+                        else if (matchStr.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
                         else if (matchStr.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; }
-                        else if (matchStr.includes('max')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
+                        else if (matchStr.includes('max') || matchStr.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
                         else if (matchStr.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; name = 'Prime Video'; }
                         else if (matchStr.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; name = 'Paramount+'; }
                         else if (matchStr.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; name = 'Vix'; }
@@ -1383,19 +1387,21 @@ function setupEventListeners() {
                         else if (matchStr.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; name = 'Crunchyroll'; }
                         else if (matchStr.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; name = 'Apple TV'; }
 
+                        console.log("Found bonus:", b, "for name:", name);
                         if (b > 0) {
                             incentiveEarned += b;
                             incentiveDetails.push(`${name} (+$${b})`);
                         }
                     }
-                    else if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); }
-                    else if (item.category === 'combos3') { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); }
-                    else if (item.category === 'combos4') { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); }
-                    else if (item.category === 'combos5') { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); }
-                    else if (item.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); }
-                    else if (item.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); }
+                    else if (item.category === 'combos2') { const b = parseInt(storeConfig.incentiveCombo2) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 2 P. (+$${b})`); console.log("Combo 2 bonus:", b); }
+                    else if (item.category === 'combos3') { const b = parseInt(storeConfig.incentiveCombo3) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 3 P. (+$${b})`); console.log("Combo 3 bonus:", b); }
+                    else if (item.category === 'combos4') { const b = parseInt(storeConfig.incentiveCombo4) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 4 P. (+$${b})`); console.log("Combo 4 bonus:", b); }
+                    else if (item.category === 'combos5') { const b = parseInt(storeConfig.incentiveCombo5) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Combo 5+ P. (+$${b})`); console.log("Combo 5 bonus:", b); }
+                    else if (item.category === 'promociones_finde') { const b = parseInt(storeConfig.incentiveFinde) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Finde (+$${b})`); console.log("Promo Finde bonus:", b); }
+                    else if (item.category === 'promociones') { const b = parseInt(storeConfig.incentiveMes) || 0; incentiveEarned += b; if (b > 0) incentiveDetails.push(`Promo Mes (+$${b})`); console.log("Promo Mes bonus:", b); }
                 });
             }
+            console.log("Total incentive earned:", incentiveEarned, "Details:", incentiveDetails);
 
             const saleData = {
                 clientName: cName || '',
@@ -2055,33 +2061,9 @@ function renderSaleItem(sale, isExpired, container) {
 // Firebase Initialization and Loading Logic
 db.ref('/').once('value').then(snap => {
     let data = snap.val();
+    // Lógica de migración eliminada por seguridad para evitar sobrescrituras accidentales.
     if (!data) {
-        console.log("Database vacia, migrando de localstorage...");
-        // Migrar LocalStorage a Firebase la primera vez
-        let oldConfig = JSON.parse(localStorage.getItem('storeConfig'));
-        let oldProducts = JSON.parse(localStorage.getItem('products'));
-
-        if (!oldConfig) {
-            oldConfig = {
-                whatsappNumber: "573155182545",
-                paymentInfo: "*Medios de pago:*\n💳 Nequi o Daviplata: 3155182545\n🔑 Llave Nequi @NEQUICEC36\n🔑 Llave Daviplata @PLATA3155182545\n🔑 Llave Nu @CMA736\n🔑 Llave Be @BE346516",
-                discountEnabled: true,
-                discountAmount: 1000,
-                netflixEnabled: true,
-                disneyEnabled: true,
-                sellers: [],
-                estrenos: []
-            };
-        }
-        if (!oldProducts || oldProducts.length === 0) {
-            oldProducts = [
-                { id: 1, name: "Netflix Premium 1️⃣ Pantalla", price: 16000, category: "individual", brand: "Netflix", image: "assets/netflix.png" },
-                { id: 11, name: "Netflix Premium + Disney Premium", price: 27000, category: "combos2", brand: "Combo", image: "assets/logo_combo.jpg" }
-            ];
-        }
-
-        data = { storeConfig: oldConfig, products: oldProducts };
-        db.ref('/').set(data);
+        console.warn("La base de datos parece estar vacía o no se pudo cargar correctamente.");
     }
 
     // Configurar observador en vivo (Live sync)

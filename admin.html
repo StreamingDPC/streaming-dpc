@@ -755,6 +755,22 @@
 
                 <!-- SUB TAB: GENERAL -->
                 <div id="sub-conf-general" class="sub-conf-content" style="display:block;">
+                    <div class="form-grid" style="margin-bottom: 2rem; border: 2px solid #f39c12; border-radius: 12px; padding: 1rem; background: rgba(243, 156, 18, 0.05);">
+                        <div class="form-col" style="grid-column: 1 / -1;">
+                            <label style="color:#f39c12; font-weight:bold; font-size: 1.1rem;"><i class="fa-solid fa-trophy"></i> ACTIVAR SISTEMA DE BONOS (VENDEDORES)</label>
+                            <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 0.5rem;">Habilita el cálculo automático de comisiones para tus vendedores según el producto vendido.</p>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <select id="conf-incentiveEnabled" style="flex:1; border:1px solid #f39c12; background: #000; color: white; padding: 10px; border-radius: 8px;">
+                                    <option value="true">SÍ - ACTIVAR BONOS</option>
+                                    <option value="false">NO - DESACTIVAR BONOS</option>
+                                </select>
+                                <button class="save-btn" onclick="saveConfig()"
+                                    style="margin:0; padding:10px 20px; width:auto; background:#f39c12; color: black; font-weight: bold; border-radius: 8px;"
+                                    title="Guardar Cambios"><i class="fa-solid fa-floppy-disk"></i> GUARDAR CONFIGURACIÓN</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <h3>Ajustes Generales de la Tienda</h3>
 
                     <div class="form-grid"
@@ -1170,8 +1186,7 @@
                     </div>
 
                     <h4 style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                        Incentivos
-                        Individuales Vendedores</h4>
+                        Incentivos Individuales Vendedores</h4>
                     <div class="form-grid" style="margin-bottom: 1rem;">
                         <div class="form-col">
                             <label>Bono Netflix ($)</label>
@@ -1618,10 +1633,14 @@
 
         db.ref('/').on('value', (snap) => {
             const data = snap.val();
+            console.log("Firebase snapshot received:", data);
             if (data) {
                 dynamicProducts = data.products || [];
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
+                
+                console.log("Store Config loaded:", storeConfig);
+                console.log("Sellers in config:", storeConfig.sellers ? storeConfig.sellers.length : 0);
 
                 if (!adminInitialized) {
                     adminInitialized = true;
@@ -1633,7 +1652,11 @@
                     renderSellersList();
                     renderBlockedClients();
                 }
+            } else {
+                console.warn("Snapshot is EMPTY (null)!");
             }
+        }, (error) => {
+            console.error("Firebase listener error:", error);
         });
         function init() {
             renderAdminList();
@@ -2623,9 +2646,13 @@
             const statsDiv = document.getElementById('admin-list-sellers-stats');
             if (statsDiv) statsDiv.innerHTML = '<p style="color:#ccc;">Cargando estadísticas...</p>';
 
+            console.log("Fetching Seller Sales Stats...");
             db.ref('sellerSales').once('value').then(snap => {
                 globalSellerSalesDataStore = snap.val() || {};
+                console.log("Seller Sales data received:", Object.keys(globalSellerSalesDataStore).length, "sellers found with sales.");
                 renderSellerSalesStats();
+            }).catch(err => {
+                console.error("Error fetching seller sales:", err);
             });
         }
 
@@ -3195,11 +3222,15 @@
 
         let allClientProfiles = {};
         function fetchClientSalesHistory() {
+            console.log("Fetching Client Sales History...");
             db.ref('/').once('value').then(snap => {
                 const data = snap.val() || {};
+                console.log("Client Sales data received:", data.clientSales ? Object.keys(data.clientSales).length : 0, "phones found.");
                 allClientSalesMap = data.clientSales || {};
                 allClientProfiles = data.clientProfiles || {};
                 renderAllClientsList();
+            }).catch(err => {
+                console.error("Error fetching client history:", err);
             });
         }
 
