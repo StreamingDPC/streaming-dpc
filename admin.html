@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.7.9</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.8.0</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -2081,7 +2081,10 @@
                     <div style="background:var(--accent-primary); color:black; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
                         <i class="fa-solid fa-tv"></i>
                     </div>
-                    <input type="text" class="platform-name-input" placeholder="Nombre (Ej: Netflix, Disney, etc)" style="flex:1; font-weight:bold; font-size:1.1rem; border:none; background:transparent; color:white;" value="${platformName}">
+                    <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                        <input type="text" class="platform-name-input" placeholder="Netflix, Disney..." style="width:100%; font-weight:bold; font-size:1.1rem; border:none; background:transparent; color:white;" value="${platformName}">
+                        <input type="text" class="platform-variant-input" placeholder="Variante (Ej: TV, Cel o Pc, Privada TV...)" style="width:100%; font-size:0.8rem; border:none; background:transparent; color:#2ab7ca; border-bottom:1px dashed rgba(42,183,202,0.3);" value="${dataItems.variant || ''}">
+                    </div>
                     <button class="btn-icon" style="color:#ff4d4d; border:1px solid rgba(255,77,77,0.3); padding:6px; border-radius:6px;" onclick="this.parentElement.parentElement.remove()" title="Eliminar Pantalla Completa">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
@@ -2132,14 +2135,23 @@
 
             if (keys.length > 0) {
                 // Nuevo formato por plataformas
-                for (let platformName in dict) {
-                    const dataItems = dict[platformName] || [];
-                    const pConfig = (storeConfig.crmPlatforms && storeConfig.crmPlatforms[platformName]) ? storeConfig.crmPlatforms[platformName] : null;
+                for (let platformFullName in dict) {
+                    const dataItems = dict[platformFullName] || [];
+                    const pConfig = (storeConfig.crmPlatforms && storeConfig.crmPlatforms[platformFullName]) ? storeConfig.crmPlatforms[platformFullName] : null;
                     const guideUrl = pConfig ? pConfig.manualUrl : '';
                     
-                    // Enviar como propiedad adjunta para el renderizado del input
+                    // Separar nombre y variante si existe el separador " | "
+                    let pName = platformFullName;
+                    let pVariant = '';
+                    if (platformFullName.includes(' | ')) {
+                        const parts = platformFullName.split(' | ');
+                        pName = parts[0];
+                        pVariant = parts[1];
+                    }
+
                     dataItems.guideUrl = guideUrl; 
-                    addCRMPlatform(platformName, dataItems);
+                    dataItems.variant = pVariant;
+                    addCRMPlatform(pName, dataItems);
                 }
             } else if (Array.isArray(storeConfig.crmGallery) && storeConfig.crmGallery.length > 0) {
                 // Formato antiguo (compatibilidad)
@@ -2282,13 +2294,16 @@
             if (platformsContainer) {
                 platformsContainer.querySelectorAll('.crm-platform-section').forEach((section, index) => {
                     let name = section.querySelector('.platform-name-input').value.trim();
+                    let variant = section.querySelector('.platform-variant-input').value.trim();
                     let guideUrl = section.querySelector('.platform-guide-url').value.trim();
+                    
                     if (!name) name = "Carpeta " + (index + 1);
                     
-                    let finalName = name;
+                    let keyBase = variant ? `${name} | ${variant}` : name;
+                    let finalName = keyBase;
                     let counter = 1;
                     while (newCrmDict[finalName]) {
-                        finalName = name + " (" + counter + ")";
+                        finalName = keyBase + " (" + counter + ")";
                         counter++;
                     }
 
@@ -2987,9 +3002,22 @@
         function createPlatformButton(k, isRecommended) {
             const btn = document.createElement('button');
             btn.className = 'save-btn';
-            btn.style = `margin:0; background:${isRecommended ? 'rgba(155, 89, 182, 0.15)' : 'rgba(255,255,255,0.05)'}; border: 1px solid ${isRecommended ? '#9b59b6' : 'rgba(255,255,255,0.1)'}; font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2; min-height:100px; justify-content:center;`;
+            btn.style = `margin:0; background:${isRecommended ? 'rgba(155, 89, 182, 0.15)' : 'rgba(255,255,255,0.05)'}; border: 1px solid ${isRecommended ? '#9b59b6' : 'rgba(255,255,255,0.1)'}; font-size:0.9rem; padding:15px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2; min-height:100px; justify-content:center; position:relative; overflow:hidden;`;
             btn.id = 'btn-crm-' + k.replace(/\s+/g, '-');
-            btn.innerHTML = `<i class="fa-solid fa-tv" style="color:${isRecommended ? '#9b59b6' : 'var(--accent-primary)'}; font-size:1.2rem;"></i> <span style="word-break: break-word;">${k}</span>`;
+            
+            let displayName = k;
+            let displayVariant = '';
+            if (k.includes(' | ')) {
+                const parts = k.split(' | ');
+                displayName = parts[0];
+                displayVariant = parts[1];
+            }
+
+            btn.innerHTML = `
+                <i class="fa-solid fa-tv" style="color:${isRecommended ? '#9b59b6' : 'var(--accent-primary)'}; font-size:1.2rem;"></i> 
+                <span style="word-break: break-word; font-weight:bold;">${displayName}</span>
+                ${displayVariant ? `<span style="font-size:0.7rem; color:#2ab7ca; background:rgba(42,183,202,0.1); padding:2px 6px; border-radius:4px; margin-top:3px;">${displayVariant}</span>` : ''}
+            `;
             
             btn.onclick = () => {
                 sendCRMStep1Message(k);
