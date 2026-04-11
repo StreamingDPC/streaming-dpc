@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.4</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.5</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -4149,8 +4149,9 @@
                     await db.ref(`sellerSales/${saleData.sellerName}`).push(saleData);
                     let catDebug = saleData.items.map(i => i.category || 'SIN_CATEGORIA').join(', ');
                     let combo2Val = storeConfig.incentiveCombo2;
-                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n❌ NO SUMÓ BONO.\n[DEBUG]: Cat='${catDebug}', Val='${combo2Val}', Vendedor='${saleData.sellerName}'`;
-                    alert(`¡Nuevas pantallas agregadas satisfactoriamente!` + bonusMsg);
+                    let enabledFlag = storeConfig.incentiveEnabled ? 'ACTIVADO' : 'APAGADO';
+                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned}` : `\n❌ NO SUMÓ.\n[DEBUG]: Cat='${catDebug}', Val='${combo2Val}', Activo='${enabledFlag}', Vendedor='${saleData.sellerName}'`;
+                    alert(`¡Acción completada!` + bonusMsg);
                     window.location.reload();
                 } catch(e) {
                     alert('Error añadiendo pantallas: ' + e.message);
