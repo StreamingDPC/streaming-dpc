@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.16 (Config Seller Msg)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.17 (Fix Encoding)</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -3203,8 +3203,10 @@
             }
         }
 
-        async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
-            const itemsStr = decodeURIComponent(itemsEncoded);
+        async function sendAdminReminderToSeller(sellerNameEnc, clientNameEnc, itemsEncoded, clientPhone, saleTotal) {
+            const sellerName = safeDecode(sellerNameEnc);
+            const clientName = safeDecode(clientNameEnc);
+            const itemsStr = safeDecode(itemsEncoded);
             
             let clientPin = "No asignado";
             if (clientPhone) {
