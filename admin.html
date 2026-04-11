@@ -4062,6 +4062,9 @@
 
             const name = document.getElementById('edit-client-name').value.trim() || 'Cliente';
             
+            const sellerNameVal = document.getElementById('edit-client-add-seller') ? document.getElementById('edit-client-add-seller').value : 'Página Web Oficial';
+            const isSellerSale = sellerNameVal !== 'Página Web Oficial';
+
             const saleData = {
                 clientName: name,
                 clientCity: document.getElementById('edit-client-city').value.trim() || '',
@@ -4070,8 +4073,8 @@
                 expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000),
                 items: [],
                 total: 0,
-                sellerName: document.getElementById('edit-client-add-seller') ? document.getElementById('edit-client-add-seller').value : 'Página Web Oficial',
-                isPaid: true,
+                sellerName: sellerNameVal,
+                isPaid: !isSellerSale, 
                 incentiveEarned: 0,
                 incentiveDetails: []
             };
@@ -4105,7 +4108,7 @@
                     saleData.total += finalPrice;
 
                     // Cálculo de Incentivos (Bonos)
-                    if (storeConfig.incentiveEnabled) {
+                    if (storeConfig.incentiveEnabled == true || storeConfig.incentiveEnabled == 'true') {
                         let itemBono = 0;
                         let itemBonoNombre = '';
                         const prodCat = (p.category || '').toLowerCase().trim();
@@ -4177,6 +4180,9 @@
 
                 // Variables de incentivos (Uso directo sobre saleData luego)
 
+                const sellerNameVal = document.getElementById('manual-client-seller') ? document.getElementById('manual-client-seller').value : 'Página Web Oficial';
+                const isSellerSale = sellerNameVal !== 'Página Web Oficial';
+
                 const saleData = {
                     clientName: name,
                     clientCity: '',
@@ -4185,8 +4191,8 @@
                     expirationDate: endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : (Date.now() + (30 * 24 * 60 * 60 * 1000)),
                     items: [],
                     total: 0,
-                    sellerName: document.getElementById('manual-client-seller') ? document.getElementById('manual-client-seller').value : 'Página Web Oficial',
-                    isPaid: true,
+                    sellerName: sellerNameVal,
+                    isPaid: !isSellerSale,
                     incentiveEarned: 0,
                     incentiveDetails: []
                 };
@@ -4223,7 +4229,7 @@
                             saleData.total += finalPrice;
 
                             // Cálculo de Incentivos (Bonos)
-                            if (storeConfig.incentiveEnabled) {
+                            if (storeConfig.incentiveEnabled == true || storeConfig.incentiveEnabled == 'true') {
                                 let itemBono = 0;
                                 let itemBonoNombre = '';
                                 const prodCat = (p.category || '').toLowerCase().trim();
