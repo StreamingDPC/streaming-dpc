@@ -4072,7 +4072,7 @@
             const isSellerFound = sellersList.some(s => s.name.trim() === sellerNameVal);
             const isSellerSale = isSellerFound && sellerNameVal !== 'Página Web Oficial';
             
-            console.log("[DEBUG] Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale });
+            console.log("[DEBUG] Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale, sellersListNames: sellersList.map(s => s.name) });
 
             const saleData = {
                 clientName: name,
@@ -4203,7 +4203,7 @@
                 const isSellerFound = sellersList.some(s => s.name.trim() === sellerNameVal);
                 const isSellerSale = isSellerFound && sellerNameVal !== 'Página Web Oficial';
                 
-                console.log("[DEBUG] Manual Create Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale });
+                console.log("[DEBUG] Manual Create Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale, sellersListNames: sellersList.map(s => s.name) });
 
                 const saleData = {
                     clientName: name,
