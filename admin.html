@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.11</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.12 (Fix CRM URL)</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -2154,14 +2154,15 @@
             if (!container) return;
             container.innerHTML = '';
             
+            const platforms = storeConfig.crmPlatforms || {};
+            const pKeys = Object.keys(platforms);
             const dict = storeConfig.crmGalleryDict || {};
-            const keys = Object.keys(dict);
 
-            if (keys.length > 0) {
+            if (pKeys.length > 0) {
                 // Nuevo formato por plataformas
-                for (let platformFullName in dict) {
+                for (let platformFullName of pKeys) {
                     const dataItems = dict[platformFullName] || [];
-                    const pConfig = (storeConfig.crmPlatforms && storeConfig.crmPlatforms[platformFullName]) ? storeConfig.crmPlatforms[platformFullName] : null;
+                    const pConfig = platforms[platformFullName];
                     const guideUrl = pConfig ? pConfig.manualUrl : '';
                     
                     // Separar nombre y variante si existe el separador " | "
@@ -2174,6 +2175,19 @@
                     }
 
                     dataItems.guideUrl = guideUrl; 
+                    dataItems.variant = pVariant;
+                    addCRMPlatform(pName, dataItems);
+                }
+            } else if (Object.keys(dict).length > 0) {
+                for (let platformFullName in dict) {
+                    const dataItems = dict[platformFullName] || [];
+                    let pName = platformFullName;
+                    let pVariant = '';
+                    if (platformFullName.includes(' | ')) {
+                        const parts = platformFullName.split(' | ');
+                        pName = parts[0];
+                        pVariant = parts[1];
+                    }
                     dataItems.variant = pVariant;
                     addCRMPlatform(pName, dataItems);
                 }
@@ -2990,10 +3004,14 @@
 
             list.innerHTML = '';
             const dict = storeConfig.crmGalleryDict || {};
+            const platforms = storeConfig.crmPlatforms || {};
+            let allKeys = Object.keys(platforms);
+            if (allKeys.length === 0) allKeys = Object.keys(dict);
+            
             const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
             
             // Separar en recomendados y resto
-            const keys = Object.keys(dict).filter(k => k.toLowerCase().includes(filter));
+            const keys = allKeys.filter(k => k.toLowerCase().includes(filter));
             
             const recommended = [];
             const others = [];
