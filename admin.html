@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.10 (Fix Bonos Admin)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.11</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -4167,9 +4167,8 @@
                     let combo2Val = storeConfig.incentiveCombo2;
                     let enabledFlag = storeConfig.incentiveEnabled ? 'ACTIVADO' : 'APAGADO';
                     let statusText = saleData.isPaid ? 'PAGADO' : 'PENDIENTE';
-                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned}` : `\n❌ NO SUMÓ BONO.`;
-                    let debugInfo = `\n---\n[DEBUG]: Vendedor='${saleData.sellerName}', Status='${statusText}', Cat='${catDebug}', ConfigCombo2='${storeConfig.incentiveCombo2}'`;
-                    alert(`¡Acción completada!` + bonusMsg + debugInfo);
+                    let bonusMsg = isSellerSale ? (saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned}` : `\n❌ NO SUMÓ BONO.`) : '';
+                    alert(`¡Acción completada!` + bonusMsg);
                     window.location.reload();
                 } catch(e) {
                     alert('Error añadiendo pantallas: ' + e.message);
@@ -4304,9 +4303,8 @@
                     let combo2Val = storeConfig.incentiveCombo2;
                     let enabledFlag = storeConfig.incentiveEnabled ? 'SI' : 'NO';
                     let statusText = saleData.isPaid ? 'PAGADO' : 'PENDIENTE';
-                    let bonusMsg = saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n❌ NO SUMÓ BONO.`;
-                    let debugInfo = `\n---\n[DEBUG]: Vendedor='${saleData.sellerName}', Status='${statusText}', Cat='${catDebug}', ConfigCombo2='${storeConfig.incentiveCombo2}'`;
-                    alert(`¡Cliente '${name}' registrado!` + bonusMsg + debugInfo);
+                    let bonusMsg = isSellerSale ? (saleData.incentiveEarned > 0 ? `\n💰 Bono sumado: $${saleData.incentiveEarned} (${saleData.incentiveDetails.join(', ')})` : `\n❌ NO SUMÓ BONO.`) : '';
+                    alert(`¡Cliente '${name}' registrado!` + bonusMsg);
                 } else {
                     alert(`¡Cliente '${name}' registrado en la DB exitosamente sin compras activas!`);
                 }
