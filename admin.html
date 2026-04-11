@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.14 (Fix Email CRM)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.15 (Edit Email)</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -619,6 +619,10 @@
                         <div class="form-col" style="margin-bottom: 1rem;">
                             <label>PIN de Acceso (4 dígitos):</label>
                             <input type="text" id="edit-client-pin" placeholder="No asignado aún">
+                        </div>
+                        <div class="form-col" style="margin-bottom: 1rem;">
+                            <label>📧 Email / Correo del Cliente:</label>
+                            <input type="email" id="edit-client-email" placeholder="cliente@gmail.com">
                         </div>
 
                         <div class="form-col" style="grid-column: 1 / -1; margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 1rem;">
@@ -3677,6 +3681,11 @@
                 const pinSnap = await db.ref(`clientProfiles/${phone}/pin`).once('value');
                 document.getElementById('edit-client-pin').value = pinSnap.val() || '';
 
+                // Fetch email from latest sale
+                if (document.getElementById('edit-client-email')) {
+                    document.getElementById('edit-client-email').value = latestSale.email || '';
+                }
+
                 currentEditingClientPhone = phone;
                 document.getElementById('client-edit-area').style.display = 'block';
 
@@ -3768,10 +3777,20 @@
 
                 // Update PIN
                 const newPin = document.getElementById('edit-client-pin').value.trim();
+                const newEmail = document.getElementById('edit-client-email') ? document.getElementById('edit-client-email').value.trim() : null;
                 if (newPin) {
                     await db.ref(`clientProfiles/${currentEditingClientPhone}/pin`).set(newPin);
                 } else {
                     await db.ref(`clientProfiles/${currentEditingClientPhone}/pin`).remove();
+                }
+                
+                // Update email on all sales
+                if (newEmail !== null && snap.val()) {
+                    const emailUpdates = {};
+                    Object.keys(snap.val()).forEach(saleKey => {
+                        emailUpdates[`clientSales/${currentEditingClientPhone}/${saleKey}/email`] = newEmail || null;
+                    });
+                    if (Object.keys(emailUpdates).length > 0) await db.ref('/').update(emailUpdates);
                 }
 
                 alert('Datos de cliente actualizados correctamente en su historial y en registros de vendedores.');
