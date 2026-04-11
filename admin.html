@@ -241,7 +241,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.15 (Edit Email)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.16 (Config Seller Msg)</span></h1>
             <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
         </div>
 
@@ -1046,6 +1046,29 @@
                     </div>
 
                     <div class="form-col" style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <label>Mensaje para VENDEDORES (Vencimiento HOY / YA VENCIÓ)</label>
+                        <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                            <textarea id="conf-sellerReminderTemplate"
+                                style="height: 120px; padding: 10px; flex:1;"></textarea>
+                            <button class="save-btn" onclick="saveConfig()"
+                                style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);"
+                                title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Usa {vendedor}, {cliente}, {pantallas}, {celular}, {pin}, {total} y {pago} para autocompletar.</p>
+                    </div>
+
+                    <div class="form-col" style="margin-bottom: 2rem;">
+                        <label>Mensaje para VENDEDORES (Aviso MAÑANA)</label>
+                        <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                            <textarea id="conf-sellerReminderTomorrowTemplate"
+                                style="height: 100px; padding: 10px; flex:1;"></textarea>
+                            <button class="save-btn" onclick="saveConfig()"
+                                style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);"
+                                title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="form-col" style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                         <label>Mensaje RENEWADA (Singular) - {cliente}, {pantallas} y {mes} para autocompletar</label>
                         <div style="display:flex; gap:0.5rem; align-items:flex-start;">
                             <textarea id="conf-renovadaSingularTemplate"
@@ -1700,6 +1723,12 @@
             if (document.getElementById('conf-reminderTomorrowTemplate')) {
                 document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
             }
+            if (document.getElementById('conf-sellerReminderTemplate')) {
+                document.getElementById('conf-sellerReminderTemplate').value = storeConfig.sellerReminderTemplate || "Hola *{vendedor}* 👋\n\nTe recuerdo que la cuenta de tu cliente *{cliente}* (📱 {celular})\n\nCon: {pantallas}\n👉 *FINALIZA PRONTO o YA VENCIÓ* 👈\n\nPor favor contáctalo para gestionar su renovación.\n\nCelular: {celular} y Pin: {pin}\n💰 *Total:* ${total}";
+            }
+            if (document.getElementById('conf-sellerReminderTomorrowTemplate')) {
+                document.getElementById('conf-sellerReminderTomorrowTemplate').value = storeConfig.sellerReminderTomorrowTemplate || "Hola *{vendedor}* 👋\n\nTe damos Aviso Previo que la cuenta de tu cliente *{cliente}* (📱 {celular})\n\nCon: {pantallas}\n👉 *FINALIZA MAÑANA* 👈\n\nPor favor contáctalo para gestionar su renovación y evitar cortes.\n\nCelular: {celular} y Pin: {pin}\n💰 *Total:* ${total}";
+            }
             
             if (document.getElementById('conf-renovadaSingularTemplate')) {
                 document.getElementById('conf-renovadaSingularTemplate').value = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
@@ -2275,6 +2304,12 @@
             }
             if (document.getElementById('conf-reminderTomorrowTemplate')) {
                 storeConfig.reminderTomorrowTemplate = document.getElementById('conf-reminderTomorrowTemplate').value;
+            }
+            if (document.getElementById('conf-sellerReminderTemplate')) {
+                storeConfig.sellerReminderTemplate = document.getElementById('conf-sellerReminderTemplate').value;
+            }
+            if (document.getElementById('conf-sellerReminderTomorrowTemplate')) {
+                storeConfig.sellerReminderTomorrowTemplate = document.getElementById('conf-sellerReminderTomorrowTemplate').value;
             }
             if (document.getElementById('conf-renovadaSingularTemplate')) {
                 storeConfig.renovadaSingularTemplate = document.getElementById('conf-renovadaSingularTemplate').value;
@@ -3170,16 +3205,7 @@
 
         async function sendAdminReminderToSeller(sellerName, clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = decodeURIComponent(itemsEncoded);
-            let msg = `Hola *${sellerName}* 👋\n\nTe recuerdo que la cuenta de tu cliente *${clientName}* (📱 ${clientPhone})\n\nCon: ${itemsStr}\n👉 *FINALIZA PRONTO o YA VENCIÓ* 👈\n\nPor favor contáctalo para gestionar su renovación.`;
-
-            if (saleTotal > 0) {
-                msg += `\n💰 *Total a Renovar con Administrador:* $${saleTotal.toLocaleString()}`;
-            }
-
-            if (storeConfig.paymentInfo) {
-                msg += `\n\n*Medios de Pago Autorizados:*\n${storeConfig.paymentInfo}`;
-            }
-
+            
             let clientPin = "No asignado";
             if (clientPhone) {
                 let cleanPhone = clientPhone.replace(/\D/g, '');
@@ -3190,9 +3216,19 @@
                     }
                 } catch(e) {}
             }
-            msg += `\n\nCelular: ${clientPhone || 'N/A'} y Pin: ${clientPin}`;
 
-            const encodedMsg = encodeURIComponent(msg);
+            let template = storeConfig.sellerReminderTemplate || "Hola *{vendedor}* 👋\n\nTe recuerdo que la cuenta de tu cliente *{cliente}* (📱 {celular})\n\nCon: {pantallas}\n👉 *FINALIZA PRONTO o YA VENCIÓ* 👈\n\nPor favor contáctalo para gestionar su renovación.\n\nCelular: {celular} y Pin: {pin}\n💰 *Total:* ${total}";
+            
+            let finalMsg = template
+                .replace(/{vendedor}/g, sellerName)
+                .replace(/{cliente}/g, clientName)
+                .replace(/{pantallas}/g, itemsStr)
+                .replace(/{celular}/g, clientPhone || 'N/A')
+                .replace(/{pin}/g, clientPin)
+                .replace(/{total}/g, (saleTotal || 0).toLocaleString())
+                .replace(/{pago}/g, storeConfig.paymentInfo || '');
+
+            const encodedMsg = encodeURIComponent(finalMsg);
             window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
         }
 
@@ -3992,10 +4028,6 @@
                 let msg = templateText.replace(/{cliente}/g, r.name).replace(/{pantallas}/g, itemsStr);
 
                 if (r.type === 'seller') {
-                    let msgSeller = `Hola *${r.seller}* 👋\n\nTe damos Aviso Previo que la cuenta de tu cliente *${r.name}* (📱 ${r.phone})\n\nCon: ${itemsStr}\n👉 *FINALIZA MAÑANA* 👈\n\nPor favor contáctalo para gestionar su renovación y evitar cortes.`;
-                    if (r.sale.total > 0) msgSeller += `\n💰 *Total a Renovar con Administrador:* $${r.sale.total.toLocaleString()}`;
-                    if (storeConfig.paymentInfo) msgSeller += `\n\n*Medios de Pago Autorizados:*\n${storeConfig.paymentInfo}`;
-
                     let clientPin = "No asignado";
                     if (r.phone) {
                         let cleanPhone = r.phone.replace(/\D/g, '');
@@ -4006,7 +4038,17 @@
                             }
                         } catch(e) {}
                     }
-                    msgSeller += `\n\nCelular: ${r.phone || 'N/A'} y Pin: ${clientPin}`;
+
+                    let templateSeller = storeConfig.sellerReminderTomorrowTemplate || "Hola *{vendedor}* 👋\n\nTe damos Aviso Previo que la cuenta de tu cliente *{cliente}* (📱 {celular})\n\nCon: {pantallas}\n👉 *FINALIZA MAÑANA* 👈\n\nPor favor contáctalo para gestionar su renovación y evitar cortes.\n\nCelular: {celular} y Pin: {pin}\n💰 *Total:* ${total}";
+                    
+                    let msgSeller = templateSeller
+                        .replace(/{vendedor}/g, r.seller)
+                        .replace(/{cliente}/g, r.name)
+                        .replace(/{pantallas}/g, itemsStr)
+                        .replace(/{celular}/g, r.phone || 'N/A')
+                        .replace(/{pin}/g, clientPin)
+                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
+                        .replace(/{pago}/g, storeConfig.paymentInfo || '');
 
                     window.open(`https://wa.me/?text=${encodeURIComponent(msgSeller)}`, '_blank');
                 } else {
