@@ -572,8 +572,14 @@
                     </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
-                        <select id="manual-client-product" multiple style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; min-height: 180px;"></select>
+                        <select id="manual-client-product" multiple style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; min-height: 180px;" onchange="updateManualEmailsUI('manual')"></select>
                         <p style="font-size:0.8rem; color:#a0a0a0; margin-top:0.3rem;">Mantén presionada la tecla Ctrl (o Cmd en tu teclado) y haz clic para seleccionar varias pantallas al mismo tiempo.</p>
+                    </div>
+
+                    <div id="manual-emails-container" class="form-col" style="grid-column: 1 / -1; display:none; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 1rem;">
+                        <label style="color: #f39c12; font-weight: bold;"><i class="fa-solid fa-envelope"></i> Configurar Emails Específicos por Pantalla (Combos)</label>
+                        <p style="font-size:0.75rem; color:#a0a0a0; margin-bottom: 1rem;">Si es un combo, puedes asignar un correo diferente a cada pantalla para que el CRM lo use automáticamente.</p>
+                        <div id="manual-emails-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
                     </div>
                 </div>
                 <button class="save-btn" style="background:#4cd137;" onclick="createClientManual()">Crear Cliente y Asignar Pantalla</button>
@@ -633,8 +639,14 @@
                                 <option value="Página Web Oficial">Página Web Oficial (Admin)</option>
                             </select>
 
-                            <select id="edit-client-add-product" multiple style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; border-radius: 8px; min-height: 150px;"></select>
+                            <select id="edit-client-add-product" multiple style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; border-radius: 8px; min-height: 150px;" onchange="updateManualEmailsUI('edit')"></select>
                             <p style="font-size:0.8rem; color:#a0a0a0; margin-top:0.3rem;">Ctrl (o Cmd en Mac) para selección múltiple.</p>
+                            
+                            <div id="edit-add-emails-container" class="form-col" style="display:none; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 1rem;">
+                                <label style="color: #f39c12; font-weight: bold;"><i class="fa-solid fa-envelope"></i> Configurar Emails para estas nuevas pantallas:</label>
+                                <div id="edit-add-emails-list" style="display: flex; flex-direction: column; gap: 10px; margin-top:0.5rem;"></div>
+                            </div>
+
                             <button class="save-btn" style="background:#f39c12; margin-top: 1rem; width: auto; font-size: 0.9rem;" onclick="addProductsToExistingClient()"><i class="fa-solid fa-plus"></i> Añadir Pantallas como Nueva Compra</button>
                         </div>
                     </div>
@@ -3016,8 +3028,8 @@
             }
         }
 
-        let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '' };
-        window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '') {
+        let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '', fullItems: [] };
+        window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '', fullItemsJson = '[]') {
             _crmTargetClient = { 
                 name: decodeURIComponent(nameEnc), 
                 phone: phone,
@@ -3027,7 +3039,8 @@
                 itemsRaw: decodeURIComponent(itemsEnc || ''),
                 email: email,
                 pass: pass,
-                profile: profile
+                profile: profile,
+                fullItems: JSON.parse(decodeURIComponent(fullItemsJson))
             };
             const modal = document.getElementById('crm-selector-modal');
             const searchInput = document.getElementById('crm-platform-search');
@@ -3144,6 +3157,23 @@
             const dict = storeConfig.crmGalleryDict || {};
             const items = dict[platformName] || [];
 
+            let targetEmail = _crmTargetClient.email || 'N/A';
+            
+            // Buscar email específico para esta plataforma en los items de la venta
+            if (_crmTargetClient.fullItems && Array.isArray(_crmTargetClient.fullItems)) {
+                _crmTargetClient.fullItems.forEach(it => {
+                    if (it.specificEmails && Array.isArray(it.specificEmails)) {
+                        // Intentar coincidencia exacta o por inclusión
+                        const match = it.specificEmails.find(se => 
+                            se.platform.toLowerCase() === platformName.toLowerCase() || 
+                            platformName.toLowerCase().includes(se.platform.toLowerCase()) ||
+                            se.platform.toLowerCase().includes(platformName.toLowerCase())
+                        );
+                        if (match && match.email) targetEmail = match.email;
+                    }
+                });
+            }
+
             let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
             let mainText = template
                 .replace(/{cliente}/ig, name)
@@ -3152,7 +3182,7 @@
                 .replace(/{inicio}/ig, start)
                 .replace(/{Fin}/ig, end)
                 .replace(/{pin}/ig, pin || 'N/A')
-                .replace(/{correo}/ig, _crmTargetClient.email || 'N/A')
+                .replace(/{correo}/ig, targetEmail)
                 .replace(/{clave}/ig, _crmTargetClient.pass || 'N/A')
                 .replace(/{perfil}/ig, _crmTargetClient.profile || 'N/A');
             
@@ -3393,7 +3423,7 @@
                             style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem;">
                             <i class="fa-brands fa-whatsapp"></i> Renovada
                         </button>
-                        <button onclick="openCRMPlatformSelector('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[clientObj.phone] ? allClientProfiles[clientObj.phone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}')" 
+                        <button onclick="openCRMPlatformSelector('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[clientObj.phone] ? allClientProfiles[clientObj.phone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}')" 
                             style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6; font-size:0.8rem;">
                             <i class="fa-solid fa-paper-plane"></i> CRM
                         </button>
@@ -4094,6 +4124,72 @@
             const elem = document.getElementById('auto-reminder-ui');
             if (elem) elem.style.display = 'none';
         }
+        window.updateManualEmailsUI = function(mode) {
+            const selectId = mode === 'manual' ? 'manual-client-product' : 'edit-client-add-product';
+            const containerId = mode === 'manual' ? 'manual-emails-container' : 'edit-add-emails-container';
+            const listId = mode === 'manual' ? 'manual-emails-list' : 'edit-add-emails-list';
+            
+            const selectElem = document.getElementById(selectId);
+            const containerElem = document.getElementById(containerId);
+            const listElem = document.getElementById(listId);
+            
+            if (!selectElem || !containerElem || !listElem) return;
+            
+            const selectedOptions = Array.from(selectElem.selectedOptions).map(o => o.value).filter(v => v !== "");
+            
+            if (selectedOptions.length === 0) {
+                containerElem.style.display = 'none';
+                return;
+            }
+            
+            containerElem.style.display = 'block';
+            
+            // Conservar valores previos si es posible
+            const previousValues = {};
+            listElem.querySelectorAll('.manual-email-group').forEach(group => {
+                const prodId = group.dataset.prodId;
+                const index = group.dataset.index;
+                const email = group.querySelector('.manual-email-input').value;
+                const platform = group.querySelector('.manual-platform-input').value;
+                previousValues[`${prodId}_${index}`] = { email, platform };
+            });
+            
+            listElem.innerHTML = '';
+            
+            selectedOptions.forEach(prodId => {
+                const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                if (!p) return;
+                
+                let screenCount = 1;
+                const cat = (p.category || '').toLowerCase();
+                if (cat === 'combos2') screenCount = 2;
+                else if (cat === 'combos3') screenCount = 3;
+                else if (cat === 'combos4') screenCount = 4;
+                else if (cat === 'combos5') screenCount = 5;
+                
+                for (let i = 0; i < screenCount; i++) {
+                    const key = `${prodId}_${i}`;
+                    const prev = previousValues[key] || { email: '', platform: p.brand || p.name };
+                    
+                    const group = document.createElement('div');
+                    group.className = 'manual-email-group';
+                    group.dataset.prodId = prodId;
+                    group.dataset.index = i;
+                    group.style = 'display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);';
+                    
+                    group.innerHTML = `
+                        <div>
+                            <input type="text" class="manual-platform-input" placeholder="Plataforma (Ej: Netflix)" value="${prev.platform}" style="padding:5px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
+                        </div>
+                        <div>
+                            <input type="email" class="manual-email-input" placeholder="Email / Usuario de la pantalla" value="${prev.email}" style="padding:5px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
+                        </div>
+                    `;
+                    listElem.appendChild(group);
+                }
+            });
+        };
+
         window.renderManualClientProducts = function() {
             const select1 = document.getElementById('manual-client-product');
             const select2 = document.getElementById('edit-client-add-product');
@@ -4195,12 +4291,22 @@
                         finalPrice -= disc;
                     }
 
+                    // Recolectar emails específicos para este item
+                    const itemEmails = [];
+                    document.querySelectorAll(`#edit-add-emails-list .manual-email-group[data-prod-id="${p.id}"]`).forEach(group => {
+                        itemEmails.push({
+                            platform: group.querySelector('.manual-platform-input').value.trim(),
+                            email: group.querySelector('.manual-email-input').value.trim()
+                        });
+                    });
+
                     saleData.items.push({
                         id: p.id,
                         name: p.name,
                         customName: null,
                         category: p.category,
-                        finalPrice: finalPrice
+                        finalPrice: finalPrice,
+                        specificEmails: itemEmails
                     });
                     saleData.total += finalPrice;
 
@@ -4330,12 +4436,22 @@
                                 console.log(`[DEBUG DISCOUNT] Applied ${disc} discount to ${p.name}. Final: ${finalPrice}`);
                             }
 
+                            // Recolectar emails específicos para este item
+                            const itemEmails = [];
+                            document.querySelectorAll(`#manual-emails-list .manual-email-group[data-prod-id="${p.id}"]`).forEach(group => {
+                                itemEmails.push({
+                                    platform: group.querySelector('.manual-platform-input').value.trim(),
+                                    email: group.querySelector('.manual-email-input').value.trim()
+                                });
+                            });
+
                             saleData.items.push({
                                 id: p.id,
                                 name: p.name,
                                 customName: null,
                                 category: p.category,
-                                finalPrice: finalPrice
+                                finalPrice: finalPrice,
+                                specificEmails: itemEmails
                             });
                             saleData.total += finalPrice;
 
