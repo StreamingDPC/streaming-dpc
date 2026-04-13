@@ -85,9 +85,10 @@ app.post('/api/get-code', async (req, res) => {
                 const searchCriteria = [['SINCE', yesterday.toISOString()]];
                 
                 if (platform === 'netflix') {
-                    searchCriteria.push(['OR', ['FROM', 'netflix.com'], ['SUBJECT', 'Hogar']]);
+                    // Netflix usa varios dominios, el filtro FROM es el más seguro
+                    searchCriteria.push(['OR', ['FROM', 'netflix.com'], ['SUBJECT', 'Netflix']]);
                 } else if (platform === 'disney') {
-                    searchCriteria.push(['OR', ['FROM', 'disneyplus.com'], ['SUBJECT', 'código']]);
+                    searchCriteria.push(['OR', ['FROM', 'disneyplus.com'], ['SUBJECT', 'Disney+']]);
                 }
 
                 const fetchOptions = { bodies: ['HEADER', 'TEXT'], markSeen: false };
@@ -97,34 +98,43 @@ app.post('/api/get-code', async (req, res) => {
                     const item = messages[i];
                     const all = item.parts.find(a => a.which === 'TEXT');
                     const parsed = await simpleParser(all.body);
+                    const subject = (parsed.subject || "").toLowerCase();
                     const textContent = (parsed.text || "").toLowerCase();
                     const htmlContent = parsed.html || "";
 
                     // Verificar si el correo es para el cliente específico
-                    if (textContent.includes(email.toLowerCase()) || htmlContent.toLowerCase().includes(email.toLowerCase()) || parsed.subject.toLowerCase().includes(email.toLowerCase())) {
-                        
+                    const mentionsEmail = textContent.includes(email.toLowerCase()) || 
+                                         htmlContent.toLowerCase().includes(email.toLowerCase()) || 
+                                         subject.includes(email.toLowerCase());
+
+                    if (mentionsEmail) {
                         if (platform === 'netflix') {
+                            // Caso 1: Código directo en el texto (Acceso temporal)
                             const codeMatch = textContent.match(/\b\d{4}\b/);
-                            if (codeMatch) {
+                            if (codeMatch && (subject.includes('acceso') || subject.includes('temporal') || textContent.includes('código'))) {
                                 foundCode = codeMatch[0];
                             } else {
+                                // Caso 2: Link de verificación (Actualizar Hogar / Viaje)
                                 const $ = cheerio.load(htmlContent);
                                 const links = [];
-                                $('a').each((i, el) => {
+                                $('a').each((j, el) => {
                                     const href = $(el).attr('href');
                                     if (href && href.includes('netflix.com')) links.push(href);
                                 });
 
                                 for (const link of links) {
-                                    if (link.includes('verify') || link.includes('token') || link.includes('travel')) {
+                                    if (link.includes('verify') || link.includes('token') || link.includes('travel') || link.includes('update-primary-location')) {
                                         foundCode = await getCodeFromNetflixUrl(link);
                                         if (foundCode) break;
                                     }
                                 }
                             }
                         } else if (platform === 'disney') {
+                            // Caso Disney: Código de 6 dígitos
                             const codeMatch = textContent.match(/\b\d{6}\b/);
-                            if (codeMatch) foundCode = codeMatch[0];
+                            if (codeMatch && (subject.includes('acceso') || subject.includes('único'))) {
+                                foundCode = codeMatch[0];
+                            }
                         }
                     }
                     if (foundCode) break;
