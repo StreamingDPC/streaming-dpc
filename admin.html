@@ -730,60 +730,73 @@
                     <button class="save-btn sub-conf-btn" id="btn-conf-mensajes"
                         onclick="showSubConf('mensajes', this)"
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);">Mensajes / CRM</button>
+                    <button class="save-btn sub-conf-btn" id="btn-conf-emails"
+                        onclick="showSubConf('emails', this)"
+                        style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);"><i class="fa-solid fa-envelope"></i> Cuentas Correo</button>
                 </div>
 
-<!-- SUB TAB: MENSAJES / CRM -->
-<div id="sub-conf-mensajes" class="sub-conf-content" style="display:none;">
-    <h3>Configuración Mensajes / CRM</h3>
-    <div class="form-grid" style="margin-bottom: 1rem;">
-        <div class="form-col">
-            <label>Plantilla de Mensaje (Paso 1)</label>
-            <textarea id="conf-msgTemplate1" rows="3" style="flex:1;" placeholder="Ej: Hola {cliente}, su pantalla está lista."></textarea>
-        </div>
-        <div class="form-col">
-            <label>Plantilla de Mensaje (Paso 2)</label>
-            <textarea id="conf-msgTemplate2" rows="3" style="flex:1;" placeholder="Ej: Gracias por su compra."></textarea>
-        </div>
-    </div>
-    <div class="form-grid" style="margin-bottom: 1rem;">
-        <div class="form-col">
-            <label>Enviar solo Paso 1</label>
-            <select id="conf-sendOnlyStep1" style="flex:1;">
-                <option value="false">No</option>
-                <option value="true">Sí</option>
-            </select>
-        </div>
-        <div class="form-col">
-            <label>Descuento Mensajes ($)</label>
-            <input type="number" id="conf-msgDiscountAmount" style="flex:1;" placeholder="Ej: 100"/>
-        </div>
-        <div class="form-col">
-            <label>Usar Robot Local (Puerto D:\)</label>
-            <select id="conf-useLocalRobotCRM" style="flex:1;">
-                <option value="false">No (Enviar links web)</option>
-                <option value="true">Sí (Usar Robot para fotos locales)</option>
-            </select>
-        </div>
-    </div>
-    <div class="form-col" style="margin-bottom: 1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; gap:1rem; flex-wrap:wrap;">
-            <label style="margin:0;">Contenido por Pantalla/Plataforma (Fotos y Textos CRM)</label>
-            <div style="position:relative; flex:1; max-width:300px;">
-                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:0.8rem; color:#666;"></i>
-                <input type="text" id="crm-admin-search" placeholder="Filtrar carpetas por nombre..." 
-                    style="width:100%; padding:8px 10px 8px 30px; font-size:0.85rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white;"
-                    onkeyup="filterCRMAdminPlatforms(this.value)">
-            </div>
-        </div>
-        <div id="crm-platforms-container" style="display:flex; flex-direction:column; gap:1.5rem;"></div>
-        <button class="save-btn" onclick="addCRMPlatform()" style="margin-top:1rem; background:var(--accent-primary); width:auto; align-self:flex-start;">
-            <i class="fa-solid fa-folder-plus"></i> Añadir Nueva Pantalla/Categoría
-        </button>
-    </div>
-    <button class="save-btn" onclick="saveConfig()" style="margin-top:1rem; background:var(--accent-primary);">
-        <i class="fa-solid fa-floppy-disk"></i> Guardar Configuración Mensajes
-    </button>
 </div>
+
+                <!-- SUB TAB: MENSAJES / CRM -->
+                <div id="sub-conf-mensajes" class="sub-conf-content" style="display:none;">
+                    <h3>Configuración Mensajes / CRM</h3>
+                    <div class="form-grid" style="margin-bottom: 1rem;">
+                        <div class="form-col">
+                            <label>Plantilla de Mensaje (Paso 1)</label>
+                            <textarea id="conf-msgTemplate1" rows="3" style="flex:1;" placeholder="Ej: Hola {cliente}, su pantalla está lista."></textarea>
+                        </div>
+                        <div class="form-col">
+                            <label>Plantilla de Mensaje (Paso 2)</label>
+                            <textarea id="conf-msgTemplate2" rows="3" style="flex:1;" placeholder="Ej: Gracias por su compra."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-grid" style="margin-bottom: 1rem;">
+                        <div class="form-col" style="grid-column: span 2;">
+                            <label>Fotos / Textos para CRM</label>
+                            <div id="crm-platforms-container"></div>
+                            <button class="save-btn" onclick="addCRMPlatform()" style="background:var(--accent-primary); width:auto;">
+                                <i class="fa-solid fa-plus"></i> Añadir Plataforma CRM
+                            </button>
+                        </div>
+                    </div>
+                    <button class="save-btn" onclick="saveConfig()" style="margin-top:1rem;"><i class="fa-solid fa-floppy-disk"></i> Guardar Configuración CRM</button>
+                </div>
+
+                <!-- SUB TAB: CUENTAS DE CORREO -->
+                <div id="sub-conf-emails" class="sub-conf-content" style="display:none;">
+                    <div style="background: rgba(42, 183, 202, 0.1); border: 1px solid #2ab7ca; border-radius: 12px; padding: 1rem; margin-bottom: 2rem;">
+                        <h3 style="color:#2ab7ca; margin-top:0;"><i class="fa-solid fa-circle-info"></i> Guía para Gmail</h3>
+                        <p style="font-size:0.9rem; color:#ccc;">Para usar Gmail, debes generar una <strong>Contraseña de Aplicación</strong>:</p>
+                        <ol style="font-size:0.85rem; color:#aaa; padding-left:1.5rem;">
+                            <li>Activa la "Verificación en 2 pasos" en tu cuenta Google.</li>
+                            <li>Busca "Contraseñas de aplicaciones" en tu perfil.</li>
+                            <li>Genera una para "Correo" y copia el código de 16 letras.</li>
+                            <li>Usa ese código de 16 letras como contraseña aquí abajo.</li>
+                        </ol>
+                    </div>
+
+                    <h3>Mis Cuentas de Correo para Lectura de PIN</h3>
+                    <div class="admin-form">
+                        <div class="form-grid">
+                            <div class="form-col">
+                                <label>Correo Electrónico (Gmail)</label>
+                                <input type="email" id="new-email-addr" placeholder="ejemplo@gmail.com">
+                            </div>
+                            <div class="form-col">
+                                <label>Contraseña de Aplicación (16 letras)</label>
+                                <input type="text" id="new-email-pass" placeholder="xxxx xxxx xxxx xxxx">
+                            </div>
+                        </div>
+                        <button class="save-btn" onclick="addEmailAccount()" style="background:var(--accent-primary);">
+                            <i class="fa-solid fa-plus"></i> Vincular Nueva Cuenta de Correo
+                        </button>
+                    </div>
+
+                    <div id="email-accounts-list" style="margin-top:2rem; display:flex; flex-direction:column; gap:10px;">
+                        <!-- Lista de correos -->
+                        <p style="color:#777; text-align:center;">Cargando cuentas vinculadas...</p>
+                    </div>
+                </div>
 
                 <!-- SUB TAB: GENERAL -->
                 <div id="sub-conf-general" class="sub-conf-content" style="display:block;">
@@ -1535,6 +1548,67 @@
 
             if (subTabId === 'total') {
                 loadMonthlySalesReport();
+            }
+            if (subTabId === 'emails') {
+                fetchEmailAccounts();
+            }
+        }
+
+        window.fetchEmailAccounts = function() {
+            const list = document.getElementById('email-accounts-list');
+            if(!list) return;
+
+            db.ref('emailAccounts').on('value', snap => {
+                const accounts = snap.val() || {};
+                list.innerHTML = '';
+                
+                const keys = Object.keys(accounts);
+                if (keys.length === 0) {
+                    list.innerHTML = '<p style="color:#777; text-align:center;">No hay cuentas de correo vinculadas aún.</p>';
+                    return;
+                }
+
+                keys.forEach(key => {
+                    const acc = accounts[key];
+                    const div = document.createElement('div');
+                    div.className = 'admin-item';
+                    div.innerHTML = `
+                        <div style="color:var(--accent-primary); font-size:1.5rem;"><i class="fa-solid fa-envelope"></i></div>
+                        <div>
+                            <strong style="color:white; font-size:1rem;">${acc.email}</strong><br>
+                            <span style="font-size:0.8rem; color:#888;">Contraseña: **** (Oculta)</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-icon btn-delete" onclick="deleteEmailAccount('${key}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        window.addEmailAccount = function() {
+            const email = document.getElementById('new-email-addr').value.trim();
+            const pass = document.getElementById('new-email-pass').value.trim();
+
+            if (!email || !pass) return alert('Debes completar el correo y la contraseña.');
+            if (!email.includes('@')) return alert('Ingresa un correo válido.');
+
+            db.ref('emailAccounts').push({
+                email: email,
+                password: pass,
+                provider: email.includes('gmail') ? 'gmail' : 'other',
+                createdAt: Date.now()
+            }).then(() => {
+                document.getElementById('new-email-addr').value = '';
+                document.getElementById('new-email-pass').value = '';
+                alert('Cuenta vinculada correctamente.');
+            });
+        }
+
+        window.deleteEmailAccount = function(key) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta cuenta de correo? El lector de PIN dejará de funcionar para los clientes asociados a este email.')) {
+                db.ref('emailAccounts/' + key).remove();
             }
         }
 

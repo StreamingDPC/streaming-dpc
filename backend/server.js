@@ -12,17 +12,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Configuración de tu Titan Email (HostGator)
-const imapConfig = {
-    imap: {
-        user: process.env.EMAIL_USER, // Ej: soporte@tudominio.com
-        password: process.env.EMAIL_PASSWORD,
-        host: 'imap.titan.email',
-        port: 993,
-        tls: true,
-        authTimeout: 3000
-    }
-};
+const FIREBASE_DB_URL = "https://streamingdpc-7e7fa-default-rtdb.firebaseio.com";
 
 /**
  * Intenta obtener el código de 4 dígitos desde una URL de Netflix
@@ -36,9 +26,6 @@ async function getCodeFromNetflixUrl(url) {
             }
         });
         const $ = cheerio.load(response.data);
-        
-        // El código suele estar en un contenedor prominente o texto directo.
-        // Buscamos patrones de 4 dígitos en todo el texto de la página.
         const pageText = $('body').text();
         const codeMatch = pageText.match(/\b\d{4}\b/);
         
@@ -60,98 +47,107 @@ app.post('/api/get-code', async (req, res) => {
     }
 
     try {
-        const connection = await imaps.connect(imapConfig);
-        await connection.openBox('INBOX');
+        // 1. Obtener todas las cuentas de correo registradas en Firebase
+        console.log("Consultando cuentas de correo en Firebase...");
+        const dbResponse = await axios.get(`${FIREBASE_DB_URL}/emailAccounts.json`);
+        const accountsData = dbResponse.data;
 
-        // Buscar correos de las últimas 24 horas dirigidos o reenviados
-        const delay = 24 * 3600 * 1000;
-        const yesterday = new Date();
-        yesterday.setTime(Date.now() - delay);
-
-        const searchCriteria = [
-            ['SINCE', yesterday.toISOString()]
-        ];
-
-        // Añadimos filtro base por plataforma
-        if (platform === 'netflix') {
-            searchCriteria.push(['OR', ['FROM', 'netflix.com'], ['SUBJECT', 'Hogar']]);
-        } else if (platform === 'disney') {
-            searchCriteria.push(['OR', ['FROM', 'disneyplus.com'], ['SUBJECT', 'código']]);
+        if (!accountsData) {
+            return res.status(404).json({ success: false, error: 'No hay cuentas de correo configuradas en el sistema.' });
         }
 
-        const fetchOptions = {
-            bodies: ['HEADER', 'TEXT'],
-            markSeen: false
-        };
-
-        const messages = await connection.search(searchCriteria, fetchOptions);
-
+        const accounts = Object.values(accountsData);
         let foundCode = null;
 
-        // Iteramos los mensajes (Del mas reciente al mas antiguo)
-        for (let i = messages.length - 1; i >= 0; i--) {
-            const item = messages[i];
-            const all = item.parts.find(a => a.which === 'TEXT');
-            const parsed = await simpleParser(all.body);
-            const textContent = (parsed.text || "").toLowerCase();
-            const htmlContent = parsed.html || "";
-
-            // Verificar que el correo menciona el email del cliente
-            if (textContent.includes(email.toLowerCase()) || htmlContent.toLowerCase().includes(email.toLowerCase()) || parsed.subject.toLowerCase().includes(email.toLowerCase())) {
-
-                if (platform === 'netflix') {
-                    // 1. Intentar buscar código directo de 4 números en el texto
-                    const codeMatch = textContent.match(/\b\d{4}\b/);
-                    if (codeMatch) {
-                        foundCode = codeMatch[0];
-                        break;
-                    }
-
-                    // 2. Si no hay código directo, buscar links de verificación (Nueva Regla Netflix)
-                    const $ = cheerio.load(htmlContent);
-                    const links = [];
-                    $('a').each((i, el) => {
-                        const href = $(el).attr('href');
-                        if (href && href.includes('netflix.com')) {
-                            links.push(href);
-                        }
-                    });
-
-                    // Buscamos en los links encontrados (especialmente los que tienen tokens largos o palabras clave como 'verify' o 'travel')
-                    for (const link of links) {
-                        if (link.includes('verify') || link.includes('token') || link.includes('travel')) {
-                            const codeFromWeb = await getCodeFromNetflixUrl(link);
-                            if (codeFromWeb) {
-                                foundCode = codeFromWeb;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (foundCode) break;
-
-                } else if (platform === 'disney') {
-                    // Buscar un patrón típico de Disney (6 números)
-                    const codeMatch = textContent.match(/\b\d{6}\b/);
-                    if (codeMatch) {
-                        foundCode = codeMatch[0];
-                        break;
-                    }
+        // 2. Probar con cada cuenta configurada
+        for (const account of accounts) {
+            console.log(`Intentando buscar en la cuenta: ${account.email}...`);
+            
+            const imapConfig = {
+                imap: {
+                    user: account.email,
+                    password: account.password,
+                    host: account.email.includes('gmail.com') ? 'imap.gmail.com' : 'imap.titan.email',
+                    port: 993,
+                    tls: true,
+                    authTimeout: 5000,
+                    tlsOptions: { rejectUnauthorized: false }
                 }
+            };
+
+            try {
+                const connection = await imaps.connect(imapConfig);
+                await connection.openBox('INBOX');
+
+                const yesterday = new Date();
+                yesterday.setTime(Date.now() - (24 * 3600 * 1000));
+
+                const searchCriteria = [['SINCE', yesterday.toISOString()]];
+                
+                if (platform === 'netflix') {
+                    searchCriteria.push(['OR', ['FROM', 'netflix.com'], ['SUBJECT', 'Hogar']]);
+                } else if (platform === 'disney') {
+                    searchCriteria.push(['OR', ['FROM', 'disneyplus.com'], ['SUBJECT', 'código']]);
+                }
+
+                const fetchOptions = { bodies: ['HEADER', 'TEXT'], markSeen: false };
+                const messages = await connection.search(searchCriteria, fetchOptions);
+
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    const item = messages[i];
+                    const all = item.parts.find(a => a.which === 'TEXT');
+                    const parsed = await simpleParser(all.body);
+                    const textContent = (parsed.text || "").toLowerCase();
+                    const htmlContent = parsed.html || "";
+
+                    // Verificar si el correo es para el cliente específico
+                    if (textContent.includes(email.toLowerCase()) || htmlContent.toLowerCase().includes(email.toLowerCase()) || parsed.subject.toLowerCase().includes(email.toLowerCase())) {
+                        
+                        if (platform === 'netflix') {
+                            const codeMatch = textContent.match(/\b\d{4}\b/);
+                            if (codeMatch) {
+                                foundCode = codeMatch[0];
+                            } else {
+                                const $ = cheerio.load(htmlContent);
+                                const links = [];
+                                $('a').each((i, el) => {
+                                    const href = $(el).attr('href');
+                                    if (href && href.includes('netflix.com')) links.push(href);
+                                });
+
+                                for (const link of links) {
+                                    if (link.includes('verify') || link.includes('token') || link.includes('travel')) {
+                                        foundCode = await getCodeFromNetflixUrl(link);
+                                        if (foundCode) break;
+                                    }
+                                }
+                            }
+                        } else if (platform === 'disney') {
+                            const codeMatch = textContent.match(/\b\d{6}\b/);
+                            if (codeMatch) foundCode = codeMatch[0];
+                        }
+                    }
+                    if (foundCode) break;
+                }
+
+                connection.end();
+                if (foundCode) break; // Si encontramos código, dejamos de buscar en otras cuentas
+
+            } catch (err) {
+                console.error(`Error conectando a ${account.email}:`, err.message);
+                // Continuar con la siguiente cuenta si esta falla
             }
         }
-
-        connection.end();
 
         if (foundCode) {
             return res.json({ success: true, code: foundCode });
         } else {
-            return res.status(404).json({ success: false, error: 'Código no encontrado para este correo.' });
+            return res.status(404).json({ success: false, error: 'Código no encontrado. Asegúrate de que el correo haya llegado recientemente.' });
         }
 
     } catch (err) {
-        console.error("IMAP Error:", err);
-        return res.status(500).json({ success: false, error: 'Error del servidor al buscar en los correos.' });
+        console.error("General Backend Error:", err);
+        return res.status(500).json({ success: false, error: 'Error interno del servidor.' });
     }
 });
 
