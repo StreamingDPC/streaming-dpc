@@ -77,7 +77,21 @@ app.post('/api/get-code', async (req, res) => {
             let connection = null;
             try {
                 connection = await imaps.connect(imapConfig);
-                await connection.openBox('INBOX');
+                
+                // Para Gmail, lo mejor es buscar en "All Mail" (Todos) para no perder correos de Promociones/Social
+                let folderToOpen = 'INBOX';
+                if (account.email.includes('gmail.com')) {
+                    const boxes = await connection.getBoxes();
+                    // Intentamos encontrar la carpeta "All Mail" o "Todos"
+                    const gmailBox = boxes['[Gmail]'] || boxes['[gmail]'];
+                    if (gmailBox && gmailBox.children) {
+                        if (gmailBox.children['All Mail']) folderToOpen = '[Gmail]/All Mail';
+                        else if (gmailBox.children['Todos']) folderToOpen = '[Gmail]/Todos';
+                    }
+                }
+
+                await connection.openBox(folderToOpen);
+                console.log(`Buscando en ${account.email} - Carpeta: ${folderToOpen}`);
 
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
@@ -93,6 +107,7 @@ app.post('/api/get-code', async (req, res) => {
                 }
 
                 const messages = await connection.search(searchCriteria, { bodies: ['HEADER', 'TEXT'], markSeen: false });
+                console.log(`Cta ${account.email}: ${messages.length} msgs encontrados.`);
 
                 for (let i = messages.length - 1; i >= 0; i--) {
                     const item = messages[i];
@@ -102,13 +117,15 @@ app.post('/api/get-code', async (req, res) => {
                     const textContent = (parsed.text || "").toLowerCase();
                     const htmlContent = parsed.html || "";
                     const recipientText = (parsed.to && parsed.to.text) ? parsed.to.text.toLowerCase() : "";
+                    const fromText = parsed.from ? parsed.from.text.toLowerCase() : "";
 
-                    const isFromPlatform = subject.includes(platform) || parsed.from.text.toLowerCase().includes(platform) || parsed.from.value[0].address.toLowerCase().includes(platform);
+                    const isFromPlatform = subject.includes(platform) || fromText.includes(platform);
                     const mentionsEmail = textContent.includes(email.toLowerCase()) || 
                                          recipientText.includes(email.toLowerCase()) || 
                                          htmlContent.toLowerCase().includes(email.toLowerCase());
 
                     if (isFromPlatform || mentionsEmail) {
+                        console.log(`¡Coincidencia! Analizando "${parsed.subject}" en ${account.email}`);
                         if (platform === 'netflix') {
                             const codeMatch = textContent.match(/\b\d{4}\b/);
                             if (codeMatch && (textContent.includes('código') || textContent.includes('access') || subject.includes('netflix'))) {
@@ -133,6 +150,7 @@ app.post('/api/get-code', async (req, res) => {
                                 }
                             }
                         } else if (platform === 'disney') {
+                            // Extraemos cualquier código de 6 dígitos que aparezca en un correo de Disney
                             const codeMatch = textContent.match(/\b\d{6}\b/);
                             if (codeMatch) {
                                 connection.end();
