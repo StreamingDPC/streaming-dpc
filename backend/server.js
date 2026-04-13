@@ -204,10 +204,19 @@ app.post('/api/get-code', async (req, res) => {
         }
 
     } catch (err) {
-        console.error("General Backend Error:", err);
-        // Devolvemos el error real para diagnóstico temporal del usuario
-        return res.status(500).json({ success: false, error: err.message || 'Error desconocido del servidor.' });
+        console.error("DEBUG - Fallo Crítico:", err);
+        return res.status(500).json({ 
+            success: false, 
+            error: "Error interno del servidor.", 
+            details: err.message,
+            stack: err.stack // Solo para diagnosticar el problema actual
+        });
     }
+});
+
+// Ruta de salud para verificar que el servidor está vivo
+app.get('/', (req, res) => {
+    res.send('🚀 Backend de Streaming DPC está funcionando correctamente.');
 });
 
 app.listen(PORT, () => {
