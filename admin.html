@@ -610,9 +610,14 @@
                             <label>Ciudad Guardada:</label>
                             <input type="text" id="edit-client-city">
                         </div>
-                        <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1;">
-                            <label>Seleccionar Producto/Venta a Editar Fechas:</label>
-                            <select id="edit-client-select-sale" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; border-radius: 8px;" onchange="onEditClientSaleChange()"></select>
+                        <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; background: rgba(255,0,0,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,0,0,0.1);">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label style="margin-bottom:0;"><i class="fa-solid fa-list-ul"></i> Seleccionar Venta del Historial:</label>
+                                <button onclick="deleteSpecificSale()" class="save-btn" id="btn-delete-sale-specific" style="background:#ff4d4d; margin:0; width:auto; padding:8px 15px; font-size:0.85rem; border: 1px solid #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.2);">
+                                    <i class="fa-solid fa-trash-can"></i> ELIMINAR ESTA VENTA COMPLETAMENTE
+                                </button>
+                            </div>
+                            <select id="edit-client-select-sale" style="width: 100%; margin-top: 10px; padding: 0.8rem; background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); color: white; border-radius: 12px; font-size: 1rem;" onchange="onEditClientSaleChange()"></select>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
                             <label>Fecha de Inicio:</label>
@@ -1685,7 +1690,7 @@
             const data = snap.val();
             console.log("Firebase snapshot received:", data);
             if (data) {
-                dynamicProducts = data.products || [];
+                dynamicProducts = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
                 
@@ -1905,6 +1910,7 @@
             listDiv.innerHTML = '';
 
             dynamicProducts.forEach((p, index) => {
+                if (!p) return;
                 // Filtros
                 if (filterCat !== 'all' && p.category !== filterCat) return;
                 if (search && !p.name.toLowerCase().includes(search)) return;
@@ -3796,6 +3802,49 @@
             }
         }
 
+        async function deleteSpecificSale() {
+            const saleKey = document.getElementById('edit-client-select-sale').value;
+            if (!saleKey || !currentEditingClientPhone) return alert('No hay ninguna venta seleccionada.');
+
+            if (!confirm('¿Estás SEGURO de eliminar esta venta permanentemente de TODAS las listas (cliente y vendedor)? Esta acción no se puede deshacer.')) return;
+
+            try {
+                const sale = window.currentClientSales[saleKey];
+                const sellerName = sale.sellerName || 'Página Web Oficial';
+                const updates = {};
+
+                // 1. Eliminar de clientSales
+                updates[`clientSales/${currentEditingClientPhone}/${saleKey}`] = null;
+
+                // 2. Eliminar de sellerSales
+                // Buscamos la venta en el vendedor (usamos el saleKey o buscamos por fecha si el key es distinto)
+                const sellerSnap = await db.ref(`sellerSales/${sellerName}`).once('value');
+                const sellerSales = sellerSnap.val() || {};
+                
+                let foundInSeller = false;
+                if (sellerSales[saleKey]) {
+                    updates[`sellerSales/${sellerName}/${saleKey}`] = null;
+                    foundInSeller = true;
+                } else {
+                    // Si el ID no coincide (raro pero posible), buscamos por fecha
+                    for (let sid in sellerSales) {
+                        if (sellerSales[sid].date === sale.date && sellerSales[sid].clientPhone === currentEditingClientPhone) {
+                            updates[`sellerSales/${sellerName}/${sid}`] = null;
+                            foundInSeller = true;
+                            break;
+                        }
+                    }
+                }
+
+                await db.ref().update(updates);
+                alert('Venta eliminada con éxito.');
+                searchClient(); // Recargar el historial del cliente
+            } catch (err) {
+                console.error(err);
+                alert('Error al eliminar la venta.');
+            }
+        }
+
         async function saveClientEdits() {
             if (!currentEditingClientPhone) return;
             const newName = document.getElementById('edit-client-name').value.trim();
@@ -3838,9 +3887,22 @@
                         const histEmailsList = document.getElementById('history-emails-list');
                         if (histEmailsList && histEmailsList.children.length > 0) {
                             const curSale = window.currentClientSales[window.currentEditingSaleKey];
-                            if (curSale && curSale.items) {
-                                // Asegurar que items sea un array
-                                let rawItems = Array.isArray(curSale.items) ? curSale.items : Object.values(curSale.items);
+                            if (curSale) {
+                                // Soporte para ventas antiguas sin items
+                                let rawItems = [];
+                                if (curSale.items && Array.isArray(curSale.items) && curSale.items.length > 0) {
+                                    rawItems = curSale.items;
+                                } else if (curSale.items && typeof curSale.items === 'object' && Object.keys(curSale.items).length > 0) {
+                                    rawItems = Object.values(curSale.items);
+                                } else {
+                                    rawItems = [{
+                                        id: 'legacy',
+                                        name: 'Compra Antigua',
+                                        category: '',
+                                        specificEmails: []
+                                    }];
+                                }
+                                
                                 let modifiedItems = JSON.parse(JSON.stringify(rawItems));
 
                                 modifiedItems.forEach((item, itemIdx) => {
@@ -4210,7 +4272,21 @@
             return result;
         }
 
+        function getScreenCount(cat, name) {
+            const c = (cat || '').toLowerCase().trim();
+            const n = (name || '').toLowerCase().trim();
+            
+            // Categoría exacta o nombre
+            if (c.includes('combo2') || c.includes('combos2') || (c.includes('combo') && c.includes('2')) || n.includes('duo') || n.includes('combo 2')) return 2;
+            if (c.includes('combo3') || c.includes('combos3') || (c.includes('combo') && c.includes('3')) || n.includes('trio') || n.includes('triple') || n.includes('combo 3')) return 3;
+            if (c.includes('combo4') || c.includes('combos4') || (c.includes('combo') && c.includes('4')) || n.includes('combo 4')) return 4;
+            if (c.includes('combo5') || c.includes('combos5') || (c.includes('combo') && c.includes('5')) || n.includes('combo 5')) return 5;
+            
+            return 1;
+        }
+
         window.updateManualEmailsUI = function(mode) {
+            console.log("updateManualEmailsUI triggered for mode:", mode);
             const selectId = mode === 'manual' ? 'manual-client-product' : 'edit-client-add-product';
             const containerId = mode === 'manual' ? 'manual-emails-container' : 'edit-add-emails-container';
             const listId = mode === 'manual' ? 'manual-emails-list' : 'edit-add-emails-list';
@@ -4220,6 +4296,7 @@
             const listElem = document.getElementById(listId);
             
             if (!selectElem || !containerElem || !listElem) return;
+            if (!dynamicProducts) return;
             
             const selectedOptions = Array.from(selectElem.selectedOptions).map(o => o.value).filter(v => v !== "");
             
@@ -4230,7 +4307,6 @@
             
             containerElem.style.display = 'block';
             
-            // Conservar valores previos si es posible
             const previousValues = {};
             listElem.querySelectorAll('.manual-email-group').forEach(group => {
                 const prodId = group.dataset.prodId;
@@ -4243,17 +4319,10 @@
             listElem.innerHTML = '';
             
             selectedOptions.forEach(prodId => {
-                const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                const p = dynamicProducts.find(x => x && x.id && x.id.toString() === prodId.toString());
                 if (!p) return;
                 
-                const cat = (p.category || '').toLowerCase();
-                const nameLow = (p.name || '').toLowerCase();
-                let screenCount = 1;
-                if (cat === 'combos2' || nameLow.includes('duo') || nameLow.includes('combo 2')) screenCount = 2;
-                else if (cat === 'combos3' || nameLow.includes('trio') || nameLow.includes('triple') || nameLow.includes('combo 3')) screenCount = 3;
-                else if (cat === 'combos4' || nameLow.includes('combo 4')) screenCount = 4;
-                else if (cat === 'combos5' || nameLow.includes('combo 5')) screenCount = 5;
-                
+                const screenCount = getScreenCount(p.category, p.name);
                 const guesses = guessPlatforms(p.name, screenCount);
                 
                 for (let i = 0; i < screenCount; i++) {
@@ -4268,12 +4337,13 @@
                     
                     group.innerHTML = `
                         <div>
-                            <input type="text" class="manual-platform-input" placeholder="Plataforma (Ej: Netflix)" value="${prev.platform}" style="padding:5px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
+                            <input type="text" class="manual-platform-input" placeholder="Plataforma" value="${prev.platform}" style="padding:5px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
                         </div>
                         <div>
                             <input type="email" class="manual-email-input" placeholder="Email / Usuario de la pantalla" value="${prev.email}" style="padding:5px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
                         </div>
                     `;
+                    listElem.appendChild(group);
                 }
             });
         };
@@ -4283,34 +4353,37 @@
             const list = document.getElementById('history-emails-list');
             if (!container || !list) return;
 
-            if (!sale.items || sale.items.length === 0) {
-                container.style.display = 'none';
-                return;
+            let items = [];
+            if (!sale.items || (Array.isArray(sale.items) && sale.items.length === 0) || (typeof sale.items === 'object' && Object.keys(sale.items).length === 0)) {
+                // Modo de compatibilidad para ventas antiguas
+                if (sale.clientName) { // Si es una venta válida antigua
+                    items = [{
+                        id: 'legacy',
+                        name: sale.items ? 'Pantalla' : 'Compra Antigua', 
+                        category: '',
+                        specificEmails: []
+                    }];
+                    // Intentar deducir del nombre o algún lado, pero generalmente las viejas no tenían items
+                } else {
+                    container.style.display = 'none';
+                    return;
+                }
+            } else {
+                items = Array.isArray(sale.items) ? sale.items : Object.values(sale.items);
             }
 
-            let hasCombos = false;
+            container.style.display = 'block';
             list.innerHTML = '';
 
-            // Manejar si items no es un array (Firebase issue)
-            const items = Array.isArray(sale.items) ? sale.items : Object.values(sale.items || {});
-
             items.forEach((item, itemIdx) => {
-                const cat = (item.category || '').toLowerCase();
-                const nameLow = (item.name || '').toLowerCase();
-                let screenCount = 1;
-                if (cat === 'combos2' || nameLow.includes('duo') || nameLow.includes('combo 2')) screenCount = 2;
-                else if (cat === 'combos3' || nameLow.includes('trio') || nameLow.includes('triple') || nameLow.includes('combo 3')) screenCount = 3;
-                else if (cat === 'combos4' || nameLow.includes('combo 4')) screenCount = 4;
-                else if (cat === 'combos5' || nameLow.includes('combo 5')) screenCount = 5;
-
+                const screenCount = getScreenCount(item.category, item.name);
                 const guesses = guessPlatforms(item.name, screenCount);
-                if (screenCount > 1) hasCombos = true;
 
                 for (let i = 0; i < screenCount; i++) {
                     const specific = (item.specificEmails && item.specificEmails[i]) ? item.specificEmails[i] : { platform: guesses[i] || item.name, email: '' };
                     const group = document.createElement('div');
                     group.className = 'history-email-group';
-                    group.dataset.itemIndex = itemIdx; // Rastrear índice para guardar correctamente
+                    group.dataset.itemIndex = itemIdx;
                     group.style = 'display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center; background:rgba(255,150,0,0.05); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);';
                     group.innerHTML = `
                         <div>
@@ -4323,8 +4396,6 @@
                     list.appendChild(group);
                 }
             });
-
-            container.style.display = hasCombos ? 'block' : 'none';
         };
 
         window.renderManualClientProducts = function() {
@@ -4346,8 +4417,10 @@
 
                 const grouped = {};
                 dynamicProducts.forEach(p => {
-                    if (!grouped[p.category]) grouped[p.category] = [];
-                    grouped[p.category].push(p);
+                    if (p && p.category) {
+                        if (!grouped[p.category]) grouped[p.category] = [];
+                        grouped[p.category].push(p);
+                    }
                 });
 
                 Object.keys(grouped).forEach(cat => {
@@ -4409,14 +4482,14 @@
 
             let individualCount = 0;
             selectedOptions.forEach(prodId => {
-                const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                const p = dynamicProducts.find(x => x && x.id && x.id.toString() === prodId.toString());
                 if (p && p.category && p.category.toLowerCase().includes('individual')) individualCount++;
             });
 
             console.log("[DEBUG DISCOUNT] Individuals found:", individualCount);
 
             selectedOptions.forEach(prodId => {
-                const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                const p = dynamicProducts.find(x => x && x.id && x.id.toString() === prodId.toString());
                 if (p) {
                     const hasSellerPrice = p.sellerPrice && p.sellerPrice > 0;
                     let finalPrice = (isSellerSale && hasSellerPrice) ? p.sellerPrice : p.price;
@@ -4552,14 +4625,14 @@
                 if (selectedOptions.length > 0) {
                     let individualCount = 0;
                     selectedOptions.forEach(prodId => {
-                        const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                        const p = dynamicProducts.find(x => x && x.id && x.id.toString() === prodId.toString());
                         if (p && p.category && p.category.toLowerCase().includes('individual')) individualCount++;
                     });
 
                     console.log("[DEBUG DISCOUNT] Individuals found (Manual Create):", individualCount);
 
                     selectedOptions.forEach(prodId => {
-                        const p = dynamicProducts.find(x => x.id.toString() === prodId);
+                        const p = dynamicProducts.find(x => x && x.id && x.id.toString() === prodId.toString());
                         if (p) {
                             const hasSellerPrice = p.sellerPrice && p.sellerPrice > 0;
                             let finalPrice = (isSellerSale && hasSellerPrice) ? p.sellerPrice : p.price;
