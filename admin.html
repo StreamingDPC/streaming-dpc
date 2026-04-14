@@ -551,11 +551,7 @@
                         <label>PIN de Acceso</label>
                         <input type="text" id="manual-client-pin" placeholder="Opcional. Ej: 1234">
                     </div>
-                    <div class="form-col">
-                        <label>📧 Email / Correo del Cliente</label>
-                        <input type="email" id="manual-client-email" placeholder="Ej: cliente@gmail.com">
-                        <p style="font-size:0.75rem; color:#a0a0a0; margin-top:0.3rem;">Usa <strong>{correo}</strong> en tus mensajes CRM para incluirlo.</p>
-                    </div>
+
                     <div class="form-col">
                         <label>Vendedor Asignado (Opcional)</label>
                         <select id="manual-client-seller" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
@@ -567,8 +563,11 @@
                         <input type="date" id="manual-client-start-date" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
                     </div>
                     <div class="form-col">
-                        <label>Fecha Vencimiento (Opcional)</label>
-                        <input type="date" id="manual-client-end-date" style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
+                        <label>Vencimiento (Fecha y Hora)</label>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="date" id="manual-client-end-date" style="flex:2; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
+                            <input type="time" id="manual-client-end-time" value="23:59" style="flex:1; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
+                        </div>
                     </div>
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
@@ -624,17 +623,17 @@
                             <input type="date" id="edit-client-start-date">
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
-                            <label>Fecha de Fin:</label>
-                            <input type="date" id="edit-client-end-date">
+                            <label>Fecha y Hora de Fin:</label>
+                            <div style="display:flex; gap:0.5rem;">
+                                <input type="date" id="edit-client-end-date" style="flex:2;">
+                                <input type="time" id="edit-client-end-time" value="23:59" style="flex:1;">
+                            </div>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
                             <label>PIN de Acceso (4 dígitos):</label>
                             <input type="text" id="edit-client-pin" placeholder="No asignado aún">
                         </div>
-                        <div class="form-col" style="margin-bottom: 1rem;">
-                            <label>📧 Email / Correo del Cliente:</label>
-                            <input type="email" id="edit-client-email" placeholder="cliente@gmail.com">
-                        </div>
+
 
                         <div id="history-emails-container" class="form-col" style="grid-column: 1 / -1; display:none; border-top: 1px solid var(--glass-border); padding-top: 1rem; margin-top: 0.5rem;">
                             <label style="color: #f39c12; font-weight: bold;"><i class="fa-solid fa-envelope"></i> Configurar Emails para esta Venta Seleccionada:</label>
@@ -3978,9 +3977,9 @@
                             updates[`clientSales/${currentEditingClientPhone}/${window.currentEditingSaleKey}/date`] = new Date(sYear, sMo - 1, sDa, 12, 0, 0).getTime();
                         }
                         const endVal = document.getElementById('edit-client-end-date').value;
+                        const endTime = document.getElementById('edit-client-end-time').value || '23:59';
                         if (endVal) {
-                            const [eYear, eMo, eDa] = endVal.split('-');
-                            updates[`clientSales/${currentEditingClientPhone}/${window.currentEditingSaleKey}/expirationDate`] = new Date(eYear, eMo - 1, eDa, 12, 0, 0).getTime();
+                            updates[`clientSales/${currentEditingClientPhone}/${window.currentEditingSaleKey}/expirationDate`] = new Date(endVal + 'T' + endTime).getTime();
                         }
                         
                         // Recolectar emails del historial
@@ -4066,9 +4065,9 @@
                                         updates[`sellerSales/${sellerName}/${sId}/date`] = new Date(sYear, sMo - 1, sDa, 12, 0, 0).getTime();
                                     }
                                     const endVal = document.getElementById('edit-client-end-date').value;
+                                    const endTime = document.getElementById('edit-client-end-time').value || '23:59';
                                     if (endVal) {
-                                        const [eYear, eMo, eDa] = endVal.split('-');
-                                        updates[`sellerSales/${sellerName}/${sId}/expirationDate`] = new Date(eYear, eMo - 1, eDa, 12, 0, 0).getTime();
+                                        updates[`sellerSales/${sellerName}/${sId}/expirationDate`] = new Date(endVal + 'T' + endTime).getTime();
                                     }
                                 }
                             }
@@ -4382,6 +4381,16 @@
             if (c.includes('combo4') || c.includes('combos4') || (c.includes('combo') && c.includes('4')) || n.includes('combo 4')) return 4;
             if (c.includes('combo5') || c.includes('combos5') || (c.includes('combo') && c.includes('5')) || n.includes('combo 5')) return 5;
             
+            // Detección genérica para promociones
+            if (c.includes('promo')) {
+                if (n.includes('5')) return 5;
+                if (n.includes('4')) return 4;
+                if (n.includes('3')) return 3;
+                if (n.includes('2')) return 2;
+                if (n.includes('duo')) return 2;
+                if (n.includes('trio')) return 3;
+            }
+
             return 1;
         }
 
@@ -4712,14 +4721,14 @@
                     clientCity: '',
                     clientPhone: phoneStr,
                     date: startDateStr ? new Date(startDateStr + 'T12:00:00').getTime() : Date.now(),
-                    expirationDate: endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : (Date.now() + (30 * 24 * 60 * 60 * 1000)),
+                    expirationDate: endDateStr ? new Date(endDateStr + 'T' + (document.getElementById('manual-client-end-time').value || '23:59')).getTime() : (Date.now() + (30 * 24 * 60 * 60 * 1000)),
                     items: [],
                     total: 0,
                     sellerName: sellerNameVal,
                     isPaid: !isSellerSale,
                     incentiveEarned: 0,
                     incentiveDetails: [],
-                    email: emailStr || null,
+                    email: null,
                 };
 
                 if (selectedOptions.length > 0) {
