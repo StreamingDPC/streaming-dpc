@@ -1630,7 +1630,7 @@ function renderSellerDashboard() {
 
         displayedSalesArray.forEach(sale => {
             const now = Date.now();
-            const expEndOfDay = new Date(sale.expirationDate).setHours(23, 59, 59, 999) + 86400000;
+            const expEndOfDay = sale.expirationDate;
             const isExpired = now > expEndOfDay;
             if (isExpired) expiredSales.push(sale);
             else activeSales.push(sale);
@@ -1671,7 +1671,7 @@ function renderSellerDashboard() {
 
 function renderSellerSaleCard(sale, isExpired, container) {
     const now = Date.now();
-    const expEndOfDay = new Date(sale.expirationDate).setHours(23, 59, 59, 999) + 86400000;
+    const expEndOfDay = sale.expirationDate;
     const daysLeft = Math.ceil((expEndOfDay - now) / (1000 * 60 * 60 * 24));
 
     let statusColor = '#4cd137';
@@ -1925,7 +1925,7 @@ function renderClientDashboard() {
 
         salesArray.forEach(sale => {
             const now = Date.now();
-            const expEndOfDay = new Date(sale.expirationDate).setHours(23, 59, 59, 999) + 86400000;
+            const expEndOfDay = sale.expirationDate;
             const isExpired = now > expEndOfDay;
             if (isExpired) expiredSales.push(sale);
             else activeSales.push(sale);
@@ -1966,7 +1966,7 @@ function renderClientDashboard() {
 
 function renderSaleItem(sale, isExpired, container) {
     const now = Date.now();
-    const expEndOfDay = new Date(sale.expirationDate).setHours(23, 59, 59, 999) + 86400000;
+    const expEndOfDay = sale.expirationDate;
     const daysLeft = Math.ceil((expEndOfDay - now) / (1000 * 60 * 60 * 24));
 
     let statusColor = '#4cd137'; // Active
