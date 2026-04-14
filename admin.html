@@ -3303,8 +3303,11 @@
             let targetEmail = _crmTargetClient.email && _crmTargetClient.email.trim() ? _crmTargetClient.email : 'N/A';
             
             // Buscar email específico para esta plataforma en los items de la venta
-            if (_crmTargetClient.fullItems && Array.isArray(_crmTargetClient.fullItems)) {
-                _crmTargetClient.fullItems.forEach(it => {
+            const fullItemsRaw = _crmTargetClient.fullItems || [];
+            const fullItems = Array.isArray(fullItemsRaw) ? fullItemsRaw : Object.values(fullItemsRaw);
+            
+            if (fullItems.length > 0) {
+                fullItems.forEach(it => {
                     if (it.specificEmails && Array.isArray(it.specificEmails)) {
                         // Intentar coincidencia exacta o por inclusión
                         const match = it.specificEmails.find(se => 
@@ -3550,7 +3553,10 @@
             if (!isExpired && daysLeft <= 3) statusColor = '#f39c12';
             if (isExpired) statusColor = '#ff4d4d';
 
-            const itemsStr = sale.items ? sale.items.map(i => {
+            let itemsRaw = sale.items || [];
+            const items = Array.isArray(itemsRaw) ? itemsRaw : Object.values(itemsRaw);
+
+            const itemsStr = items.map(i => {
                 let formatName = i.name;
                 if (i.category && i.category.startsWith('combos')) formatName = `🎬 * ${i.name}* (Combo Prediseñado)`;
                 return formatName;
@@ -3634,14 +3640,24 @@
             }
 
             const clientsData = phones.map(phone => {
-                const sales = allClientSalesMap[phone];
+                const sales = allClientSalesMap[phone] || {};
+                const salesArray = Array.isArray(sales) ? sales : Object.values(sales);
+                
                 // Count valid sales only
                 let validCount = 0;
-                Object.values(sales).forEach(s => {
+                salesArray.forEach(s => {
                     if (s.isPaid !== false) validCount++;
                 });
-                const latestSale = Object.values(sales).sort((a, b) => b.date - a.date)[0];
-                return { phone, name: safeDecode(latestSale.clientName || 'Desconocido'), city: safeDecode(latestSale.clientCity || 'N/A'), count: validCount };
+
+                const sortedSales = salesArray.sort((a, b) => (b.date || 0) - (a.date || 0));
+                const latestSale = sortedSales[0] || {};
+                
+                return { 
+                    phone, 
+                    name: safeDecode(latestSale.clientName || 'Desconocido'), 
+                    city: safeDecode(latestSale.clientCity || 'N/A'), 
+                    count: validCount 
+                };
             });
 
             clientsData.filter(c => c.phone.includes(filterText) || c.name.toLowerCase().includes(filterText)).forEach(c => {
