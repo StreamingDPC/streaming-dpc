@@ -2544,6 +2544,7 @@
             const estrenos = Array.isArray(estrenosRaw) ? estrenosRaw : Object.values(estrenosRaw);
 
             estrenos.forEach((e, index) => {
+                if (!e) return;
                 const div = document.createElement('div');
                 div.className = 'admin-item';
                 div.innerHTML = `
@@ -2634,6 +2635,7 @@
             const banners = Array.isArray(bannersRaw) ? bannersRaw : Object.values(bannersRaw);
 
             banners.forEach((b, index) => {
+                if (!b) return;
                 const div = document.createElement('div');
                 div.className = 'admin-item';
                 div.innerHTML = `
@@ -2748,6 +2750,7 @@
             const sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw || {});
 
             sellers.forEach((s, index) => {
+                if (!s) return;
                 const div = document.createElement('div');
                 div.className = 'admin-item';
                 div.innerHTML = `
@@ -3646,6 +3649,7 @@
                 // Count valid sales only
                 let validCount = 0;
                 salesArray.forEach(s => {
+                    if (!s) return;
                     if (s.isPaid !== false) validCount++;
                 });
 
@@ -3700,6 +3704,7 @@
                     const expiredSales = [];
 
                     salesArray.forEach(sale => {
+                        if (!sale) return;
                         const now = Date.now();
                         const expEndOfDay = sale.expirationDate;
                         const isExpired = now > expEndOfDay;
