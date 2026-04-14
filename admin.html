@@ -2741,7 +2741,8 @@
         function renderSellersList() {
             const listDiv = document.getElementById('admin-list-sellers');
             listDiv.innerHTML = '';
-            const sellers = storeConfig.sellers || [];
+            let sellersRaw = storeConfig.sellers || [];
+            const sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw);
 
             sellers.forEach((s, index) => {
                 const div = document.createElement('div');
@@ -2809,7 +2810,8 @@
             const selLimit = document.getElementById('new-seller-extras-limit');
             const extraProductsLimit = selLimit ? parseInt(selLimit.value) || 0 : 0;
 
-            if (!storeConfig.sellers) storeConfig.sellers = [];
+            let sellersRaw = storeConfig.sellers || [];
+            storeConfig.sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw);
 
             if (editSellerIndex !== -1) {
                 storeConfig.sellers[editSellerIndex] = { name, whatsapp, password, extraSalesEnabled, extraProductsLimit };
@@ -2826,6 +2828,8 @@
 
         function deleteSeller(index) {
             if (confirm('¿Eliminar/Bloquear este vendedor? Perderá su acceso.')) {
+                let sellersRaw = storeConfig.sellers || [];
+                storeConfig.sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw);
                 storeConfig.sellers.splice(index, 1);
                 db.ref('storeConfig').set(storeConfig);
                 cancelEditSeller();
