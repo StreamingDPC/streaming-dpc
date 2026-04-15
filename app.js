@@ -1334,6 +1334,8 @@ function setupEventListeners() {
 
         let individualCount = cart.filter(p => p.category === 'individual').length;
         let message = `🚀 *Nuevo Pedido - Streaming DPC*\n\n`;
+        let incentiveEarned = 0;
+        let incentiveDetails = [];
 
         if (isRenewal) {
             message += `🔄 *ESTE PEDIDO ES UNA RENOVACIÓN*\n\n`;
@@ -1383,70 +1385,67 @@ function setupEventListeners() {
             let fTotal = isNaN(total) ? 0 : total;
             message += `\n💰 *Total a pagar:* $${fTotal.toLocaleString()}\n\n`;
         }
-
-        // Guardar venta en base de datos (Detalle 1: Ahora registra siempre aunque sea cliente recurrente)
-            let incentiveEarned = 0;
-            let incentiveDetails = [];
-
-            console.log("Checking incentives... Enabled:", storeConfig.incentiveEnabled);
             if (storeConfig.incentiveEnabled) {
+                console.log("[INCENTIVE] Logic starting... Enabled:", storeConfig.incentiveEnabled);
                 stats.processedCart.forEach(item => {
                     const prodCat = (item.category || '').toLowerCase().trim();
                     const cleanCat = prodCat.replace(/[\s\-_]/g, '');
-                    const prodMarca = ((item.brand || '') + ' ' + (item.name || '')).toLowerCase();
+                    const prodMarca = ((item.brand || '') + ' ' + (item.name || '')).toLowerCase().replace(/[\s\-_]/g, '');
 
-                    console.log("Analyzing item for incentive:", item.name, "Category:", prodCat, "CleanCat:", cleanCat);
+                    console.log("[INCENTIVE] Analyzing Item:", { name: item.name, brand: item.brand, prodCat, cleanCat, prodMarca });
                     
                     if (cleanCat.includes('individual') || cleanCat.includes('ventasextras')) {
-                        let b = 0; let name = '';
-                        if (prodMarca.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; name = 'Netflix Privada'; }
-                        else if (prodMarca.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; name = 'Netflix'; }
-                        else if (prodMarca.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; name = 'Disney+'; }
-                        else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; name = 'HBO Max'; }
-                        else if (prodMarca.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; name = 'Prime Video'; }
-                        else if (prodMarca.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; name = 'Paramount+'; }
-                        else if (prodMarca.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; name = 'Vix'; }
-                        else if (prodMarca.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; name = 'IPTV'; }
-                        else if (prodMarca.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; name = 'Crunchyroll'; }
-                        else if (prodMarca.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; name = 'Apple TV'; }
+                        let b = 0; let bName = '';
+                        if (prodMarca.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; bName = 'Netflix Privada'; }
+                        else if (prodMarca.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; bName = 'Netflix'; }
+                        else if (prodMarca.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; bName = 'Disney+'; }
+                        else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; bName = 'HBO Max'; }
+                        else if (prodMarca.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; bName = 'Prime Video'; }
+                        else if (prodMarca.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; bName = 'Paramount+'; }
+                        else if (prodMarca.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; bName = 'Vix'; }
+                        else if (prodMarca.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; bName = 'IPTV'; }
+                        else if (prodMarca.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; bName = 'Crunchyroll'; }
+                        else if (prodMarca.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; bName = 'Apple TV'; }
 
                         if (b > 0) {
                             incentiveEarned += b;
-                            incentiveDetails.push(`${name} (+$${b})`);
+                            incentiveDetails.push(`${bName} (+$${b})`);
+                            console.log(`[INCENTIVE] MATCH! Brand Bonus: ${b} (${bName})`);
                         }
                     }
                     else if (cleanCat.includes('combo')) {
-                        let b = 0; let name = '';
+                        let b = 0; let bName = '';
                         const combinedMatch = (cleanCat + prodMarca);
-
-                        if (combinedMatch.includes('combo2')) { b = parseInt(storeConfig.incentiveCombo2) || 0; name = 'Combo 2 P.'; }
-                        else if (combinedMatch.includes('combo3')) { b = parseInt(storeConfig.incentiveCombo3) || 0; name = 'Combo 3 P.'; }
-                        else if (combinedMatch.includes('combo4')) { b = parseInt(storeConfig.incentiveCombo4) || 0; name = 'Combo 4 P.'; }
-                        else if (combinedMatch.includes('combo5')) { b = parseInt(storeConfig.incentiveCombo5) || 0; name = 'Combo 5+ P.'; }
+                        if (combinedMatch.includes('combo2')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
+                        else if (combinedMatch.includes('combo3')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
+                        else if (combinedMatch.includes('combo4')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
+                        else if (combinedMatch.includes('combo5')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
                         else {
-                            // Guess by title if category is just "Combos"
-                            if (prodMarca.includes('2 pantalla')) { b = parseInt(storeConfig.incentiveCombo2) || 0; name = 'Combo 2 P.'; }
-                            else if (prodMarca.includes('3 pantalla')) { b = parseInt(storeConfig.incentiveCombo3) || 0; name = 'Combo 3 P.'; }
-                            else if (prodMarca.includes('4 pantalla')) { b = parseInt(storeConfig.incentiveCombo4) || 0; name = 'Combo 4 P.'; }
-                            else if (prodMarca.includes('5 pantalla')) { b = parseInt(storeConfig.incentiveCombo5) || 0; name = 'Combo 5+ P.'; }
+                            if (prodMarca.includes('2pantalla')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
+                            else if (prodMarca.includes('3pantalla')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
+                            else if (prodMarca.includes('4pantalla')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
+                            else if (prodMarca.includes('5pantalla')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
                         }
                         
                         if (b > 0) {
                             incentiveEarned += b;
-                            incentiveDetails.push(`${name} (+$${b})`);
+                            incentiveDetails.push(`${bName} (+$${b})`);
+                            console.log(`[INCENTIVE] MATCH! Combo Bonus: ${b} (${bName})`);
                         }
                     }
                     else if (cleanCat.includes('promocion') || cleanCat.includes('promo')) { 
-                        let b = 0; let name = '';
-                        if (cleanCat.includes('finde')) { b = parseInt(storeConfig.incentiveFinde) || 0; name = 'Promo Finde'; }
-                        else { b = parseInt(storeConfig.incentiveMes) || 0; name = 'Promo Mes'; }
+                        let b = 0; let bName = '';
+                        if (cleanCat.includes('finde')) { b = parseInt(storeConfig.incentiveFinde) || 0; bName = 'Promo Finde'; }
+                        else { b = parseInt(storeConfig.incentiveMes) || 0; bName = 'Promo Mes'; }
                         
                         if (b > 0) {
                             incentiveEarned += b;
-                            incentiveDetails.push(`${name} (+$${b})`);
+                            incentiveDetails.push(`${bName} (+$${b})`);
+                            console.log(`[INCENTIVE] MATCH! Promo Bonus: ${b} (${bName})`);
                         }
                     }
                 });
+                console.log("[INCENTIVE] Total:", incentiveEarned, "Details:", incentiveDetails);
             }
             console.log("Total incentive earned:", incentiveEarned, "Details:", incentiveDetails);
             
