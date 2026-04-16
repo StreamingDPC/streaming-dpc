@@ -1831,8 +1831,11 @@
                 window.allClientSalesMap = data.clientSales || {};
                 window.globalSellerSalesDataStore = data.sellerSales || {};
                 
-                console.log("Store Config loaded:", storeConfig);
-                console.log("Sellers in config:", storeConfig.sellers ? storeConfig.sellers.length : 0);
+                // DEBUG ALERT
+                const clientsCount = Object.keys(window.allClientProfiles).length;
+                const salesCount = Object.keys(window.allClientSalesMap).length;
+                console.log(`[DEBUG] Data Sync: ${clientsCount} clients, ${salesCount} sales records.`);
+                // alert(`Datos recibidos: ${clientsCount} clientes y ${salesCount} ventas encontradas.`);
 
                 if (!adminInitialized) {
                     adminInitialized = true;
