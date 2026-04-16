@@ -1828,9 +1828,11 @@
                 dynamicProducts = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
-                window.allClientProfiles = data.clientProfiles || {};
+                allClientProfiles = window.allClientProfiles;
                 window.allClientSalesMap = data.clientSales || {};
+                allClientSalesMap = window.allClientSalesMap;
                 window.globalSellerSalesDataStore = data.sellerSales || {};
+                globalSellerSalesDataStore = window.globalSellerSalesDataStore;
                 
                 // DEBUG ALERT - ACTIVADO PARA DIAGNÓSTICO
                 const clientsCount = Object.keys(window.allClientProfiles).length;
