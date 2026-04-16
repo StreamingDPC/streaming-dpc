@@ -617,6 +617,10 @@
                             <label>Ciudad Guardada:</label>
                             <input type="text" id="edit-client-city">
                         </div>
+                        <div class="form-col" style="margin-bottom: 1rem;">
+                            <label>Nuevo Número de Celular (Opcional):</label>
+                            <input type="text" id="edit-client-phone-new" placeholder="Solo si cambió de número">
+                        </div>
                         <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; background: rgba(255,0,0,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,0,0,0.1);">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <label style="margin-bottom:0;"><i class="fa-solid fa-list-ul"></i> Seleccionar Venta del Historial:</label>
@@ -4122,6 +4126,7 @@
                 let latestSale = sales[window.currentEditingSaleKey];
                 document.getElementById('edit-client-name').value = safeDecode(latestSale.clientName || '');
                 document.getElementById('edit-client-city').value = latestSale.clientCity || '';
+                document.getElementById('edit-client-phone-new').value = '';
 
                 window.currentEditingOriginalDate = latestSale.date;
                 updateEditClientDatesUI(latestSale);
@@ -4338,6 +4343,55 @@
                 // Update PIN
                 const newPin = document.getElementById('edit-client-pin').value.trim();
                 const newEmail = document.getElementById('edit-client-email') ? document.getElementById('edit-client-email').value.trim() : null;
+                const newPhoneInput = document.getElementById('edit-client-phone-new').value.replace(/\D/g, '');
+                
+                // --- PHONE MIGRATION LOGIC ---
+                if (newPhoneInput && newPhoneInput !== currentEditingClientPhone && newPhoneInput.length >= 5) {
+                    if (confirm(`¿CONFIRMAS cambiar el número ${currentEditingClientPhone} por el NUEVO ${newPhoneInput}? Se moverá todo el historial.`)) {
+                        const finalUpdates = {};
+                        
+                        // 1. Move Sales
+                        if (sales) {
+                            finalUpdates[`clientSales/${newPhoneInput}`] = sales;
+                            // Update name/city in the new set too
+                            Object.keys(sales).forEach(sk => {
+                                finalUpdates[`clientSales/${newPhoneInput}/${sk}/clientName`] = newName;
+                                finalUpdates[`clientSales/${newPhoneInput}/${sk}/clientCity`] = newCity;
+                                finalUpdates[`clientSales/${newPhoneInput}/${sk}/clientPhone`] = newPhoneInput;
+                            });
+                            finalUpdates[`clientSales/${currentEditingClientPhone}`] = null;
+                        }
+                        
+                        // 2. Move Profile
+                        const profileSnap = await db.ref(`clientProfiles/${currentEditingClientPhone}`).once('value');
+                        if (profileSnap.exists()) {
+                            finalUpdates[`clientProfiles/${newPhoneInput}`] = profileSnap.val();
+                            finalUpdates[`clientProfiles/${currentEditingClientPhone}`] = null;
+                        }
+                        if (newPin) finalUpdates[`clientProfiles/${newPhoneInput}/pin`] = newPin;
+                        
+                        // 3. Update Seller Sales references
+                        if (allSellers) {
+                            for (let sn in allSellers) {
+                                for (let sid in allSellers[sn]) {
+                                    if (allSellers[sn][sid].clientPhone === currentEditingClientPhone) {
+                                        finalUpdates[`sellerSales/${sn}/${sid}/clientPhone`] = newPhoneInput;
+                                        finalUpdates[`sellerSales/${sn}/${sid}/clientName`] = newName;
+                                        finalUpdates[`sellerSales/${sn}/${sid}/clientCity`] = newCity;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        await db.ref('/').update(finalUpdates);
+                        alert('Número de celular actualizado y datos migrados con éxito.');
+                        currentEditingClientPhone = newPhoneInput;
+                        searchClient();
+                        return;
+                    }
+                }
+                // --- END PHONE MIGRATION ---
+
                 if (newPin) {
                     await db.ref(`clientProfiles/${currentEditingClientPhone}/pin`).set(newPin);
                 } else {
