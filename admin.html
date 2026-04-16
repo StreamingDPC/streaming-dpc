@@ -1834,20 +1834,6 @@
                 window.globalSellerSalesDataStore = data.sellerSales || {};
                 globalSellerSalesDataStore = window.globalSellerSalesDataStore;
                 
-                // DEBUG ALERT - ACTIVADO PARA DIAGNÓSTICO
-                const clientsCount = Object.keys(window.allClientProfiles).length;
-                const salesCount = Object.keys(window.allClientSalesMap).length;
-                const sellersCount = Object.keys(window.globalSellerSalesDataStore).length;
-                
-                console.log(`[DEBUG] Data Sync: ${clientsCount} clients, ${salesCount} sales, ${sellersCount} seller histories.`);
-                
-                // Si todo está vacío, alertamos específicamente
-                if (clientsCount === 0 && salesCount === 0) {
-                    alert("Aviso: La base de datos parece estar vacía en las rutas 'clientProfiles' y 'clientSales'.");
-                } else {
-                    // alert(`¡Datos sincronizados! Clientes: ${clientsCount}, Registros de Venta: ${salesCount}`);
-                }
-
                 if (!adminInitialized) {
                     adminInitialized = true;
                     init();
