@@ -1828,14 +1828,23 @@
                 dynamicProducts = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
+                window.allClientProfiles = data.clientProfiles || {};
                 window.allClientSalesMap = data.clientSales || {};
                 window.globalSellerSalesDataStore = data.sellerSales || {};
                 
-                // DEBUG ALERT
+                // DEBUG ALERT - ACTIVADO PARA DIAGNÓSTICO
                 const clientsCount = Object.keys(window.allClientProfiles).length;
                 const salesCount = Object.keys(window.allClientSalesMap).length;
-                console.log(`[DEBUG] Data Sync: ${clientsCount} clients, ${salesCount} sales records.`);
-                // alert(`Datos recibidos: ${clientsCount} clientes y ${salesCount} ventas encontradas.`);
+                const sellersCount = Object.keys(window.globalSellerSalesDataStore).length;
+                
+                console.log(`[DEBUG] Data Sync: ${clientsCount} clients, ${salesCount} sales, ${sellersCount} seller histories.`);
+                
+                // Si todo está vacío, alertamos específicamente
+                if (clientsCount === 0 && salesCount === 0) {
+                    alert("Aviso: La base de datos parece estar vacía en las rutas 'clientProfiles' y 'clientSales'.");
+                } else {
+                    // alert(`¡Datos sincronizados! Clientes: ${clientsCount}, Registros de Venta: ${salesCount}`);
+                }
 
                 if (!adminInitialized) {
                     adminInitialized = true;
