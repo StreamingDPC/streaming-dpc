@@ -30,9 +30,12 @@
             <div class="logo" style="display: flex; align-items: center; gap: 10px;">
                 <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
                     alt="Streaming DPC" style="height: 80px; border-radius: 8px; object-fit: contain;">
-                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.8.2</span>
+                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.8.3</span>
             </div>
-            <div class="header-actions" style="display: flex; gap: 1rem; align-items: center;">
+            <div class="header-actions" style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                <button id="refresh-page-btn" class="get-code-btn" style="background: rgba(46, 134, 193, 0.2); border-color: rgba(46, 134, 193, 0.4); color: #3498db;">
+                    <i class="fa-solid fa-arrows-rotate"></i> <span class="hide-mobile">Actualizar</span>
+                </button>
                 <button id="open-client-btn" class="get-code-btn"
                     style="background: rgba(46, 204, 113, 0.15); border-color: rgba(46, 204, 113, 0.3); color: #2ecc71;">
                     <i class="fa-solid fa-address-card"></i> <span class="hide-mobile">Mis Compras</span>
@@ -40,9 +43,6 @@
                 <button id="open-vendedores-btn" class="get-code-btn"
                     style="background: rgba(138,43,226,0.15); border-color: rgba(138,43,226,0.3); color: #c48dfc;">
                     <i class="fa-solid fa-user-tie"></i> <span class="hide-mobile">Vendedores</span>
-                </button>
-                <button id="refresh-page-btn" class="get-code-btn" style="background: rgba(46, 134, 193, 0.15); border-color: rgba(46, 134, 193, 0.3); color: #3498db;">
-                    <i class="fa-solid fa-arrows-rotate"></i> <span class="hide-mobile">Actualizar</span>
                 </button>
                 <button id="open-code-btn" class="get-code-btn">
                     <i class="fa-solid fa-key"></i> <span class="hide-mobile">Obtener Código</span>
@@ -328,6 +328,9 @@
                         style="background: rgba(255, 77, 77, 0.2); border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold;">
                         <i class="fa-solid fa-right-from-bracket"></i> Salir
                     </button>
+                    <button class="get-code-btn" onclick="location.reload()" style="background: rgba(46, 134, 193, 0.15); border-color: rgba(46, 134, 193, 0.3); color: #3498db; padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Actualizar
+                    </button>
                 </div>
 
                 <div id="seller-incentives-board"
@@ -546,6 +549,9 @@
                         </button>
                         <button id="logout-client-btn" style="background: rgba(255, 77, 77, 0.2); border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold;">
                             <i class="fa-solid fa-right-from-bracket"></i> Salir
+                        </button>
+                        <button class="get-code-btn" onclick="location.reload()" style="background: rgba(46, 134, 193, 0.15); border-color: rgba(46, 134, 193, 0.3); color: #3498db; padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fa-solid fa-arrows-rotate"></i> Actualizar
                         </button>
                     </div>
                 </div>
