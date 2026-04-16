@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -623,7 +623,7 @@
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; display:flex; align-items:center; gap:10px; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(243, 156, 18, 0.2);">
                             <input type="checkbox" id="edit-client-update-all" style="width:20px; height:20px;">
-                            <label for="edit-client-update-all" style="margin-bottom:0; cursor:pointer; font-weight:bold; color:#f39c12;"><i class="fa-solid fa-triangle-exclamation"></i> ¿Actualizar Nombre/Ciudad en TODO el historial? (Marcas solo si es el mismo cliente real)</label>
+                            <label for="edit-client-update-all" style="margin-bottom:0; cursor:pointer; font-weight:bold; color:#f39c12;"><i class="fa-solid fa-triangle-exclamation"></i> ï¿½Actualizar Nombre/Ciudad en TODO el historial? (Marcas solo si es el mismo cliente real)</label>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; background: rgba(255,0,0,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,0,0,0.1);">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -829,9 +829,20 @@
                                 <input type="text" id="new-email-pass" placeholder="xxxx xxxx xxxx xxxx">
                             </div>
                         </div>
-                        <button class="save-btn" onclick="addEmailAccount()" style="background:var(--accent-primary);">
+                                                <button class="save-btn" onclick="addEmailAccount()" style="background:var(--accent-primary);">
                             <i class="fa-solid fa-plus"></i> Vincular Nueva Cuenta de Correo
                         </button>
+
+                        <div style="margin-top: 1.5rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                            <h4 style="margin:0 0 0.5rem 0; color:#2ecc71; font-size: 0.95rem;"><i class="fa-solid fa-file-csv"></i> Carga Masiva (CSV)</h4>
+                            <p style="font-size:0.75rem; color:#888; margin-bottom:1rem;">Formato: <code>correo,contraseÃ±a</code> (uno por fila)</p>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="file" id="csv-emails-file" accept=".csv" style="flex:1; font-size:0.85rem; padding: 5px;">
+                                <button class="save-btn" onclick="uploadEmailsCSV()" style="margin:0; width:auto; background:#2ecc71; padding: 8px 15px; font-size: 0.85rem;">
+                                    <i class="fa-solid fa-upload"></i> Subir CSV
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="email-accounts-list" style="margin-top:2rem; display:flex; flex-direction:column; gap:10px;">
@@ -840,7 +851,7 @@
                     </div>
                 </div>
 
-                <!-- SUB TAB: GENERAL -->
+                <!-- SUB TAB: GENERAL --><!-- SUB TAB: GENERAL -->
                 <div id="sub-conf-general" class="sub-conf-content" style="display:block;">
                     <div class="form-grid" style="margin-bottom: 2rem; border: 2px solid #f39c12; border-radius: 12px; padding: 1rem; background: rgba(243, 156, 18, 0.05);">
                         <div class="form-col" style="grid-column: 1 / -1;">
@@ -1647,16 +1658,56 @@
                 provider: email.includes('gmail') ? 'gmail' : 'other',
                 createdAt: Date.now()
             }).then(() => {
-                document.getElementById('new-email-addr').value = '';
-                document.getElementById('new-email-pass').value = '';
-                alert('Cuenta vinculada correctamente.');
-            });
-        }
+        window.uploadEmailsCSV = function() {
+            const fileInput = document.getElementById('csv-emails-file');
+            if (!fileInput.files || fileInput.files.length === 0) return alert('Selecciona un archivo CSV.');
 
-        window.editEmailAccount = async function(key) {
-            const snap = await db.ref('emailAccounts/' + key).once('value');
-            const current = snap.val();
-            if(!current) return;
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split(/\r?\n/);
+                let added = 0;
+                let promises = [];
+
+                rows.forEach(row => {
+                    const columns = row.split(',');
+                    if (columns.length >= 2) {
+                        const email = columns[0].trim();
+                        const pass = columns[1].trim();
+
+                        if (email && pass && email.includes('@')) {
+                            const p = db.ref('emailAccounts').push({
+                                email: email,
+                                password: pass,
+                                provider: email.includes('gmail') ? 'gmail' : 'other',
+                                createdAt: Date.now()
+                            });
+                            promises.push(p);
+                            added++;
+                        }
+                    }
+                });
+
+                if (promises.length > 0) {
+                    Promise.all(promises).then(() => {
+                        alert(added + ' cuentas cargadas con Ã©xito.');
+                        fileInput.value = '';
+                    }).catch(err => {
+                        console.error(err);
+                        alert('Error al subir algunas cuentas.');
+                    });
+                } else {
+                    alert('No se encontraron cuentas vÃ¡lidas en el archivo (Formato: correo,contraseÃ±a).');
+                }
+            };
+            reader.readAsText(file);
+        }
+                }
+            };
+            reader.readAsText(file);
+        }
 
             const newEmail = prompt("Editar Correo:", current.email);
             if (newEmail === null) return;
@@ -4215,7 +4266,7 @@
             const newCity = (document.getElementById('edit-client-city').value || '').trim();
             const updateAllHistory = document.getElementById('edit-client-update-all') ? document.getElementById('edit-client-update-all').checked : true;
             if (!newName) return; 
-            if (!confirm('¿Actualizar registros?')) return;
+            if (!confirm('ï¿½Actualizar registros?')) return;
             try {
                 const [snap, sSnap] = await Promise.all([
                     db.ref('clientSales/' + currentEditingClientPhone).once('value'),
@@ -4265,7 +4316,7 @@
 
                 const newPhoneInput = (document.getElementById('edit-client-phone-new').value || '').replace(/\D/g, '');
                 if (newPhoneInput && newPhoneInput !== currentEditingClientPhone && newPhoneInput.length >= 5) {
-                    if (confirm('¿MIGRAR historial?')) {
+                    if (confirm('ï¿½MIGRAR historial?')) {
                         const migData = {};
                         if (sales) {
                             Object.keys(sales).forEach(sk => {
@@ -4291,7 +4342,7 @@
                              }
                         }
                         await db.ref('/').update(migData);
-                        alert('Migración Exitosa.');
+                        alert('Migraciï¿½n Exitosa.');
                         window.location.reload();
                         return;
                     }
