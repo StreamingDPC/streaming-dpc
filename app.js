@@ -1780,12 +1780,6 @@ function renderSellerSaleCard(sale, isExpired, container) {
                     style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #c48dfc; background: rgba(196, 141, 252, 0.1); color:#c48dfc;">
                     <i class="fa-solid fa-pen"></i> Editar
                 </button>
-                ${storeConfig.crmEnabled !== false ? `
-                <button onclick="openCRMPlatformSelector('${encodeURIComponent(sale.clientName)}', '${sale.clientPhone}', '${new Date(sale.date).toLocaleDateString()}', '${new Date(sale.expirationDate).toLocaleDateString()}', '${(window.allClientProfiles && window.allClientProfiles[sale.clientPhone] ? window.allClientProfiles[sale.clientPhone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${encodeURIComponent(sale.sellerName || currentSellerName)}')" 
-                    style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6;">
-                    <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
-                </button>
-                ` : ''}
             </div>
         `;
     }
