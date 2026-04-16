@@ -1867,19 +1867,23 @@
             if (document.getElementById('conf-youtube')) document.getElementById('conf-youtube').value = storeConfig.youtubeUrl || '';
 
             document.getElementById('conf-paymentInfo').value = storeConfig.paymentInfo || '';
-            document.getElementById('conf-discountEnabled').value = storeConfig.discountEnabled.toString();
-            document.getElementById('conf-discountAmount').value = storeConfig.discountAmount;
+            if (document.getElementById('conf-discountEnabled')) {
+                document.getElementById('conf-discountEnabled').value = (storeConfig.discountEnabled !== false).toString();
+            }
+            if (document.getElementById('conf-discountAmount')) {
+                document.getElementById('conf-discountAmount').value = storeConfig.discountAmount || 0;
+            }
 
             if (document.getElementById('conf-reminderTemplate')) {
                 document.getElementById('conf-reminderTemplate').value = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
             }
 
-            document.getElementById('conf-netflixEnabled').value = storeConfig.netflixEnabled !== false ? 'true' : 'false';
-            document.getElementById('conf-disneyEnabled').value = storeConfig.disneyEnabled !== false ? 'true' : 'false';
+            if (document.getElementById('conf-netflixEnabled')) document.getElementById('conf-netflixEnabled').value = storeConfig.netflixEnabled !== false ? 'true' : 'false';
+            if (document.getElementById('conf-disneyEnabled')) document.getElementById('conf-disneyEnabled').value = storeConfig.disneyEnabled !== false ? 'true' : 'false';
 
-            document.getElementById('conf-autoReminderEnabled').value = storeConfig.autoReminderEnabled === false ? "false" : "true";
+            if (document.getElementById('conf-autoReminderEnabled')) document.getElementById('conf-autoReminderEnabled').value = storeConfig.autoReminderEnabled === false ? "false" : "true";
             if (document.getElementById('conf-autoReminderTomorrowEnabled')) document.getElementById('conf-autoReminderTomorrowEnabled').value = storeConfig.autoReminderTomorrowEnabled === false ? "false" : "true";
-            document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "0";
+            if (document.getElementById('conf-autoReminderHour')) document.getElementById('conf-autoReminderHour').value = storeConfig.autoReminderHour || "0";
             if (document.getElementById('conf-reminderTomorrowTemplate')) {
                 document.getElementById('conf-reminderTomorrowTemplate').value = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
             }
