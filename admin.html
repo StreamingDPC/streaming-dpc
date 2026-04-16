@@ -3835,11 +3835,13 @@
         }
 
         function renderAllClientsList() {
-            const listDiv = document.getElementById('admin-list-all-clients');
-            if (!listDiv) return;
+            try {
+                const listDiv = document.getElementById('admin-list-all-clients');
+                if (!listDiv) return;
 
-            const filterText = (document.getElementById('filter-clients-text').value || '').toLowerCase();
-            listDiv.innerHTML = '';
+                const filterInput = document.getElementById('filter-clients-text');
+                const filterText = (filterInput ? filterInput.value : '').toLowerCase();
+                listDiv.innerHTML = '';
 
             const phones = Object.keys(allClientSalesMap);
             if (phones.length === 0) {
@@ -3869,8 +3871,9 @@
                 };
             });
 
-            clientsData.filter(c => c.phone.includes(filterText) || c.name.toLowerCase().includes(filterText)).forEach(c => {
-                const phone = c.phone;
+            clientsData.filter(c => (c.phone || '').includes(filterText) || (c.name || '').toLowerCase().includes(filterText)).forEach(c => {
+                try {
+                    const phone = c.phone;
                 const sales = allClientSalesMap[phone] || {};
                 const salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
 
@@ -3947,7 +3950,13 @@
                 }
 
                 listDiv.appendChild(div);
+                } catch (err) {
+                    console.error("Error rendering client:", c.phone, err);
+                }
             });
+            } catch (err) {
+                console.error("Critical error in renderAllClientsList:", err);
+            }
         }
 
         function deleteClientSale(phone, saleId) {
