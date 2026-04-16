@@ -743,6 +743,14 @@ function setupEventListeners() {
         });
     }
 
+    // Refresh Page Btn
+    const refreshBtn = document.getElementById('refresh-page-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            location.reload();
+        });
+    }
+
     // Tabs
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1772,6 +1780,12 @@ function renderSellerSaleCard(sale, isExpired, container) {
                     style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #c48dfc; background: rgba(196, 141, 252, 0.1); color:#c48dfc;">
                     <i class="fa-solid fa-pen"></i> Editar
                 </button>
+                ${storeConfig.crmEnabled !== false ? `
+                <button onclick="openCRMPlatformSelector('${encodeURIComponent(sale.clientName)}', '${sale.clientPhone}', '${new Date(sale.date).toLocaleDateString()}', '${new Date(sale.expirationDate).toLocaleDateString()}', '${(window.allClientProfiles[sale.clientPhone] ? window.allClientProfiles[sale.clientPhone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${encodeURIComponent(sale.sellerName || currentSellerName)}')" 
+                    style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6;">
+                    <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
+                </button>
+                ` : ''}
             </div>
         `;
     }
@@ -2174,3 +2188,158 @@ db.ref('/').once('value').then(snap => {
         }
     });
 });
+
+// --- CRM / RESPUESTAS FUNCTIONS ---
+let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '', fullItems: [], sellerName: '' };
+
+window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '', fullItemsJson = '[]', sellerNameEnc = '') {
+    _crmTargetClient = { 
+        name: decodeURIComponent(nameEnc), 
+        phone: phone,
+        start: start,
+        end: end,
+        pin: pin,
+        itemsRaw: decodeURIComponent(itemsEnc || ''),
+        email: email,
+        pass: pass,
+        profile: profile,
+        fullItems: JSON.parse(decodeURIComponent(fullItemsJson)),
+        sellerName: decodeURIComponent(sellerNameEnc || '')
+    };
+    const modal = document.getElementById('crm-selector-modal');
+    const searchInput = document.getElementById('crm-platform-search');
+    if (searchInput) searchInput.value = '';
+
+    if (!modal) return;
+    renderCRMPlatformsList('');
+    modal.style.display = 'flex';
+}
+
+window.filterCRMPlatforms = function(val) {
+    renderCRMPlatformsList(val.toLowerCase());
+}
+
+window.renderCRMPlatformsList = function(filter) {
+    const list = document.getElementById('crm-platforms-selection-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    const dict = storeConfig.crmGalleryDict || {};
+    const platforms = storeConfig.crmPlatforms || {};
+    let allKeys = Object.keys(platforms);
+    if (allKeys.length === 0) allKeys = Object.keys(dict);
+    
+    const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
+    const keys = allKeys.filter(k => k.toLowerCase().includes(filter));
+    
+    const recommended = [];
+    const others = [];
+
+    keys.forEach(k => {
+        if (purchasedItemsStr.includes(k.toLowerCase())) recommended.push(k);
+        else others.push(k);
+    });
+
+    if (recommended.length > 0 && !filter) {
+        const title = document.createElement('p');
+        title.style = 'grid-column: 1 / -1; color: var(--accent-primary); font-weight: bold; margin: 5px 0; font-size: 0.8rem;';
+        title.innerHTML = '✨ RECOMENDADOS:';
+        list.appendChild(title);
+        recommended.forEach(k => list.appendChild(createPlatformButton(k, true)));
+        
+        const titleRest = document.createElement('p');
+        titleRest.style = 'grid-column: 1 / -1; color: #777; font-weight: bold; margin: 10px 0 5px 0; font-size: 0.8rem;';
+        titleRest.innerHTML = 'OTRAS PLATAFORMAS:';
+        list.appendChild(titleRest);
+    }
+
+    others.forEach(k => list.appendChild(createPlatformButton(k, false)));
+}
+
+function createPlatformButton(k, isRecommended) {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn'; // use existing styles
+    btn.style = `margin:0; background:${isRecommended ? 'rgba(155, 89, 182, 0.2)' : 'var(--glass)'}; border: 1px solid ${isRecommended ? '#9b59b6' : 'var(--glass-border)'}; font-size:0.85rem; padding:12px 5px; text-align:center; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;`;
+    
+    let displayName = k;
+    let displayVariant = '';
+    if (k.includes(' | ')) {
+        const parts = k.split(' | ');
+        displayName = parts[0];
+        displayVariant = parts[1];
+    }
+
+    btn.innerHTML = `
+        <i class="fa-solid fa-tv" style="color:${isRecommended ? '#9b59b6' : 'var(--accent-primary)'}; font-size:1.1rem;"></i> 
+        <span style="word-break: break-word; font-weight:bold;">${displayName}</span>
+        ${displayVariant ? `<span style="font-size:0.65rem; color:#2ab7ca;">${displayVariant}</span>` : ''}
+    `;
+    
+    btn.onclick = () => {
+        sendCRMStep1Message(k);
+        btn.style.opacity = '0.5';
+        btn.disabled = true;
+    };
+    return btn;
+}
+
+window.closeCRMSelector = function() {
+    const m = document.getElementById('crm-selector-modal');
+    if (m) m.style.display = 'none';
+}
+
+function replaceCRMVars(text, data) {
+    if (!text) return "";
+    return text
+        .replace(/{cliente}/ig, data.name || '')
+        .replace(/{nombre}/ig, data.name || '')
+        .replace(/{pantalla}/ig, data.platformName || '')
+        .replace(/{inicio}/ig, data.start || '')
+        .replace(/{Fin}/ig, data.end || '')
+        .replace(/{pin}/ig, data.pin || 'N/A')
+        .replace(/{correo}/ig, data.email || 'N/A')
+        .replace(/{clave}/ig, data.pass || 'N/A')
+        .replace(/{perfil}/ig, data.profile || 'N/A');
+}
+
+window.sendCRMStep1Message = function(platformName) {
+    const { name, phone, start, end, pin, sellerName } = _crmTargetClient;
+    const dict = storeConfig.crmGalleryDict || {};
+    const items = dict[platformName] || [];
+
+    let targetEmail = _crmTargetClient.email && _crmTargetClient.email.trim() ? _crmTargetClient.email : 'N/A';
+    
+    const fullItems = _crmTargetClient.fullItems || [];
+    if (fullItems.length > 0) {
+        fullItems.forEach(it => {
+            if (it.specificEmails && Array.isArray(it.specificEmails)) {
+                const match = it.specificEmails.find(se => 
+                    se.platform && (se.platform.toLowerCase() === platformName.toLowerCase() || platformName.toLowerCase().includes(se.platform.toLowerCase()))
+                );
+                if (match && match.email && match.email.trim()) targetEmail = match.email;
+            }
+        });
+    }
+
+    const dataVars = { name, platformName, start, end, pin, email: targetEmail, pass: _crmTargetClient.pass, profile: _crmTargetClient.profile };
+    let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
+    let mainText = replaceCRMVars(template, dataVars);
+    
+    let extraText = "";
+    if (items.length > 0) {
+        extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
+        items.forEach((item, index) => {
+            let itemText = replaceCRMVars(item.text, dataVars);
+            if (itemText) extraText += `\n\n📌 *Paso ${index+1}:* ${itemText}`;
+            if (item.photo && !storeConfig.useLocalRobotCRM) {
+                const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
+                urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
+            }
+        });
+    }
+
+    const fullMsg = mainText + extraText;
+    let waPhone = phone.toString().replace(/\D/g, '');
+    if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(fullMsg)}`, '_blank');
+}

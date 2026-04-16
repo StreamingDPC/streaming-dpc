@@ -242,7 +242,10 @@
     <div class="admin-layout">
         <div class="admin-header">
             <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.17 (Fix Encoding)</span></h1>
-            <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="logout-btn" style="background: #2e86de;" onclick="location.reload()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+                <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+            </div>
         </div>
 
         <div class="admin-tabs">
@@ -252,6 +255,7 @@
             <button class="admin-tab" onclick="switchTab('vendedores', this)">👔 Vendedores</button>
             <button class="admin-tab" onclick="switchTab('clientes', this)">👥 Clientes</button>
             <button class="admin-tab" onclick="switchTab('ventas', this)">📈 Ventas</button>
+            <button class="admin-tab" onclick="switchTab('crm', this)">💬 Respuestas CRM</button>
             <button class="admin-tab" onclick="switchTab('configuracion', this)">⚙️ Configuración</button>
         </div>
 
@@ -621,6 +625,9 @@
                                 </button>
                             </div>
                             <select id="edit-client-select-sale" style="width: 100%; margin-top: 10px; padding: 0.8rem; background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); color: white; border-radius: 12px; font-size: 1rem;" onchange="onEditClientSaleChange()"></select>
+                            <button onclick="openManualCRM()" class="save-btn" style="background:var(--accent-primary); color:black; font-weight:bold; margin-top:10px; width:100%; height:45px; border-radius:12px; box-shadow:0 4px 15px rgba(155, 89, 182, 0.3);">
+                                <i class="fa-solid fa-comment-dots"></i> ENVIAR RESPUESTAS (CRM)
+                            </button>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
                             <label>Fecha de Inicio:</label>
@@ -705,6 +712,49 @@
             </div>
         </div>
 
+        <!-- TAB CRM / RESPUESTAS -->
+        <div id="tab-crm" class="tab-content">
+            <div class="admin-form" style="padding-bottom: 2rem;">
+                <h2><i class="fa-solid fa-comment-dots" style="color:var(--accent-primary);"></i> Respuestas y Mensajes CRM</h2>
+                <p style="color:#a0a0a0; margin-bottom:1.5rem;">Configura las plantillas de mensajes y las guías visuales que se envían por WhatsApp.</p>
+
+                <div style="background: rgba(155, 89, 182, 0.1); border: 2px solid #9b59b6; border-radius: 12px; padding: 1.2rem; margin-bottom: 2rem;">
+                    <label style="color:#9b59b6; font-weight:bold; font-size: 1.1rem; display:block; margin-bottom:0.5rem;"><i class="fa-solid fa-toggle-on"></i> ACTIVAR SISTEMA DE RESPUESTAS (CRM)</label>
+                    <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem;">Habilita el panel de respuestas automáticas y guías visuales para tus clientes.</p>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <select id="main-conf-crmEnabled" style="flex:1; border:1px solid #9b59b6; background: #000; color: white; padding: 10px; border-radius: 8px;">
+                            <option value="true">SÍ - ACTIVAR CRM</option>
+                            <option value="false">NO - DESACTIVAR CRM</option>
+                        </select>
+                        <button class="save-btn" onclick="saveConfig()"
+                            style="margin:0; padding:10px 20px; width:auto; background:#9b59b6; color: white; font-weight: bold; border-radius: 8px;"
+                            title="Guardar"><i class="fa-solid fa-floppy-disk"></i> GUARDAR ESTADO</button>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col">
+                        <label>Plantilla de Mensaje (Paso 1)</label>
+                        <textarea id="conf-msgTemplate1" rows="3" style="flex:1;" placeholder="Ej: Hola {cliente}, su pantalla está lista."></textarea>
+                    </div>
+                    <div class="form-col">
+                        <label>Plantilla de Mensaje (Paso 2)</label>
+                        <textarea id="conf-msgTemplate2" rows="3" style="flex:1;" placeholder="Ej: Gracias por su compra."></textarea>
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-col" style="grid-column: span 2;">
+                        <label>Fotos / Textos para CRM</label>
+                        <div id="crm-platforms-container"></div>
+                        <button class="save-btn" onclick="addCRMPlatform()" style="background:var(--accent-primary); width:auto;">
+                            <i class="fa-solid fa-plus"></i> Añadir Plataforma CRM
+                        </button>
+                    </div>
+                </div>
+                <button class="save-btn" onclick="saveConfig()" style="margin-top:1rem; background:#9b59b6; height:50px; font-size:1.1rem; font-weight:bold;"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo el CRM</button>
+            </div>
+        </div>
+
         <!-- TAB CONFIGURACIÓN -->
         <div id="tab-configuracion" class="tab-content">
             <div class="admin-form" style="padding-bottom: 2rem;">
@@ -731,7 +781,7 @@
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);">Accesos
                         / Seguridad</button>
                     <button class="save-btn sub-conf-btn" id="btn-conf-mensajes"
-                        onclick="showSubConf('mensajes', this)"
+                        onclick="switchTab('crm', document.querySelector('.admin-tab:nth-child(7)'))"
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);">Mensajes / CRM</button>
                     <button class="save-btn sub-conf-btn" id="btn-conf-emails"
                         onclick="showSubConf('emails', this)"
@@ -740,29 +790,10 @@
 
 </div>
 
-                <!-- SUB TAB: MENSAJES / CRM -->
+                <!-- SUB TAB: MENSAJES ya no se usa aqui, se movio a TAB CRM independiente -->
                 <div id="sub-conf-mensajes" class="sub-conf-content" style="display:none;">
-                    <h3>Configuración Mensajes / CRM</h3>
-                    <div class="form-grid" style="margin-bottom: 1rem;">
-                        <div class="form-col">
-                            <label>Plantilla de Mensaje (Paso 1)</label>
-                            <textarea id="conf-msgTemplate1" rows="3" style="flex:1;" placeholder="Ej: Hola {cliente}, su pantalla está lista."></textarea>
-                        </div>
-                        <div class="form-col">
-                            <label>Plantilla de Mensaje (Paso 2)</label>
-                            <textarea id="conf-msgTemplate2" rows="3" style="flex:1;" placeholder="Ej: Gracias por su compra."></textarea>
-                        </div>
-                    </div>
-                    <div class="form-grid" style="margin-bottom: 1rem;">
-                        <div class="form-col" style="grid-column: span 2;">
-                            <label>Fotos / Textos para CRM</label>
-                            <div id="crm-platforms-container"></div>
-                            <button class="save-btn" onclick="addCRMPlatform()" style="background:var(--accent-primary); width:auto;">
-                                <i class="fa-solid fa-plus"></i> Añadir Plataforma CRM
-                            </button>
-                        </div>
-                    </div>
-                    <button class="save-btn" onclick="saveConfig()" style="margin-top:1rem;"><i class="fa-solid fa-floppy-disk"></i> Guardar Configuración CRM</button>
+                    <h3><i class="fa-solid fa-comment-dots"></i> Configuración Mensajes / CRM</h3>
+                    <button class="save-btn" onclick="switchTab('crm', document.querySelector('.admin-tab:nth-child(7)'))">Ir a la nueva pestaña CRM</button>
                 </div>
 
                 <!-- SUB TAB: CUENTAS DE CORREO -->
@@ -1508,7 +1539,7 @@
         <div style="background:var(--bg-secondary); border: 1px solid var(--glass-border); max-width:700px; width:100%; border-radius:16px; padding:2rem; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
             <button onclick="closeCRMSelector()" style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
             <h2 style="color:var(--accent-primary); margin-bottom:1rem; display:flex; align-items:center; gap:0.8rem;">
-                <i class="fa-solid fa-paper-plane"></i> Enviar Mensaje CRM
+                <i class="fa-solid fa-comment-dots"></i> Enviar Respuestas (CRM)
             </h2>
             <p style="color:#ccc; font-size:0.9rem; margin-bottom:1rem;">Selecciona la plataforma que el cliente está comprando:</p>
             
@@ -1755,6 +1786,7 @@
             discountAmount: 1000,
             netflixEnabled: true,
             disneyEnabled: true,
+            crmEnabled: true,
             sellers: [],
             estrenos: [],
             reminderTemplate: "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*"
@@ -1919,10 +1951,14 @@
             // CRM Messaging config
             if (document.getElementById('conf-msgTemplate1')) document.getElementById('conf-msgTemplate1').value = storeConfig.msgTemplate1 || '';
             if (document.getElementById('conf-msgTemplate2')) document.getElementById('conf-msgTemplate2').value = storeConfig.msgTemplate2 || '';
+            if (document.getElementById('main-conf-crmEnabled')) {
+                document.getElementById('main-conf-crmEnabled').value = storeConfig.crmEnabled === false ? 'false' : 'true';
+            }
             if (document.getElementById('conf-sendOnlyStep1')) document.getElementById('conf-sendOnlyStep1').value = storeConfig.sendOnlyStep1 === true ? 'true' : 'false';
             if (document.getElementById('conf-msgDiscountAmount')) document.getElementById('conf-msgDiscountAmount').value = storeConfig.msgDiscountAmount || 0;
             if (document.getElementById('conf-useLocalRobotCRM')) document.getElementById('conf-useLocalRobotCRM').value = storeConfig.useLocalRobotCRM === true ? 'true' : 'false';
             renderMsgPhotoGallery();
+            renderCRMPlatformsConfigList();
 
             fetchClientSalesHistory();
             fetchSellerSalesStats();
@@ -1937,6 +1973,133 @@
 
             document.getElementById('tab-' + tabId).classList.add('active');
             btn.classList.add('active');
+        }
+
+        function showSubConf(subId, btn) {
+            document.querySelectorAll('.sub-conf-content').forEach(el => el.style.display = 'none');
+            const target = document.getElementById('sub-conf-' + subId);
+            if (target) target.style.display = 'block';
+
+            document.querySelectorAll('.sub-conf-btn').forEach(el => {
+                el.style.background = 'var(--glass)';
+                el.style.color = 'var(--text-secondary)';
+            });
+            btn.style.background = 'white';
+            btn.style.color = 'black';
+        }
+
+        async function saveConfig() {
+            try {
+                // Generales
+                storeConfig.whatsappNumber = document.getElementById('conf-whatsapp').value;
+                if (document.getElementById('conf-facebook')) storeConfig.facebookUrl = document.getElementById('conf-facebook').value;
+                if (document.getElementById('conf-instagram')) storeConfig.instagramUrl = document.getElementById('conf-instagram').value;
+                if (document.getElementById('conf-tiktok')) storeConfig.tiktokUrl = document.getElementById('conf-tiktok').value;
+                if (document.getElementById('conf-kwai')) storeConfig.kwaiUrl = document.getElementById('conf-kwai').value;
+                if (document.getElementById('conf-youtube')) storeConfig.youtubeUrl = document.getElementById('conf-youtube').value;
+                
+                storeConfig.paymentInfo = document.getElementById('conf-paymentInfo').value;
+                storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === "true";
+                storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
+
+                if (document.getElementById('conf-reminderTemplate')) {
+                    storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
+                }
+
+                storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === "true";
+                storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === "true";
+
+                storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
+                if (document.getElementById('conf-autoReminderTomorrowEnabled')) storeConfig.autoReminderTomorrowEnabled = document.getElementById('conf-autoReminderTomorrowEnabled').value === "true";
+                storeConfig.autoReminderHour = document.getElementById('conf-autoReminderHour').value || "0";
+                
+                if (document.getElementById('conf-reminderTomorrowTemplate')) {
+                    storeConfig.reminderTomorrowTemplate = document.getElementById('conf-reminderTomorrowTemplate').value;
+                }
+                
+                if (document.getElementById('conf-sellerReminderTemplate')) {
+                    storeConfig.sellerReminderTemplate = document.getElementById('conf-sellerReminderTemplate').value;
+                }
+                if (document.getElementById('conf-sellerReminderTomorrowTemplate')) {
+                    storeConfig.sellerReminderTomorrowTemplate = document.getElementById('conf-sellerReminderTomorrowTemplate').value;
+                }
+                if (document.getElementById('conf-renovadaSingularTemplate')) {
+                    storeConfig.renovadaSingularTemplate = document.getElementById('conf-renovadaSingularTemplate').value;
+                }
+                if (document.getElementById('conf-renovadaPluralTemplate')) {
+                    storeConfig.renovadaPluralTemplate = document.getElementById('conf-renovadaPluralTemplate').value;
+                }
+
+                if (document.getElementById('conf-sellerPassword')) storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
+                if (document.getElementById('conf-adminPassword')) storeConfig.adminPassword = document.getElementById('conf-adminPassword').value;
+
+                if (document.getElementById('conf-sellerDiscountEnabled')) storeConfig.sellerDiscountEnabled = document.getElementById('conf-sellerDiscountEnabled').value === "true";
+                if (document.getElementById('conf-sellerDiscountAmount')) storeConfig.sellerDiscountAmount = parseInt(document.getElementById('conf-sellerDiscountAmount').value) || 0;
+                
+                if (document.getElementById('conf-clientBannerEnabled')) storeConfig.clientBannerEnabled = document.getElementById('conf-clientBannerEnabled').value === "true";
+                if (document.getElementById('conf-clientBannerText')) storeConfig.clientBannerText = document.getElementById('conf-clientBannerText').value;
+                if (document.getElementById('conf-sellerBannerEnabled')) storeConfig.sellerBannerEnabled = document.getElementById('conf-sellerBannerEnabled').value === "true";
+                if (document.getElementById('conf-sellerBannerText')) storeConfig.sellerBannerText = document.getElementById('conf-sellerBannerText').value;
+
+                if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === "true";
+                if (document.getElementById('conf-mainBannerBadge')) storeConfig.mainBannerBadge = document.getElementById('conf-mainBannerBadge').value;
+                if (document.getElementById('conf-mainBannerTitle')) storeConfig.mainBannerTitle = document.getElementById('conf-mainBannerTitle').value;
+                if (document.getElementById('conf-mainBannerDesc')) storeConfig.mainBannerDesc = document.getElementById('conf-mainBannerDesc').value;
+                if (document.getElementById('conf-mainBannerImage')) storeConfig.mainBannerImage = document.getElementById('conf-mainBannerImage').value;
+                if (document.getElementById('conf-mainBannerBtnText')) storeConfig.mainBannerBtnText = document.getElementById('conf-mainBannerBtnText').value;
+                if (document.getElementById('conf-mainBannerBtnLink')) storeConfig.mainBannerBtnLink = document.getElementById('conf-mainBannerBtnLink').value;
+
+                if (document.getElementById('conf-clientPromoDiscount')) storeConfig.clientPromoDiscount = parseInt(document.getElementById('conf-clientPromoDiscount').value) || 0;
+                if (document.getElementById('conf-clientPromoLimit')) storeConfig.clientPromoLimit = parseInt(document.getElementById('conf-clientPromoLimit').value) || 0;
+                if (document.getElementById('conf-sellerPromoDiscount')) storeConfig.sellerPromoDiscount = parseInt(document.getElementById('conf-sellerPromoDiscount').value) || 0;
+                if (document.getElementById('conf-sellerPromoLimit')) storeConfig.sellerPromoLimit = parseInt(document.getElementById('conf-sellerPromoLimit').value) || 0;
+
+                if (document.getElementById('conf-incentiveEnabled')) storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === "true";
+                if (document.getElementById('conf-incentiveMessage')) storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
+                if (document.getElementById('conf-incentiveNetflix')) storeConfig.incentiveNetflix = parseInt(document.getElementById('conf-incentiveNetflix').value) || 0;
+                if (document.getElementById('conf-incentiveNetflixPrivada')) storeConfig.incentiveNetflixPrivada = parseInt(document.getElementById('conf-incentiveNetflixPrivada').value) || 0;
+                if (document.getElementById('conf-incentiveDisney')) storeConfig.incentiveDisney = parseInt(document.getElementById('conf-incentiveDisney').value) || 0;
+                if (document.getElementById('conf-incentiveHbo')) storeConfig.incentiveHbo = parseInt(document.getElementById('conf-incentiveHbo').value) || 0;
+                if (document.getElementById('conf-incentivePrime')) storeConfig.incentivePrime = parseInt(document.getElementById('conf-incentivePrime').value) || 0;
+                if (document.getElementById('conf-incentiveParamount')) storeConfig.incentiveParamount = parseInt(document.getElementById('conf-incentiveParamount').value) || 0;
+                if (document.getElementById('conf-incentiveVix')) storeConfig.incentiveVix = parseInt(document.getElementById('conf-incentiveVix').value) || 0;
+                if (document.getElementById('conf-incentiveIptv')) storeConfig.incentiveIptv = parseInt(document.getElementById('conf-incentiveIptv').value) || 0;
+                if (document.getElementById('conf-incentiveCrunchyroll')) storeConfig.incentiveCrunchyroll = parseInt(document.getElementById('conf-incentiveCrunchyroll').value) || 0;
+                if (document.getElementById('conf-incentiveApple')) storeConfig.incentiveApple = parseInt(document.getElementById('conf-incentiveApple').value) || 0;
+                if (document.getElementById('conf-incentiveCombo2')) storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
+                if (document.getElementById('conf-incentiveCombo3')) storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
+                if (document.getElementById('conf-incentiveCombo4')) storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;
+                if (document.getElementById('conf-incentiveCombo5')) storeConfig.incentiveCombo5 = parseInt(document.getElementById('conf-incentiveCombo5').value) || 0;
+                if (document.getElementById('conf-incentiveFinde')) storeConfig.incentiveFinde = parseInt(document.getElementById('conf-incentiveFinde').value) || 0;
+                if (document.getElementById('conf-incentiveMes')) storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
+
+                if (document.getElementById('conf-tabOrder')) {
+                    storeConfig.tabOrder = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim());
+                }
+                if (document.getElementById('conf-nequiEnabled')) storeConfig.nequiEnabled = document.getElementById('conf-nequiEnabled').value === "true";
+                if (document.getElementById('conf-nequiLabel')) storeConfig.nequiLabel = document.getElementById('conf-nequiLabel').value;
+                if (document.getElementById('conf-nequiImg')) storeConfig.nequiImg = document.getElementById('conf-nequiImg').value;
+
+                if (document.getElementById('conf-nuEnabled')) storeConfig.nuEnabled = document.getElementById('conf-nuEnabled').value === "true";
+                if (document.getElementById('conf-nuLabel')) storeConfig.nuLabel = document.getElementById('conf-nuLabel').value;
+                if (document.getElementById('conf-nuImg')) storeConfig.nuImg = document.getElementById('conf-nuImg').value;
+                
+                // CRM Logic persistence
+                if (document.getElementById('main-conf-crmEnabled')) {
+                    storeConfig.crmEnabled = document.getElementById('main-conf-crmEnabled').value === "true";
+                }
+                if (document.getElementById('conf-msgTemplate1')) storeConfig.msgTemplate1 = document.getElementById('conf-msgTemplate1').value;
+                if (document.getElementById('conf-msgTemplate2')) storeConfig.msgTemplate2 = document.getElementById('conf-msgTemplate2').value;
+                if (document.getElementById('conf-sendOnlyStep1')) storeConfig.sendOnlyStep1 = document.getElementById('conf-sendOnlyStep1').value === "true";
+                if (document.getElementById('conf-msgDiscountAmount')) storeConfig.msgDiscountAmount = parseInt(document.getElementById('conf-msgDiscountAmount').value) || 0;
+                if (document.getElementById('conf-useLocalRobotCRM')) storeConfig.useLocalRobotCRM = document.getElementById('conf-useLocalRobotCRM').value === "true";
+
+                await db.ref('storeConfig').set(storeConfig);
+                alert('¡Configuración guardada exitosamente en la base de datos!');
+            } catch (err) {
+                console.error(err);
+                alert('Error al guardar configuración: ' + err.message);
+            }
         }
 
         function populateOwnerSelect() {
@@ -2848,10 +3011,12 @@
             const statsDiv = document.getElementById('admin-list-sellers-stats');
             if (statsDiv) statsDiv.innerHTML = '<p style="color:#ccc;">Cargando estadísticas...</p>';
 
-            console.log("Fetching Seller Sales Stats...");
-            db.ref('sellerSales').once('value').then(snap => {
-                globalSellerSalesDataStore = snap.val() || {};
-                console.log("Seller Sales data received:", Object.keys(globalSellerSalesDataStore).length, "sellers found with sales.");
+            console.log("Fetching Seller Sales Stats and Profiles...");
+            db.ref('/').once('value').then(snap => {
+                const data = snap.val() || {};
+                globalSellerSalesDataStore = data.sellerSales || {};
+                allClientProfiles = data.clientProfiles || {};
+                console.log("Data received for sellers and profiles.");
                 renderSellerSalesStats();
             }).catch(err => {
                 console.error("Error fetching seller sales:", err);
@@ -3002,6 +3167,12 @@
                                     onmouseover="this.style.background='rgba(243, 156, 18, 0.2)'" onmouseout="this.style.background='rgba(243, 156, 18, 0.1)'">
                                     <i class="fa-brands fa-whatsapp"></i> Renovada
                                 </button>
+                                ${storeConfig.crmEnabled !== false ? `
+                                <button onclick="openCRMPlatformSelector('${encodeURIComponent(safeClient)}', '${sale.clientPhone || ''}', '${startDate}', '${endDate}', '${(allClientProfiles[sale.clientPhone] ? allClientProfiles[sale.clientPhone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${safeSeller}')" 
+                                    style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6; font-size:0.8rem;">
+                                    <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
+                                </button>
+                                ` : ''}
                                 <button onclick="deleteSellerSale('${safeSeller}', '${sale.id}')" 
                                     style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;" title="Eliminar Registro (Prueba/Error)">
                                     <i class="fa-solid fa-trash"></i>
@@ -3158,6 +3329,38 @@
                 window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
             }
         }
+
+        window.openManualCRM = function() {
+            const saleKey = document.getElementById('edit-client-select-sale').value;
+            if (!saleKey || !window.currentClientSales || !window.currentClientSales[saleKey]) {
+                return alert('Por favor selecciona una venta válida primero.');
+            }
+            
+            const sale = window.currentClientSales[saleKey];
+            const phone = currentEditingClientPhone;
+            const name = document.getElementById('edit-client-name').value;
+            const startDate = sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A';
+            const endDate = sale.expirationDate ? new Date(sale.expirationDate).toLocaleDateString() : 'N/A';
+            const pin = document.getElementById('edit-client-pin').value || '';
+            const itemsStr = sale.items ? sale.items.map(i => i.name).join(', ') : 'Pantalla';
+            const sellerName = sale.sellerName || 'Página Web Oficial';
+            
+            const fullItems = sale.items || [];
+            
+            openCRMPlatformSelector(
+                encodeURIComponent(name),
+                phone,
+                startDate,
+                endDate,
+                pin,
+                encodeURIComponent(itemsStr),
+                (sale.email || '').replace(/'/g, "\\'"),
+                (sale.password || '').replace(/'/g, "\\'"),
+                (sale.profile || '').replace(/'/g, "\\'"),
+                encodeURIComponent(JSON.stringify(fullItems)),
+                encodeURIComponent(sellerName)
+            );
+        };
 
         let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '', fullItems: [], sellerName: '' };
         window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '', fullItemsJson = '[]', sellerNameEnc = '') {
@@ -3577,29 +3780,28 @@
             saleCard.style.borderRadius = '8px';
             saleCard.style.opacity = isExpired ? '0.7' : '1';
 
-            let buttonsHtml = '';
-            if (!isExpired) {
-                buttonsHtml = `
-                    <div style="display:flex; gap:0.5rem;">
-                        <button onclick="sendAdminReminderToDirectClient('${safeClientName}', '${encodeURIComponent(itemsStr)}', '${clientObj.phone}', ${sale.total || 0})" 
-                            style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2ab7ca; background: rgba(42, 183, 202, 0.1); color:#2ab7ca; font-size:0.8rem;">
-                            <i class="fa-brands fa-whatsapp"></i> Recordar
-                        </button>
-                        <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', 'client')" 
-                            style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem;">
-                            <i class="fa-brands fa-whatsapp"></i> Renovada
-                        </button>
-                        <button onclick="openCRMPlatformSelector('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[clientObj.phone] ? allClientProfiles[clientObj.phone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}')" 
-                            style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6; font-size:0.8rem;">
-                            <i class="fa-solid fa-paper-plane"></i> CRM
-                        </button>
-                        <button onclick="deleteClientSale('${clientObj.phone}', '${sale.id}')" 
-                            style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
-                `;
-            }
+            let buttonsHtml = `
+                <div style="display:flex; gap:0.5rem; flex-wrap: wrap;">
+                    <button onclick="sendAdminReminderToDirectClient('${safeClientName}', '${encodeURIComponent(itemsStr)}', '${clientObj.phone}', ${sale.total || 0})" 
+                        style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2ab7ca; background: rgba(42, 183, 202, 0.1); color:#2ab7ca; font-size:0.8rem; min-width: 100px;">
+                        <i class="fa-brands fa-whatsapp"></i> Recordar
+                    </button>
+                    <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${encodeURIComponent(itemsStr)}', ${(sale.items && sale.items.length > 1) ? true : false}, ${sale.expirationDate || 0}, '${sale.id}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', 'client')" 
+                        style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem; min-width: 100px;">
+                        <i class="fa-brands fa-whatsapp"></i> Renovada
+                    </button>
+                    ${storeConfig.crmEnabled !== false ? `
+                    <button onclick="openCRMPlatformSelector('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${startDate}', '${endDate}', '${(allClientProfiles[clientObj.phone] ? allClientProfiles[clientObj.phone].pin : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}')" 
+                        style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); color:#9b59b6; font-size:0.8rem; min-width: 100px;">
+                        <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
+                    </button>
+                    ` : ''}
+                    <button onclick="deleteClientSale('${clientObj.phone}', '${sale.id}')" 
+                        style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
 
             saleCard.innerHTML = `
                 <div style="display:flex; justify-content:space-between; margin-bottom: 0.3rem;">
