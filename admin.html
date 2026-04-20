@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css?v=3.7.2">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .admin-layout {
             padding: 2rem 1rem;
@@ -241,7 +242,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.20 (Alias Full Edit)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.22 (Statistics Ready)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.reload()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
                 <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
@@ -255,6 +256,7 @@
             <button class="admin-tab" onclick="switchTab('vendedores', this)">👔 Vendedores</button>
             <button class="admin-tab" onclick="switchTab('clientes', this)">👥 Clientes</button>
             <button class="admin-tab" onclick="switchTab('ventas', this)">📈 Ventas</button>
+            <button class="admin-tab" onclick="switchTab('stats', this); renderStats();">📊 Estadísticas</button>
             <button class="admin-tab" onclick="switchTab('crm', this)">💬 Respuestas CRM</button>
             <button class="admin-tab" onclick="switchTab('configuracion', this)">⚙️ Configuración</button>
         </div>
@@ -275,6 +277,10 @@
                     <div class="form-col">
                         <label>Precio Mayorista/Vendedor ($)</label>
                         <input type="number" id="new-seller-price" placeholder="Ej: 14000 (Opcional)">
+                    </div>
+                    <div class="form-col">
+                        <label style="color: #f39c12; font-weight: bold;">Precio de Compra / Costo ($)</label>
+                        <input type="number" id="new-purchase-price" placeholder="Ej: 8000 (Para ganancias)" style="border: 1px solid #f39c12;">
                     </div>
                     <div class="form-col">
                         <label>Categoría</label>
@@ -721,6 +727,69 @@
             <div class="admin-form">
                 <h3>Lista de Celulares Bloqueados</h3>
                 <div id="admin-list-blocked" class="admin-list"></div>
+            </div>
+        </div>
+
+        <!-- TAB ESTADISTICAS -->
+        <div id="tab-stats" class="tab-content">
+            <div class="admin-form">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0;"><i class="fa-solid fa-chart-line"></i> Reporte de Rendimiento</h3>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <select id="stats-month-filter" onchange="renderStats()" style="width:auto; padding:5px 10px;">
+                            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+                            <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+                            <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+                            <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+                        </select>
+                        <select id="stats-year-filter" onchange="renderStats()" style="width:auto; padding:5px 10px;">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Resumen Cards -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:2rem;">
+                    <div style="background:rgba(76, 209, 55, 0.1); padding:20px; border-radius:15px; border:1px solid rgba(76, 209, 55, 0.2); text-align:center;">
+                        <p style="margin:0; font-size:0.8rem; color:#ccc; text-transform:uppercase;">Ingresos Brutos</p>
+                        <h2 id="stats-total-income" style="margin:10px 0 0 0; color:#4cd137;">$0</h2>
+                    </div>
+                    <div style="background:rgba(231, 76, 60, 0.1); padding:20px; border-radius:15px; border:1px solid rgba(231, 76, 60, 0.2); text-align:center;">
+                        <p style="margin:0; font-size:0.8rem; color:#ccc; text-transform:uppercase;">Costos de Compra</p>
+                        <h2 id="stats-total-cost" style="margin:10px 0 0 0; color:#e74c3c;">$0</h2>
+                    </div>
+                    <div style="background:rgba(52, 152, 219, 0.1); padding:20px; border-radius:15px; border:1px solid rgba(52, 152, 219, 0.2); text-align:center;">
+                        <p style="margin:0; font-size:0.8rem; color:#ccc; text-transform:uppercase;">Ganancia Neta</p>
+                        <h2 id="stats-total-profit" style="margin:10px 0 0 0; color:#3498db;">$0</h2>
+                    </div>
+                    <div style="background:rgba(241, 196, 15, 0.1); padding:20px; border-radius:15px; border:1px solid rgba(241, 196, 15, 0.2); text-align:center;">
+                        <p style="margin:0; font-size:0.8rem; color:#ccc; text-transform:uppercase;">Total Ventas</p>
+                        <h2 id="stats-total-sales" style="margin:10px 0 0 0; color:#f1c40f;">0</h2>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; flex-wrap:wrap;">
+                    <!-- Top Productos -->
+                    <div class="admin-form" style="margin:0; padding:1.5rem; background: rgba(0,0,0,0.2);">
+                        <h4 style="margin-top:0;"><i class="fa-solid fa-crown" style="color:#f1c40f;"></i> Top 5 Productos</h4>
+                        <div id="stats-top-products" style="display:flex; flex-direction:column; gap:10px;">
+                            <!-- JS Render -->
+                        </div>
+                    </div>
+
+                    <!-- Desglose por Categoría -->
+                    <div class="admin-form" style="margin:0; padding:1.5rem; background: rgba(0,0,0,0.2);">
+                        <h4 style="margin-top:0;"><i class="fa-solid fa-layer-group" style="color:#3498db;"></i> Ventas por Categoría</h4>
+                        <canvas id="stats-category-chart" style="max-height: 200px;"></canvas>
+                    </div>
+                </div>
+                
+                <div class="admin-form" style="margin-top:20px; padding:1.5rem; background: rgba(0,0,0,0.2);">
+                    <h4 style="margin-top:0;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Mensual (Últimos 6 meses)</h4>
+                    <canvas id="stats-history-chart" style="max-height: 250px;"></canvas>
+                </div>
             </div>
         </div>
 
@@ -2343,6 +2412,7 @@
             document.getElementById('new-name').value = p.name;
             document.getElementById('new-price').value = p.price;
             document.getElementById('new-seller-price').value = p.sellerPrice || p.price;
+            document.getElementById('new-purchase-price').value = p.purchasePrice || 0;
             document.getElementById('new-category').value = p.category;
             populateOwnerSelect();
             document.getElementById('new-owner').value = p.owner || 'admin';
@@ -2387,6 +2457,7 @@
             document.getElementById('new-name').value = '';
             document.getElementById('new-price').value = '';
             document.getElementById('new-seller-price').value = '';
+            document.getElementById('new-purchase-price').value = '';
             document.getElementById('new-brand').value = '';
             document.getElementById('new-image').value = '';
             document.getElementById('new-desc').value = '';
@@ -2410,6 +2481,7 @@
             const name = document.getElementById('new-name').value;
             const price = parseInt(document.getElementById('new-price').value);
             const sellerPrice = parseInt(document.getElementById('new-seller-price').value) || price;
+            const purchasePrice = parseInt(document.getElementById('new-purchase-price').value) || 0;
             const category = document.getElementById('new-category').value;
             const owner = category === 'ventas_extras' ? document.getElementById('new-owner').value : null;
             const brand = document.getElementById('new-brand').value;
@@ -2467,6 +2539,7 @@
                     name,
                     price,
                     sellerPrice,
+                    purchasePrice,
                     category,
                     owner,
                     brand,
@@ -3091,6 +3164,198 @@
         function fetchSellerSalesStats() {
             renderSellerSalesStats();
         }
+
+        let categoryChart = null;
+        let historyChart = null;
+
+        window.renderStats = function() {
+            const filterMonth = parseInt(document.getElementById('stats-month-filter').value);
+            const filterYear = parseInt(document.getElementById('stats-year-filter').value);
+            
+            if (isNaN(filterMonth)) {
+                // Initialize filters with current date
+                const now = new Date();
+                document.getElementById('stats-month-filter').value = now.getMonth();
+                document.getElementById('stats-year-filter').value = now.getFullYear();
+            }
+
+            let totalIncome = 0;
+            let totalCost = 0;
+            let totalSalesCount = 0;
+            const productStats = {}; // { name: { count: 0, income: 0, cost: 0 } }
+            const categoryStats = {}; // { cat: count }
+            const monthlyHistory = {}; // { "YYYY-MM": income }
+
+            // Procesar Ventas Directas
+            Object.keys(window.allClientSalesMap || {}).forEach(phone => {
+                const sales = window.allClientSalesMap[phone];
+                Object.keys(sales).forEach(key => {
+                    const s = sales[key];
+                    if (s.isPaid === false) return; // Omitir no pagados
+
+                    const sDate = new Date(s.date);
+                    const month = sDate.getMonth();
+                    const year = sDate.getFullYear();
+                    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    
+                    // Histórico (siempre recolectar)
+                    monthlyHistory[monthKey] = (monthlyHistory[monthKey] || 0) + (s.total || 0);
+
+                    // Filtrado para resumen actual
+                    if (month === parseInt(document.getElementById('stats-month-filter').value) && 
+                        year === parseInt(document.getElementById('stats-year-filter').value)) {
+                        
+                        totalIncome += (s.total || 0);
+                        totalSalesCount++;
+
+                        const items = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                        items.forEach(it => {
+                            // Buscar costo en el catálogo actual
+                            const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
+                            const cost = prod ? (prod.purchasePrice || 0) : 0;
+                            totalCost += cost;
+
+                            // Stats por producto
+                            if (!productStats[it.name]) productStats[it.name] = { count: 0, income: 0, cost: 0 };
+                            productStats[it.name].count++;
+                            productStats[it.name].income += (it.finalPrice || 0);
+                            productStats[it.name].cost += cost;
+
+                            // Stats por categoría
+                            const cat = it.category || 'Otros';
+                            categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+                        });
+                    }
+                });
+            });
+
+            // Procesar Ventas de Vendedores
+            Object.keys(window.globalSellerSalesDataStore || {}).forEach(seller => {
+                const sales = window.globalSellerSalesDataStore[seller];
+                Object.keys(sales).forEach(key => {
+                    const s = sales[key];
+                    if (s.isPaid === false) return;
+
+                    const sDate = new Date(s.date);
+                    const month = sDate.getMonth();
+                    const year = sDate.getFullYear();
+                    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    
+                    monthlyHistory[monthKey] = (monthlyHistory[monthKey] || 0) + (s.total || 0);
+
+                    if (month === parseInt(document.getElementById('stats-month-filter').value) && 
+                        year === parseInt(document.getElementById('stats-year-filter').value)) {
+                        
+                        totalIncome += (s.total || 0);
+                        totalSalesCount++;
+
+                        const items = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                        items.forEach(it => {
+                            const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
+                            const cost = prod ? (prod.purchasePrice || 0) : 0;
+                            totalCost += cost;
+
+                            if (!productStats[it.name]) productStats[it.name] = { count: 0, income: 0, cost: 0 };
+                            productStats[it.name].count++;
+                            productStats[it.name].income += (it.finalPrice || 0);
+                            productStats[it.name].cost += cost;
+
+                            const cat = it.category || 'Otros';
+                            categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+                        });
+                    }
+                });
+            });
+
+            // Update UI Cards
+            document.getElementById('stats-total-income').innerText = `$${totalIncome.toLocaleString()}`;
+            document.getElementById('stats-total-cost').innerText = `$${totalCost.toLocaleString()}`;
+            document.getElementById('stats-total-profit').innerText = `$${(totalIncome - totalCost).toLocaleString()}`;
+            document.getElementById('stats-total-sales').innerText = totalSalesCount;
+
+            // Render Top Products
+            const topProductsDiv = document.getElementById('stats-top-products');
+            topProductsDiv.innerHTML = '';
+            const sortedProds = Object.keys(productStats).sort((a,b) => productStats[b].count - productStats[a].count).slice(0, 5);
+            
+            if (sortedProds.length === 0) {
+                topProductsDiv.innerHTML = '<p style="color:#777; text-align:center;">No hay datos para este periodo.</p>';
+            }
+
+            sortedProds.forEach((name, i) => {
+                const data = productStats[name];
+                const profit = data.income - data.cost;
+                const item = document.createElement('div');
+                item.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;';
+                item.innerHTML = `
+                    <div style="flex:1;">
+                        <span style="color:#f1c40f; font-weight:bold; margin-right:8px;">#${i+1}</span>
+                        <strong style="color:white; font-size:0.9rem;">${name}</strong><br>
+                        <small style="color:#aaa;">${data.count} ventas | Ganancia: $${profit.toLocaleString()}</small>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="color:#4cd137; font-weight:bold;">$${data.income.toLocaleString()}</span>
+                    </div>
+                `;
+                topProductsDiv.appendChild(item);
+            });
+
+            // Render Category Chart (Donut)
+            const catCtx = document.getElementById('stats-category-chart').getContext('2d');
+            if (categoryChart) categoryChart.destroy();
+            
+            const catLabels = Object.keys(categoryStats);
+            const catData = Object.values(categoryStats);
+            
+            categoryChart = new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catData,
+                        backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // Render History Chart (Bares)
+            const histCtx = document.getElementById('stats-history-chart').getContext('2d');
+            if (historyChart) historyChart.destroy();
+
+            const sortedMonths = Object.keys(monthlyHistory).sort().slice(-6);
+            const histData = sortedMonths.map(m => monthlyHistory[m]);
+
+            historyChart = new Chart(histCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Ingresos Mensuales',
+                        data: histData,
+                        backgroundColor: 'rgba(76, 209, 55, 0.5)',
+                        borderColor: '#4cd137',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#aaa' } },
+                        x: { grid: { display: false }, ticks: { color: '#aaa' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        };
 
         function renderSellerSalesStats() {
             const data = globalSellerSalesDataStore;
