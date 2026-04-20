@@ -242,7 +242,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.22 (Statistics Ready)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#4cd137;">v3.9.23 (Stats Export)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.reload()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
                 <button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
@@ -734,7 +734,12 @@
         <div id="tab-stats" class="tab-content">
             <div class="admin-form">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:10px;">
-                    <h3 style="margin:0;"><i class="fa-solid fa-chart-line"></i> Reporte de Rendimiento</h3>
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <h3 style="margin:0;"><i class="fa-solid fa-chart-line"></i> Reporte de Rendimiento</h3>
+                        <button onclick="downloadStatsCSV()" class="save-btn" style="background:#27ae60; margin:0; width:auto; padding: 8px 15px; font-size:0.8rem;">
+                            <i class="fa-solid fa-download"></i> Descargar Reporte CSV
+                        </button>
+                    </div>
                     <div style="display:flex; gap:10px; align-items:center;">
                         <select id="stats-month-filter" onchange="renderStats()" style="width:auto; padding:5px 10px;">
                             <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
@@ -3356,6 +3361,57 @@
                     plugins: { legend: { display: false } }
                 }
             });
+        };
+
+        window.downloadStatsCSV = function() {
+            const filterMonth = parseInt(document.getElementById('stats-month-filter').value);
+            const filterYear = parseInt(document.getElementById('stats-year-filter').value);
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            
+            let csv = "Fecha,Cliente,Telefono,Producto,Categoria,Precio_Venta,Costo_Compra,Ganancia,Vendedor\n";
+            
+            const processSales = (salesData, defaultSeller) => {
+                Object.keys(salesData || {}).forEach(phoneOrSeller => {
+                    const salesMap = salesData[phoneOrSeller];
+                    Object.keys(salesMap).forEach(key => {
+                        const s = salesMap[key];
+                        if (s.isPaid === false) return;
+
+                        const sDate = new Date(s.date);
+                        if (sDate.getMonth() === filterMonth && sDate.getFullYear() === filterYear) {
+                            const dateStr = sDate.toLocaleDateString();
+                            const clientName = safeDecode(api_fixed_client_name(s.clientName || 'Cliente'));
+                            const clientPhone = s.clientPhone || (defaultSeller === 'Directo' ? phoneOrSeller : 'N/A');
+                            const seller = s.sellerName || defaultSeller;
+                            
+                            const items = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                            items.forEach(it => {
+                                const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
+                                const cost = prod ? (prod.purchasePrice || 0) : 0;
+                                const income = it.finalPrice || 0;
+                                const profit = income - cost;
+                                const cat = it.category || 'Otros';
+                                
+                                csv += `"${dateStr}","${clientName}","${clientPhone}","${it.name}","${cat}",${income},${cost},${profit},"${seller}"\n`;
+                            });
+                        }
+                    });
+                });
+            };
+
+            const api_fixed_client_name = (name) => {
+                try { return decodeURIComponent(name); } catch(e) { return name; }
+            };
+
+            processSales(window.allClientSalesMap, 'Directo');
+            processSales(window.globalSellerSalesDataStore, 'Vendedor');
+
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Reporte_StreamingDPC_${monthNames[filterMonth]}_${filterYear}.csv`;
+            a.click();
         };
 
         function renderSellerSalesStats() {
