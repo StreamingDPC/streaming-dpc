@@ -4720,7 +4720,6 @@
         }
 
         window.updateManualEmailsUI = function(mode) {
-            console.log("updateManualEmailsUI triggered for mode:", mode);
             const selectId = mode === 'manual' ? 'manual-client-product' : 'edit-client-add-product';
             const containerId = mode === 'manual' ? 'manual-emails-container' : 'edit-add-emails-container';
             const listId = mode === 'manual' ? 'manual-emails-list' : 'edit-add-emails-list';
@@ -4733,7 +4732,8 @@
             if (!dynamicProducts) return;
             
             const selectedOptions = Array.from(selectElem.selectedOptions).map(o => o.value).filter(v => v !== "");
-            
+            console.log(`[DEBUG] updateManualEmailsUI mode=${mode} selected=${selectedOptions.length}`);
+
             if (selectedOptions.length === 0) {
                 containerElem.style.display = 'none';
                 return;
@@ -4744,18 +4744,24 @@
             const previousValues = {};
             const previousAliases = {};
             
-            // Capture existing emails
+            // Capture existing emails (to preserve them if they change selection)
             listElem.querySelectorAll('.manual-email-group').forEach(group => {
                 const prodId = group.dataset.prodId;
                 const index = group.dataset.index;
-                const email = group.querySelector('.manual-email-input').value;
-                const platform = group.querySelector('.manual-platform-input').value;
-                previousValues[`${prodId}_${index}`] = { email, platform };
+                const emailInput = group.querySelector('.manual-email-input');
+                const platformInput = group.querySelector('.manual-platform-input');
+                if (prodId && index !== undefined && emailInput && platformInput) {
+                    previousValues[`${prodId}_${index}`] = { 
+                        email: emailInput.value, 
+                        platform: platformInput.value 
+                    };
+                }
             });
             
             // Capture existing aliases
             listElem.querySelectorAll('.manual-alias-input').forEach(input => {
-                previousAliases[input.dataset.prodId] = input.value;
+                const prodId = input.dataset.prodId;
+                if (prodId) previousAliases[prodId] = input.value;
             });
             
             listElem.innerHTML = '';
@@ -4766,10 +4772,9 @@
                 
                 const productWrapper = document.createElement('div');
                 productWrapper.className = 'manual-product-settings';
-                productWrapper.style = 'background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; margin-bottom: 5px;';
+                productWrapper.style = 'background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 15px; border-radius: 12px; margin-bottom: 15px;';
                 
                 const prevAlias = previousAliases[prodId] || "";
-                
                 const screenCount = getScreenCount(p.category, p.name);
                 const guesses = guessPlatforms(p.name, screenCount);
                 
@@ -4779,23 +4784,29 @@
                     const prev = previousValues[key] || { email: '', platform: guesses[i] || p.brand || p.name };
                     
                     screensHTML += `
-                        <div class="manual-email-group" data-prod-id="${prodId}" data-index="${i}" style="display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); margin-top: 8px;">
+                        <div class="manual-email-group" data-prod-id="${prodId}" data-index="${i}" style="display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); margin-top: 10px;">
                             <div>
-                                <input type="text" class="manual-platform-input" placeholder="Plataforma" value="${prev.platform}" style="padding:6px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
+                                <label style="font-size:0.7rem; color:#aaa; margin-bottom:3px; display:block;">Plataforma</label>
+                                <input type="text" class="manual-platform-input" placeholder="Plataforma" value="${prev.platform}" style="padding:8px; font-size:0.85rem; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
                             </div>
                             <div>
-                                <input type="email" class="manual-email-input" placeholder="Email / Usuario de la pantalla" value="${prev.email}" style="padding:6px; font-size:0.8rem; border-radius:4px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
+                                <label style="font-size:0.7rem; color:#aaa; margin-bottom:3px; display:block;">Email / Usuario</label>
+                                <input type="email" class="manual-email-input" placeholder="Email / Usuario" value="${prev.email}" style="padding:8px; font-size:0.85rem; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; width:100%;">
                             </div>
                         </div>
                     `;
                 }
 
                 productWrapper.innerHTML = `
-                    <div style="margin-bottom: 8px;">
-                        <label style="color: #4cd137; font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 4px;"><i class="fa-solid fa-box"></i> ${p.name}</label>
-                        <input type="text" class="manual-alias-input" data-prod-id="${prodId}" placeholder="Alias / Nombre para esta pantalla (Ej: Para María)" value="${prevAlias}" style="padding:8px; font-size:0.85rem; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); color:white; width:100%;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="color: #4cd137; font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 6px;"><i class="fa-solid fa-box-open"></i> Producto: ${p.name}</label>
+                        <div style="background: rgba(243, 156, 18, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(243, 156, 18, 0.2);">
+                            <label style="color: #f39c12; font-weight: bold; font-size: 0.8rem; display: block; margin-bottom: 5px;">NOMBRE / ALIAS (EJ: PARA JUAN PÉREZ):</label>
+                            <input type="text" class="manual-alias-input" data-prod-id="${prodId}" placeholder="Escribe aquí el alias..." value="${prevAlias}" style="padding:10px; font-size:1rem; border-radius:8px; background:rgba(0,0,0,0.5); border:1px solid #f39c12; color:white; width:100%;">
+                        </div>
                     </div>
                     <div class="screens-container">
+                        <label style="color: #a0a0a0; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">Configuración de Pantallas:</label>
                         ${screensHTML}
                     </div>
                 `;
