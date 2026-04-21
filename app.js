@@ -948,9 +948,9 @@ function setupEventListeners() {
             const encoded = encodeURIComponent(rawMsg);
 
             if (phoneSegment) {
-                window.open(`https://wa.me/${formatWaPhone(phoneSegment)}?text=${encoded}`, '_blank');
+                window.openWhatsapp(formatWaPhone(phoneSegment), decodeURIComponent(encoded));
             } else {
-                window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+                window.openWhatsapp(null, decodeURIComponent(encoded));
             }
 
             reminderEditorModal.style.display = 'none';
@@ -1025,7 +1025,7 @@ function setupEventListeners() {
     if (successWhatsappBtn) {
         successWhatsappBtn.addEventListener('click', () => {
             const encoded = encodeURIComponent(pendingWhatsappMessage);
-            window.open(`https://wa.me/${pendingWhatsappNumber}?text=${encoded}`, '_blank');
+            window.openWhatsapp(pendingWhatsappNumber, decodeURIComponent(encoded));
             
             // Cerrar modal y refrescar para limpiar estado
             successModal.style.display = 'none';
@@ -2373,3 +2373,12 @@ window.sendCRMStep1Message = function(platformName) {
     if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(fullMsg)}`, '_blank');
 }
+
+
+window.openWhatsapp = function(phone, text) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const baseUrl = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
+    let url = baseUrl + '?text=' + encodeURIComponent(text);
+    if (phone) url += '&phone=' + phone;
+    window.open(url, '_blank');
+};

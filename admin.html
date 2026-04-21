@@ -237,6 +237,15 @@
             });
         };
     </script>
+    <script>
+        window.openWhatsapp = function(phone, text) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const baseUrl = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
+            let url = baseUrl + '?text=' + encodeURIComponent(text);
+            if (phone) url += '&phone=' + phone;
+            window.open(url, '_blank');
+        }
+    </script>
 </head>
 
 <body>
@@ -3709,9 +3718,9 @@
                     if (sWpp) {
                         let sPhone = sWpp.toString().replace(/\D/g, '');
                         if (sPhone.length === 10 && sPhone.startsWith('3')) sPhone = '57' + sPhone;
-                        window.open(`https://wa.me/${sPhone}?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                        window.openWhatsapp(sPhone, sellerMsg);
                     } else {
-                        window.open(`https://wa.me/?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                        window.openWhatsapp(null, sellerMsg);
                     }
                 });
             } else {
@@ -3977,7 +3986,7 @@
                 const command = `CMD_CRM@@@TEL:${targetWhatsAppStr}@@@TX:${fullMsgForClient}@@@IMG:${allLocalPhotos.join(',')}`;
                 
                 if (confirm(`Se enviará una orden a tu Robot Local para enviar las credenciales y fotos ${isTargetingSeller ? 'al VENDEDOR' : 'al CLIENTE'}. ¿Continuar?`)) {
-                    window.open(`https://wa.me/${cleanAdmin}?text=${encodeURIComponent(command)}`, '_blank');
+                    window.openWhatsapp(cleanAdmin, command);
                 }
             } else {
                 // OPCIÓN 1: ENVÍO DIRECTO TRADICIONAL
@@ -4380,15 +4389,15 @@
                                 if (sWpp) {
                                     let sPhone = sWpp.toString().replace(/\D/g, '');
                                     if (sPhone.length === 10 && sPhone.startsWith('3')) sPhone = '57' + sPhone;
-                                    window.open(`https://wa.me/${sPhone}?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                                    window.openWhatsapp(sPhone, sellerMsg);
                                 } else {
-                                    window.open(`https://wa.me/?text=${encodeURIComponent(sellerMsg)}`, '_blank');
+                                    window.openWhatsapp(null, sellerMsg);
                                 }
                             });
                         } else {
                             let waPhone = phoneString.replace(/\D/g, '');
                             if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-                            window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                            window.openWhatsapp(waPhone, msg);
                         }
                     }
                 }
@@ -4458,7 +4467,7 @@
                 waPhone = '57' + waPhone;
             }
 
-            window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+            window.openWhatsapp(waPhone, decodeURIComponent(encodedMsg));
         }
 
         function updateEditClientDatesUI(saleObj) {
@@ -4973,9 +4982,9 @@
                             sellerWa = sWpp.toString().replace(/\D/g, '');
                             if (sellerWa.length === 10 && sellerWa.startsWith('3')) sellerWa = '57' + sellerWa;
                         }
-                        window.open(`https://wa.me/${sellerWa}?text=${encodeURIComponent(msgSeller)}`, '_blank');
+                        window.openWhatsapp(sellerWa, msgSeller);
                     } catch(e) {
-                        window.open(`https://wa.me/?text=${encodeURIComponent(msgSeller)}`, '_blank');
+                        window.openWhatsapp(null, msgSeller);
                     }
                 } else {
                     if (r.sale.total > 0) msg += `\n\n💰 *Total a Renovar:* $${r.sale.total.toLocaleString()}`;
@@ -4995,7 +5004,7 @@
 
                     let waPhone = r.phone.replace(/\D/g, '');
                     if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-                    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                    window.openWhatsapp(waPhone, msg);
                 }
             } else { // Today
                 if (r.type === 'seller') {
@@ -5286,7 +5295,7 @@
             let sellersRaw = storeConfig.sellers || [];
             const sellersList = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw);
             const isSellerFound = sellersList.some(s => s.name.trim().toLowerCase() === sellerNameVal.toLowerCase());
-            const isSellerSale = isSellerFound && sellerNameVal.toLowerCase() !== 'página web oficial';
+            const isSellerSale = isSellerFound && !['página web oficial', 'admin', 'administrador'].includes(sellerNameVal.toLowerCase());
             
             console.log("[DEBUG] Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale, sellersListNames: sellersList.map(s => s.name) });
 
@@ -5440,7 +5449,7 @@
                 let sellersRaw = storeConfig.sellers || [];
                 const sellersList = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw);
                 const isSellerFound = sellersList.some(s => s.name.trim().toLowerCase() === sellerNameVal.toLowerCase());
-                const isSellerSale = isSellerFound && sellerNameVal.toLowerCase() !== 'página web oficial';
+                const isSellerSale = isSellerFound && !['página web oficial', 'admin', 'administrador'].includes(sellerNameVal.toLowerCase());
                 
                 console.log("[DEBUG] Manual Create Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale, sellersListNames: sellersList.map(s => s.name) });
 
