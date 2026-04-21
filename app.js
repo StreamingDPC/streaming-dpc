@@ -2376,7 +2376,7 @@ window.sendCRMStep1Message = function(platformName) {
 
 
 window.openWhatsapp = function(phone, text) {
-    let url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
-    if (phone) url += '&phone=' + phone;
-    window.open(url, '_blank');
-};
+            let encodedText = encodeURIComponent(text);
+            let url = (phone && phone !== 'null' && phone !== 'undefined') ? 'https://wa.me/' + phone + '?text=' + encodedText : 'https://wa.me/?text=' + encodedText;
+            window.open(url, '_blank');
+        };
