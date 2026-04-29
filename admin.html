@@ -1961,6 +1961,15 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.database();
+    window.sanitizePhone = function(val) {
+        if(!val) return '';
+        let c = val.toString().replace(/\D/g, '');
+        if(c.length >= 12 && c.startsWith('57')) {
+            c = c.substring(2);
+        }
+        return c;
+    };
+
 
         function safeDecode(str) {
             if (!str) return '';
@@ -4503,7 +4512,7 @@
         }
 
         async function searchClient() {
-            const phone = document.getElementById('search-client-phone').value.replace(/\D/g, '');
+            const phone = window.sanitizePhone(document.getElementById('search-client-phone').value);
             if (!phone || phone.length < 5) return alert('Ingresa un número de teléfono válido.');
 
             try {
@@ -5040,7 +5049,7 @@
             return result;
         }
 
-        function getScreenCount(cat, name) {
+                function getScreenCount(cat, name) {
             const c = (cat || '').toLowerCase().trim();
             const n = (name || '').toLowerCase().trim();
             
@@ -5051,19 +5060,21 @@
             if (c.includes('combo5') || c.includes('combos5') || (c.includes('combo') && c.includes('5')) || n.includes('combo 5')) return 5;
             
             // Detección genérica para promociones
-            if (c.includes('promo')) {
+            if (c.includes('promo') || c.includes('combo')) {
                 if (n.includes('5')) return 5;
                 if (n.includes('4')) return 4;
                 if (n.includes('3')) return 3;
                 if (n.includes('2')) return 2;
                 if (n.includes('duo')) return 2;
                 if (n.includes('trio')) return 3;
+                
+                let clean = n.replace(/^(combo\s+\d+|trío|dúo|triple|cuádruple|combo|promo\s*\w*)\s*[:\-]\s*/i, '');
+                let parts = clean.split(/\s*[\+\-\|]\s*|\s+y\s+/).map(s => s.trim()).filter(s => s.length > 2);
+                if (parts.length > 1) return parts.length;
             }
 
             return 1;
-        }
-
-        window.updateManualEmailsUI = function(mode) {
+        }\n        window.updateManualEmailsUI = function(mode) {
             const selectId = mode === 'manual' ? 'manual-client-product' : 'edit-client-add-product';
             const containerId = mode === 'manual' ? 'manual-emails-container' : 'edit-add-emails-container';
             const listId = mode === 'manual' ? 'manual-emails-list' : 'edit-add-emails-list';
@@ -5427,7 +5438,7 @@
 
         window.createClientManual = async function() {
             const name = document.getElementById('manual-client-name').value.trim();
-            const phoneStr = document.getElementById('manual-client-phone').value.replace(/\D/g, '');
+            const phoneStr = window.sanitizePhone(document.getElementById('manual-client-phone').value);
             const pinStr = document.getElementById('manual-client-pin').value.trim();
             const emailStr = document.getElementById('manual-client-email') ? document.getElementById('manual-client-email').value.trim() : '';
             const startDateStr = document.getElementById('manual-client-start-date').value;

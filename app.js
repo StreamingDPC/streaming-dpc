@@ -14,6 +14,16 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
+window.sanitizePhone = function(val) {
+    if(!val) return "";
+    let c = val.toString().replace(/\D/g, "");
+    if(c.length >= 12 && c.startsWith("57")) {
+        c = c.substring(2);
+    }
+    return c;
+};
+
+
 let storeConfig = {};
 let products = [];
 let cart = [];
@@ -936,7 +946,7 @@ function setupEventListeners() {
     if (sendReminderWhatsappBtn) {
         sendReminderWhatsappBtn.addEventListener('click', () => {
             const saleId = remindSaleIdInput.value;
-            const newPhone = remindPhoneInput.value.replace(/\D/g, '');
+            const newPhone = window.sanitizePhone(remindPhoneInput.value);
             const rawMsg = remindMsgInput.value;
 
             if (saleId && newPhone && isSellerMode) {
@@ -975,7 +985,7 @@ function setupEventListeners() {
 
     if (btnClientNext) {
         btnClientNext.addEventListener('click', async () => {
-            const phone = document.getElementById('client-login-phone').value.replace(/\D/g, '');
+            const phone = window.sanitizePhone(document.getElementById('client-login-phone').value);
             if (!phone || phone.length < 5) return alert('Ingresa un número válido de celular sin espacios.');
             if (storeConfig.blockedClients && storeConfig.blockedClients.includes(phone)) {
                 return alert('⚠️ Este número de celular ha sido bloqueado por el administrador. Contacta con soporte.');
@@ -1225,7 +1235,7 @@ function setupEventListeners() {
 
     if (saveStoreBtn) {
         saveStoreBtn.addEventListener('click', () => {
-            const wpp = storeWhatsappInput.value.replace(/\D/g, '');
+            const wpp = window.sanitizePhone(storeWhatsappInput.value);
             if (!wpp) return alert('Debes agregar tu número de WhatsApp para poder recibir los pedidos de tus clientes.');
             const fbUrl = storeFacebookInput ? storeFacebookInput.value.trim() : '';
             const igUrl = storeInstagramInput ? storeInstagramInput.value.trim() : '';
@@ -1320,7 +1330,7 @@ function setupEventListeners() {
 
         cName = document.getElementById('client-name').value.trim();
         cCity = document.getElementById('client-city').value.trim();
-        cPhone = document.getElementById('client-phone').value.trim();
+        cPhone = window.sanitizePhone(document.getElementById('client-phone').value.trim());
         const checkedDev = document.querySelectorAll('#client-devices input[type="checkbox"]:checked');
         checkedDev.forEach(c => cDevices.push(c.value));
 
