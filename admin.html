@@ -3291,41 +3291,33 @@
                 });
             });
 
-            // Procesar Ventas de Vendedores
+            // NOTA: sellerSales NO se suma aquí porque cada venta ya está en clientSales.
+            // sellerSales es solo para el panel de vendedores. Sumar ambos causaría doble conteo.
+
+            // Sin embargo, usamos sellerSales solo para el historial mensual de ventas SIN número de celular
+            // (ventas que no tienen clientSales porque no se capturó el teléfono)
+            const clientSaleDates = new Set();
+            Object.keys(window.allClientSalesMap || {}).forEach(phone => {
+                Object.keys(window.allClientSalesMap[phone] || {}).forEach(key => {
+                    const s = window.allClientSalesMap[phone][key];
+                    if (s.date) clientSaleDates.add(s.date + '_' + (s.clientPhone||'').replace(/\D/g,''));
+                });
+            });
+
+            // Historial mensual desde sellerSales (solo los que no están ya en clientSales)
             Object.keys(window.globalSellerSalesDataStore || {}).forEach(seller => {
                 const sales = window.globalSellerSalesDataStore[seller];
                 Object.keys(sales).forEach(key => {
                     const s = sales[key];
                     if (s.isPaid === false) return;
+                    const sig = s.date + '_' + (s.clientPhone||'').replace(/\D/g,'');
+                    if (clientSaleDates.has(sig)) return; // ya está en clientSales, no contar de nuevo
 
                     const sDate = new Date(s.date);
                     const month = sDate.getMonth();
                     const year = sDate.getFullYear();
                     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-                    
                     monthlyHistory[monthKey] = (monthlyHistory[monthKey] || 0) + (s.total || 0);
-
-                    if (month === parseInt(document.getElementById('stats-month-filter').value) && 
-                        year === parseInt(document.getElementById('stats-year-filter').value)) {
-                        
-                        totalIncome += (s.total || 0);
-                        totalSalesCount++;
-
-                        const items = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
-                        items.forEach(it => {
-                            const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
-                            const cost = prod ? (prod.purchasePrice || 0) : 0;
-                            totalCost += cost;
-
-                            if (!productStats[it.name]) productStats[it.name] = { count: 0, income: 0, cost: 0 };
-                            productStats[it.name].count++;
-                            productStats[it.name].income += (it.finalPrice || 0);
-                            productStats[it.name].cost += cost;
-
-                            const cat = it.category || 'Otros';
-                            categoryStats[cat] = (categoryStats[cat] || 0) + 1;
-                        });
-                    }
                 });
             });
 
@@ -3460,17 +3452,18 @@
                 });
             });
 
-            // Detectar duplicados: misma fecha (ms) + mismo teléfono
+            // Detectar duplicados REALES: misma fuente + misma fecha + mismo teléfono
+            // (clientSales + sellerSales con misma fecha es NORMAL, no es duplicado)
             const dupSignatures = {};
             allRecords.forEach(r => {
-                const sig = `${r.dateMs}_${(r.data.clientPhone || '').replace(/\D/g,'')}`;
+                const sig = `${r.source}_${r.dateMs}_${(r.data.clientPhone || '').replace(/\D/g,'')}`;
                 if (!dupSignatures[sig]) dupSignatures[sig] = [];
                 dupSignatures[sig].push(r);
             });
 
-            // Marcar duplicados
+            // Marcar duplicados (solo dentro de la misma fuente)
             allRecords.forEach(r => {
-                const sig = `${r.dateMs}_${(r.data.clientPhone || '').replace(/\D/g,'')}`;
+                const sig = `${r.source}_${r.dateMs}_${(r.data.clientPhone || '').replace(/\D/g,'')}`;
                 r.isDuplicate = dupSignatures[sig].length > 1;
                 r.dupGroup    = dupSignatures[sig];
             });
