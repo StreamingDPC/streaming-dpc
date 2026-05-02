@@ -693,6 +693,22 @@
                                 <div id="edit-add-emails-list" style="display: flex; flex-direction: column; gap: 15px; margin-top:0.5rem;"></div>
                             </div>
 
+                            <!-- FECHAS DE LA NUEVA VENTA -->
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; margin-top:1rem; padding:0.8rem; background:rgba(243,156,18,0.07); border-radius:10px; border:1px solid rgba(243,156,18,0.25);">
+                                <div class="form-col">
+                                    <label style="font-size:0.85rem; color:#f39c12;"><i class="fa-solid fa-calendar-day"></i> Fecha de Inicio (Nueva Venta):</label>
+                                    <input type="date" id="edit-new-sale-start-date" style="padding:0.7rem; border-radius:10px; border:1px solid rgba(243,156,18,0.4); background:var(--bg-dark); color:white;">
+                                </div>
+                                <div class="form-col">
+                                    <label style="font-size:0.85rem; color:#f39c12;"><i class="fa-solid fa-calendar-xmark"></i> Vencimiento (Nueva Venta):</label>
+                                    <div style="display:flex; gap:0.4rem;">
+                                        <input type="date" id="edit-new-sale-end-date" style="flex:2; padding:0.7rem; border-radius:10px; border:1px solid rgba(243,156,18,0.4); background:var(--bg-dark); color:white;">
+                                        <input type="time" id="edit-new-sale-end-time" value="23:59" style="flex:1; padding:0.7rem; border-radius:10px; border:1px solid rgba(243,156,18,0.4); background:var(--bg-dark); color:white;">
+                                    </div>
+                                </div>
+                                <p style="grid-column:1/-1; font-size:0.75rem; color:#a0a0a0; margin:0;">Si dejas las fechas vacías, se asignará hoy como inicio y +30 días como vencimiento automáticamente.</p>
+                            </div>
+
                             <button class="save-btn" style="background:#f39c12; margin-top: 1rem; width: auto; font-size: 0.9rem;" onclick="addProductsToExistingClient()"><i class="fa-solid fa-plus"></i> Añadir Pantallas como Nueva Compra</button>
                         </div>
                     </div>
@@ -5313,16 +5329,29 @@
             
             console.log("[DEBUG] Seller Detection:", { raw: sellerNameRaw, val: sellerNameVal, isFound: isSellerFound, isSellerSale, sellersListNames: sellersList.map(s => s.name) });
 
+            // Leer fechas del formulario de nueva venta
+            const newSaleStartDateStr = document.getElementById('edit-new-sale-start-date') ? document.getElementById('edit-new-sale-start-date').value : '';
+            const newSaleEndDateStr   = document.getElementById('edit-new-sale-end-date')   ? document.getElementById('edit-new-sale-end-date').value   : '';
+            const newSaleEndTimeStr   = document.getElementById('edit-new-sale-end-time')   ? document.getElementById('edit-new-sale-end-time').value   : '23:59';
+
+            const newSaleStart = newSaleStartDateStr
+                ? new Date(newSaleStartDateStr + 'T00:00:00').getTime()
+                : Date.now();
+
+            const newSaleEnd = newSaleEndDateStr
+                ? new Date(newSaleEndDateStr + 'T' + (newSaleEndTimeStr || '23:59') + ':00').getTime()
+                : Date.now() + (30 * 24 * 60 * 60 * 1000);
+
             const saleData = {
                 clientName: name,
                 clientCity: document.getElementById('edit-client-city').value.trim() || '',
                 clientPhone: currentEditingClientPhone,
-                date: Date.now(),
-                expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000),
+                date: newSaleStart,
+                expirationDate: newSaleEnd,
                 items: [],
                 total: 0,
                 sellerName: sellerNameVal,
-                isPaid: !isSellerSale, 
+                isPaid: !isSellerSale,
                 incentiveEarned: 0,
                 incentiveDetails: []
             };
