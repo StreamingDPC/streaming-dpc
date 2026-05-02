@@ -1334,13 +1334,15 @@ function setupEventListeners() {
         const checkedDev = document.querySelectorAll('#client-devices input[type="checkbox"]:checked');
         checkedDev.forEach(c => cDevices.push(c.value));
 
-        if (!cName) {
+        // Si NO es cliente recurrente, el nombre es obligatorio
+        if (!isRecurrent && !cName) {
             return alert('Por favor, indica el nombre del cliente.');
         }
 
+        // El celular es SIEMPRE obligatorio (nuevo o recurrente)
         const cleanPhone = cPhone ? cPhone.replace(/\D/g, '') : '';
         if (!cleanPhone || cleanPhone.length < 5) {
-            return alert('Por favor, indica un número de celular válido para registrar la compra.');
+            return alert('📱 El número de celular es obligatorio para registrar la venta.\n\nIngresa el celular del cliente en el campo correspondiente.');
         }
         if (cleanPhone && storeConfig.blockedClients && storeConfig.blockedClients.includes(cleanPhone)) {
             return alert('⚠️ Este número de celular ha sido bloqueado por el administrador. Contacta con soporte.');
