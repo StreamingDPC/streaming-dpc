@@ -852,7 +852,8 @@
                 <h2><i class="fa-solid fa-comment-dots" style="color:var(--accent-primary);"></i> Respuestas y Mensajes CRM</h2>
                 <p style="color:#a0a0a0; margin-bottom:1.5rem;">Configura las plantillas de mensajes y las guías visuales que se envían por WhatsApp.</p>
 
-                <div style="background: rgba(155, 89, 182, 0.1); border: 2px solid #9b59b6; border-radius: 12px; padding: 1.2rem; margin-bottom: 2rem;">
+                <!-- TOGGLE CRM ACTIVADO -->
+                <div style="background: rgba(155, 89, 182, 0.1); border: 2px solid #9b59b6; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem;">
                     <label style="color:#9b59b6; font-weight:bold; font-size: 1.1rem; display:block; margin-bottom:0.5rem;"><i class="fa-solid fa-toggle-on"></i> ACTIVAR SISTEMA DE RESPUESTAS (CRM)</label>
                     <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem;">Habilita el panel de respuestas automáticas y guías visuales para tus clientes.</p>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -863,6 +864,28 @@
                         <button class="save-btn" onclick="saveConfig()"
                             style="margin:0; padding:10px 20px; width:auto; background:#9b59b6; color: white; font-weight: bold; border-radius: 8px;"
                             title="Guardar"><i class="fa-solid fa-floppy-disk"></i> GUARDAR ESTADO</button>
+                    </div>
+                </div>
+
+                <!-- TOGGLE ROBOT LOCAL CRM -->
+                <div style="background: rgba(46, 204, 113, 0.08); border: 2px solid #2ecc71; border-radius: 12px; padding: 1.2rem; margin-bottom: 2rem;">
+                    <label style="color:#2ecc71; font-weight:bold; font-size: 1.1rem; display:block; margin-bottom:0.5rem;">
+                        <i class="fa-solid fa-robot"></i> MODO ROBOT LOCAL (Enviar CRM a tu Número Primero)
+                    </label>
+                    <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem;">
+                        <strong style="color:#2ecc71;">ACTIVO:</strong> El sistema te enviará el comando <code style="background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px; font-size:0.8rem;">CMD_CRM@@@TEL:...@@@TX:...@@@IMG:...</code> a <strong>TU número</strong> para que tu Robot lo procese y reenvíe al cliente.<br>
+                        <strong style="color:#e74c3c;">INACTIVO:</strong> El mensaje se abre directamente en WhatsApp Web hacia el número del cliente.
+                    </p>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <select id="conf-useLocalRobotCRM" style="flex:1; border:1px solid #2ecc71; background: #000; color: white; padding: 10px; border-radius: 8px;">
+                            <option value="true">✅ SÍ - USAR ROBOT LOCAL (Llega a MI número primero)</option>
+                            <option value="false">❌ NO - Envío directo al cliente por WhatsApp Web</option>
+                        </select>
+                        <button class="save-btn" onclick="saveConfig()"
+                            style="margin:0; padding:10px 20px; width:auto; background:#2ecc71; color: black; font-weight: bold; border-radius: 8px;"
+                            title="Guardar Robot"><i class="fa-solid fa-floppy-disk"></i> GUARDAR</button>
+                    </div>
+                    <div id="robot-status-indicator" style="margin-top:0.8rem; padding:8px 12px; border-radius:8px; font-size:0.8rem; font-weight:bold; background:rgba(0,0,0,0.3); display:none;">
                     </div>
                 </div>
 
@@ -4168,6 +4191,14 @@
             const dict = storeConfig.crmGalleryDict || {};
             const items = dict[platformName] || [];
 
+            // ── Leer useLocalRobotCRM SIEMPRE desde storeConfig (fuente de verdad = Firebase)
+            // También sincronizar desde el DOM si el elemento existe
+            const robotSelect = document.getElementById('conf-useLocalRobotCRM');
+            if (robotSelect) {
+                storeConfig.useLocalRobotCRM = robotSelect.value === 'true';
+            }
+            const useRobot = storeConfig.useLocalRobotCRM === true;
+
             let targetEmail = _crmTargetClient.email && _crmTargetClient.email.trim() ? _crmTargetClient.email : 'N/A';
             
             // Buscar email específico para esta plataforma en los items de la venta
@@ -4177,7 +4208,6 @@
             if (fullItems.length > 0) {
                 fullItems.forEach(it => {
                     if (it.specificEmails && Array.isArray(it.specificEmails)) {
-                        // Intentar coincidencia exacta o por inclusión
                         const match = it.specificEmails.find(se => 
                             se.platform && (
                             se.platform.toLowerCase() === platformName.toLowerCase() || 
@@ -4212,7 +4242,7 @@
                     
                     if (item.photo) {
                         const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
-                        if (storeConfig.useLocalRobotCRM) {
+                        if (useRobot) {
                             urls.forEach(url => allLocalPhotos.push(url));
                         } else {
                             urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
@@ -4236,24 +4266,24 @@
                 }
             }
 
-            if (storeConfig.useLocalRobotCRM) {
-                // OPCIÓN 2: ENVIAR COMANDO AL ROBOT PROPIO
+            if (useRobot) {
+                // ── MODO ROBOT LOCAL: Envía CMD_CRM@@@ a TU número de WhatsApp ──
                 const adminPhone = storeConfig.whatsappNumber || '';
-                if (!adminPhone) return alert('Debes configurar tu número de WhatsApp en la pestaña Datos Generales.');
+                if (!adminPhone) return alert('⚠️ Debes configurar tu número de WhatsApp en la pestaña Configuración → Generales.');
                 
-                let cleanAdmin = adminPhone.replace(/\D/g, '');
+                let cleanAdmin = adminPhone.toString().replace(/\D/g, '');
                 if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
 
-                // El robot captará este comando y enviará todo al target
-                const command = `CMD_CRM@@@TEL:${targetWhatsAppStr}@@@TX:${fullMsgForClient}@@@IMG:${allLocalPhotos.join(',')}`;
+                // Formato del comando que el Robot debe captar
+                const command = `CMD_CRM@@@TEL:${targetWhatsAppStr}@@@TX:${fullMsgForClient}@@@IMG:${allLocalPhotos.join(',')}` ;
                 
-                if (confirm(`Se enviará una orden a tu Robot Local para enviar las credenciales y fotos ${isTargetingSeller ? 'al VENDEDOR' : 'al CLIENTE'}. ¿Continuar?`)) {
+                if (confirm(`🤖 MODO ROBOT ACTIVO\n\nSe enviará el comando CRM a TU número (${cleanAdmin}) para que tu Robot lo procese y reenvíe ${isTargetingSeller ? 'al VENDEDOR' : 'al CLIENTE'}.\n\n¿Continuar?`)) {
                     window.openWhatsapp(cleanAdmin, command);
                 }
             } else {
-                // OPCIÓN 1: ENVÍO DIRECTO TRADICIONAL
+                // ── MODO DIRECTO: Abre WhatsApp Web al número del cliente ──
                 const encodedMsg = encodeURIComponent(fullMsgForClient);
-                let waPhone = targetWhatsAppStr.replace(/\D/g, '');
+                let waPhone = targetWhatsAppStr.toString().replace(/\D/g, '');
                 if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
                 window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
             }
