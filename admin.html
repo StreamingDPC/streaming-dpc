@@ -5243,48 +5243,9 @@
             }).join(', ') : 'Pantallas';
 
             if (r.daysLeft === 1) { // Tomorrow
-                let templateText = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
-                let msg = templateText
-                    .replace(/{cliente}/g, r.name)
-                if (r.type === 'seller') {
-                    let clientPin = "No asignado";
-                    if (r.phone) {
-                        let cleanPhone = r.phone.replace(/\D/g, '');
-                        try {
-                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
-                            if (snap.exists() && snap.val()) {
-                                clientPin = snap.val();
-                            }
-                        } catch(e) {}
-                    }
+                let templateText = storeConfig.reminderTomorrowTemplate || "Hola {cliente} \uD83D\uDE0A Buen dia\nTe avisamos que TU {pantallas} finaliza \n\uD83D\uDC49 *MA\u00d1ANA* \uD83D\uDC48\n\u26A0\uFE0F Para evitar la suspensi\u00f3n, por favor realiza el pago con tiempo \u26A0\uFE0F\n\n\uD83D\uDCB0 *Total a Renovar:* ${total}\n\n{pago}\n\nCelular: *{celular}* y Pin: *{pin}*";
 
-                    let templateSeller = storeConfig.sellerReminderTomorrowTemplate || "Hola *{vendedor}* 👋\n\nTe damos Aviso Previo que la cuenta de tu cliente *{cliente}* (📱 {celular})\n\nCon: {pantallas}\n👉 *FINALIZA MAÑANA* 👈\n\nPor favor contáctalo para gestionar su renovación y evitar cortes.\n\nCelular: {celular} y Pin: {pin}\n💰 *Total:* ${total}";
-                    
-                    let msgSeller = templateSeller
-                        .replace(/{vendedor}/g, r.seller)
-                        .replace(/{cliente}/g, r.name)
-                        .replace(/{pantallas}/g, itemsStr)
-                        .replace(/{celular}/g, r.phone || 'N/A')
-                        .replace(/{pin}/g, clientPin)
-                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
-                        .replace(/{pago}/g, storeConfig.paymentInfo || '');
-
-                    // BUSCAR WHATSAPP DEL VENDEDOR PARA COLA
-                    try {
-                        const snapS = await db.ref(`sellerStores/${r.seller}/whatsapp`).once('value');
-                        const sWpp = snapS.val();
-                        let sellerWa = "";
-                        if (sWpp) {
-                            sellerWa = sWpp.toString().replace(/\D/g, '');
-                            if (sellerWa.length === 10 && sellerWa.startsWith('3')) sellerWa = '57' + sellerWa;
-                        }
-                        window.openWhatsapp(sellerWa, msgSeller);
-                    } catch(e) {
-                        window.openWhatsapp(null, msgSeller);
-                    }
-                } else {
-                } else {
-                    // Obtener pin del cliente para tomorrow reminder
+                if (r.type === "seller") {
                     let clientPin = "No asignado";
                     if (r.phone) {
                         let cleanPhone = r.phone.replace(/\D/g, "");
@@ -5295,8 +5256,44 @@
                             }
                         } catch(e) {}
                     }
-                    // Usar template con variables - sin concatenacion (evita duplicacion)
-                    let msg = templateText
+
+                    let templateSeller = storeConfig.sellerReminderTomorrowTemplate || "Hola *{vendedor}* \uD83D\uDC4B\n\nTe damos Aviso Previo que la cuenta de tu cliente *{cliente}* (\uD83D\uDCF1 {celular})\n\nCon: {pantallas}\n\uD83D\uDC49 *FINALIZA MA\u00d1ANA* \uD83D\uDC48\n\nPor favor cont\u00e1ctalo para gestionar su renovaci\u00f3n y evitar cortes.\n\nCelular: {celular} y Pin: {pin}\n\uD83D\uDCB0 *Total:* ${total}";
+
+                    let msgSeller = templateSeller
+                        .replace(/{vendedor}/g, r.seller)
+                        .replace(/{cliente}/g, r.name)
+                        .replace(/{pantallas}/g, itemsStr)
+                        .replace(/{celular}/g, r.phone || "N/A")
+                        .replace(/{pin}/g, clientPin)
+                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
+                        .replace(/{pago}/g, storeConfig.paymentInfo || "");
+
+                    // BUSCAR WHATSAPP DEL VENDEDOR PARA COLA
+                    try {
+                        const snapS = await db.ref(`sellerStores/${r.seller}/whatsapp`).once("value");
+                        const sWpp = snapS.val();
+                        let sellerWa = "";
+                        if (sWpp) {
+                            sellerWa = sWpp.toString().replace(/\D/g, "");
+                            if (sellerWa.length === 10 && sellerWa.startsWith("3")) sellerWa = "57" + sellerWa;
+                        }
+                        window.openWhatsapp(sellerWa, msgSeller);
+                    } catch(e) {
+                        window.openWhatsapp(null, msgSeller);
+                    }
+                } else {
+                    // Cliente directo - reemplazar variables del template (sin concatenacion extra)
+                    let clientPin = "No asignado";
+                    if (r.phone) {
+                        let cleanPhone = r.phone.replace(/\D/g, "");
+                        try {
+                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once("value");
+                            if (snap.exists() && snap.val()) {
+                                clientPin = snap.val();
+                            }
+                        } catch(e) {}
+                    }
+                    let msgDirect = templateText
                         .replace(/{cliente}/g, r.name)
                         .replace(/{pantallas}/g, itemsStr)
                         .replace(/{celular}/g, r.phone || "N/A")
@@ -5306,7 +5303,7 @@
 
                     let waPhone = r.phone.replace(/\D/g, "");
                     if (waPhone.length === 10 && waPhone.startsWith("3")) waPhone = "57" + waPhone;
-                    window.openWhatsapp(waPhone, msg);
+                    window.openWhatsapp(waPhone, msgDirect);
                 }
             } else { // Today
                 if (r.type === 'seller') {
