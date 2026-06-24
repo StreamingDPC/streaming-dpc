@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -4730,37 +4730,37 @@
         async function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = safeDecode(itemsEncoded);
             const cName = safeDecode(clientName);
-            let template = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️";
-            let msg = template.replace(/{cliente}/g, cName).replace(/{pantallas}/g, itemsStr);
 
-            if (saleTotal > 0) {
-                msg += `\n\n💰 *Total a Renovar:* $${saleTotal.toLocaleString()}`;
-            }
-
-            if (storeConfig.paymentInfo) {
-                msg += `\n\n*Medios de Pago:*\n${storeConfig.paymentInfo}`;
-            } else {
-                msg += `\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*`;
-            }
-
+            // Obtener pin del cliente primero
             let clientPin = "No asignado";
             if (clientPhone) {
-                let cleanPhone = clientPhone.replace(/\D/g, '');
+                let cleanPhone = clientPhone.replace(/\D/g, "");
                 try {
-                    const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                    const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once("value");
                     if (snap.exists() && snap.val()) {
                         clientPin = snap.val();
                     }
                 } catch(e) {}
             }
-            msg += `\n\nCelular: ${clientPhone || 'N/A'} y Pin: ${clientPin}`;
+
+            // Reemplazar variables del template (igual que seller reminder - sin concatenacion extra)
+            // Variables: {cliente}, {pantallas}, {total}, {celular}, {pin}, {pago}
+            let template = storeConfig.reminderTemplate || "Hola *{cliente}* \uD83D\uDE0A Buen dia\n\nTU *{pantallas}* \n\n\uD83D\uDC49 *FINALIZA HOY* \uD83D\uDC48\n\n\u26A0\uFE0F Si deseas continuar, realiza el pago y me env\u00EDas la foto del comprobante\uD83E\uDDFE (sin comprobante no cuenta como pago v\u00E1lido) \u26A0\uFE0F\n\n\uD83D\uDCB0 *Total a Renovar:* ${total}\n\n{pago}\n\nCelular: *{celular}* y Pin: *{pin}*";
+
+            let msg = template
+                .replace(/{cliente}/g, cName)
+                .replace(/{pantallas}/g, itemsStr)
+                .replace(/{celular}/g, clientPhone || "N/A")
+                .replace(/{pin}/g, clientPin)
+                .replace(/{total}/g, saleTotal > 0 ? saleTotal.toLocaleString() : "0")
+                .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
             const encodedMsg = encodeURIComponent(msg);
 
-            // Add country code if it looks like a local Colombian number
-            let waPhone = clientPhone.replace(/\D/g, '');
-            if (waPhone.length === 10 && waPhone.startsWith('3')) {
-                waPhone = '57' + waPhone;
+            // Agregar codigo de pais si es numero colombiano local
+            let waPhone = clientPhone.replace(/\D/g, "");
+            if (waPhone.length === 10 && waPhone.startsWith("3")) {
+                waPhone = "57" + waPhone;
             }
 
             window.openWhatsapp(waPhone, decodeURIComponent(encodedMsg));
@@ -5244,8 +5244,8 @@
 
             if (r.daysLeft === 1) { // Tomorrow
                 let templateText = storeConfig.reminderTomorrowTemplate || "Hola {cliente} 😊 Buen dia\nTe avisamos que TU {pantallas} finaliza \n👉 *MAÑANA* 👈\n⚠️ Para evitar la suspensión, por favor realiza el pago con tiempo ⚠️";
-                let msg = templateText.replace(/{cliente}/g, r.name).replace(/{pantallas}/g, itemsStr);
-
+                let msg = templateText
+                    .replace(/{cliente}/g, r.name)
                 if (r.type === 'seller') {
                     let clientPin = "No asignado";
                     if (r.phone) {
@@ -5283,23 +5283,29 @@
                         window.openWhatsapp(null, msgSeller);
                     }
                 } else {
-                    if (r.sale.total > 0) msg += `\n\n💰 *Total a Renovar:* $${r.sale.total.toLocaleString()}`;
-                    if (storeConfig.paymentInfo) msg += `\n\n*Medios de Pago:*\n${storeConfig.paymentInfo}`;
-
+                } else {
+                    // Obtener pin del cliente para tomorrow reminder
                     let clientPin = "No asignado";
                     if (r.phone) {
-                        let cleanPhone = r.phone.replace(/\D/g, '');
+                        let cleanPhone = r.phone.replace(/\D/g, "");
                         try {
-                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once('value');
+                            const snap = await db.ref(`clientProfiles/${cleanPhone}/pin`).once("value");
                             if (snap.exists() && snap.val()) {
                                 clientPin = snap.val();
                             }
                         } catch(e) {}
                     }
-                    msg += `\n\nCelular: ${r.phone || 'N/A'} y Pin: ${clientPin}`;
+                    // Usar template con variables - sin concatenacion (evita duplicacion)
+                    let msg = templateText
+                        .replace(/{cliente}/g, r.name)
+                        .replace(/{pantallas}/g, itemsStr)
+                        .replace(/{celular}/g, r.phone || "N/A")
+                        .replace(/{pin}/g, clientPin)
+                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
+                        .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
-                    let waPhone = r.phone.replace(/\D/g, '');
-                    if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+                    let waPhone = r.phone.replace(/\D/g, "");
+                    if (waPhone.length === 10 && waPhone.startsWith("3")) waPhone = "57" + waPhone;
                     window.openWhatsapp(waPhone, msg);
                 }
             } else { // Today
