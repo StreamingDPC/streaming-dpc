@@ -3928,12 +3928,12 @@
             const sourceName = safeDecode(sourceNameEnc);
             const itemsStr = decodeURIComponent(itemsEncoded);
 
-            const autoRenew = confirm(`¿Deseas REGISTRAR esta RENOVACIÓN en el sistema ahora?\n\n- Se extenderán 30 días adicionales.\n- Se marcará como PAGADO.\n\n(Si pulsas Cancelar, solo se enviará el mensaje de WhatsApp)`);
+            const autoRenew = confirm(`¿Deseas REGISTRAR esta RENOVACIÓN en el sistema ahora?\n\n- Se renovará manteniendo el día de corte original (ajustado al mes).\n- Se marcará como PAGADO.\n\n(Si pulsas Cancelar, solo se enviará el mensaje de WhatsApp)`);
+            let finalMsgTS = parseInt(expirationDateTS) || Date.now();
 
             if (autoRenew) {
                 try {
                     const cleanPhone = clientPhone.replace(/\D/g, '');
-                    // Obtenemos todos los datos para encontrar la venta correspondiente en sellerSales
                     const allDataSnap = await db.ref('/').once('value');
                     const allData = allDataSnap.val();
                     const clientSales = allData.clientSales || {};
@@ -3945,7 +3945,8 @@
                     if (clientSales[cleanPhone] && clientSales[cleanPhone][saleId]) {
                         const s = clientSales[cleanPhone][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(c.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000); // Cap Month
+                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(s.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000);
+                        finalMsgTS = newExp; // Guarda para el WhatsApp
                         updates[`clientSales/${cleanPhone}/${saleId}/expirationDate`] = newExp;
                         updates[`clientSales/${cleanPhone}/${saleId}/isPaid`] = true;
                         
@@ -3960,10 +3961,10 @@
                             }
                         }
                     } else if (sourceType === 'seller' && sellerSales[sourceName] && sellerSales[sourceName][saleId]) {
-                        // Si no estaba en clientSales pero es una venta de vendedor
                         const s = sellerSales[sourceName][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(c.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000); // Cap Month
+                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(s.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000);
+                        finalMsgTS = newExp; // Guarda para el WhatsApp
                         updates[`sellerSales/${sourceName}/${saleId}/expirationDate`] = newExp;
                         updates[`sellerSales/${sourceName}/${saleId}/isPaid`] = true;
                         
@@ -3996,12 +3997,6 @@
             const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             let monthText = 'el próximo mes';
             
-            let finalMsgTS = parseInt(expirationDateTS) || Date.now();
-            if (autoRenew) {
-                // Si el admin acaba de registrar la renovación, sumamos 30 días al mensaje
-                finalMsgTS += (30 * 24 * 60 * 60 * 1000);
-            }
-
             const d = new Date(finalMsgTS);
             monthText = `${d.getDate()} ${months[d.getMonth()]}`;
             let msg = '';
