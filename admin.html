@@ -637,7 +637,7 @@
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; display:flex; align-items:center; gap:10px; background: rgba(243, 156, 18, 0.1); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(243, 156, 18, 0.2);">
                             <input type="checkbox" id="edit-client-update-all" style="width:20px; height:20px;">
-                            <label for="edit-client-update-all" style="margin-bottom:0; cursor:pointer; font-weight:bold; color:#f39c12;"><i class="fa-solid fa-triangle-exclamation"></i> �Actualizar Nombre/Ciudad en TODO el historial? (Marcas solo si es el mismo cliente real)</label>
+                            <label for="edit-client-update-all" style="margin-bottom:0; cursor:pointer; font-weight:bold; color:#f39c12;"><i class="fa-solid fa-triangle-exclamation"></i> Actualizar Nombre/Ciudad en TODO el historial? (Marcas solo si es el mismo cliente real)</label>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem; grid-column: 1 / -1; background: rgba(255,0,0,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,0,0,0.1);">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -954,8 +954,6 @@
                         onclick="showSubConf('emails', this)"
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);"><i class="fa-solid fa-envelope"></i> Cuentas Correo</button>
                 </div>
-
-</div>
 
                 <!-- SUB TAB: MENSAJES ya no se usa aqui, se movio a TAB CRM independiente -->
                 <div id="sub-conf-mensajes" class="sub-conf-content" style="display:none;">
@@ -1801,6 +1799,35 @@
     </div>
 
     <script>
+        // --- INYECCIÓN DEL MOTOR DE FACTURACIÓN CAP MONTH ---
+        window.DPCBillingEngine = {
+            calcularProximoVencimiento: function(fechaOriginalMs, fechaVencimientoActualMs) {
+                const F_ORIGEN = new Date(fechaOriginalMs);
+                const F_ACTUAL = new Date(fechaVencimientoActualMs);
+                let diaOriginal = F_ORIGEN.getDate(); 
+                let targetYear = F_ACTUAL.getFullYear();
+                let targetMonth = F_ACTUAL.getMonth() + 1; // Avanzar exactamente 1 mes
+
+                // Si pasamos diciembre, ajustar al año siguiente
+                if (targetMonth > 11) {
+                    targetMonth = 0;
+                    targetYear++;
+                }
+
+                // Averiguar cuántos días tiene The Target Month
+                let maxDaysNextMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+                // El día final a cobrar (Cap al final del mes si el original era 31 y el nuevo tiene 30)
+                let finalDay = diaOriginal;
+                if (diaOriginal > maxDaysNextMonth) {
+                    finalDay = maxDaysNextMonth;
+                }
+
+                const finalDate = new Date(targetYear, targetMonth, finalDay, F_ACTUAL.getHours(), F_ACTUAL.getMinutes(), F_ACTUAL.getSeconds());
+                return finalDate;
+            }
+        };
+
         // Protcción de página
         if (localStorage.getItem('adminLoggedIn') !== 'true') {
             window.location.href = 'login.html';
@@ -3945,9 +3972,12 @@
                     if (clientSales[cleanPhone] && clientSales[cleanPhone][saleId]) {
                         const s = clientSales[cleanPhone][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(s.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000);
+                        const anchorDate = s.fechaCompraOriginal || s.date || currentExp;
+                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(anchorDate, currentExp).getTime();
+                        
                         finalMsgTS = newExp; // Guarda para el WhatsApp
                         updates[`clientSales/${cleanPhone}/${saleId}/expirationDate`] = newExp;
+                        updates[`clientSales/${cleanPhone}/${saleId}/fechaCompraOriginal`] = anchorDate; // Guarda ancla para el futuro
                         updates[`clientSales/${cleanPhone}/${saleId}/isPaid`] = true;
                         
                         // 2. Buscar en sellerSales donde coincida el telefono y la fecha original
@@ -3963,9 +3993,12 @@
                     } else if (sourceType === 'seller' && sellerSales[sourceName] && sellerSales[sourceName][saleId]) {
                         const s = sellerSales[sourceName][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(s.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000);
+                        const anchorDate = s.fechaCompraOriginal || s.date || currentExp;
+                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(anchorDate, currentExp).getTime();
+                        
                         finalMsgTS = newExp; // Guarda para el WhatsApp
                         updates[`sellerSales/${sourceName}/${saleId}/expirationDate`] = newExp;
+                        updates[`sellerSales/${sourceName}/${saleId}/fechaCompraOriginal`] = anchorDate;
                         updates[`sellerSales/${sourceName}/${saleId}/isPaid`] = true;
                         
                         // Intentar buscar en clientSales por fecha
@@ -3973,6 +4006,7 @@
                             for (let cid in clientSales[cleanPhone]) {
                                 if (clientSales[cleanPhone][cid].date === s.date) {
                                     updates[`clientSales/${cleanPhone}/${cid}/expirationDate`] = newExp;
+                                    updates[`clientSales/${cleanPhone}/${cid}/fechaCompraOriginal`] = anchorDate;
                                     updates[`clientSales/${cleanPhone}/${cid}/isPaid`] = true;
                                 }
                             }
