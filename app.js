@@ -1378,7 +1378,7 @@ function setupEventListeners() {
     checkoutBtn.addEventListener('click', () => {
             const policyCheck = document.getElementById('accept-billing-policy');
             if (policyCheck && !policyCheck.checked) {
-                showNotification('Debe aceptar la Política de Fechas de Corte Fijas para continuar con su pedido.', 'error');
+                alert('Debe aceptar la Política de Fechas de Corte Fijas para continuar con su pedido.');
                 return;
             }
 
