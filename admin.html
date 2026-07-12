@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -5785,8 +5785,8 @@
                     clientCity: '',
                     clientPhone: phoneStr,
                     date: startDateStr ? new Date(startDateStr + 'T12:00:00').getTime() : Date.now(),
-                    expirationDate: endDateStr ? new Date(endDateStr + 'T' + (document.getElementById('manual-client-end-time').value || '23:59')).getTime() : window.DPCBillingEngine.calcularProximoVencimiento(Date.now(),
-                    fechaCompraOriginal: Date.now(), Date.now()).getTime(),
+                    expirationDate: endDateStr ? new Date(endDateStr + 'T' + (document.getElementById('manual-client-end-time').value || '23:59')).getTime() : window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now()).getTime(),
+                    fechaCompraOriginal: Date.now(),
                     items: [],
                     total: 0,
                     sellerName: sellerNameVal,
