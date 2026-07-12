@@ -1329,6 +1329,15 @@
                             para los que vencen HOY.</p>
                     </div>
 
+                    <div class="form-col" style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
+                        <label>Mensaje Nueva Política Cap Month (Usa {cliente} para autocompletar)</label>
+                        <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                            <textarea id="conf-capMonthPolicyTemplate" style="height: 150px; padding: 10px; flex:1;"></textarea>
+                            <button class="save-btn" onclick="saveConfig()" style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);" title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.3rem;">Este mensaje se usará cuando presiones "ENVIAR NUEVA POLÍTICA".</p>
+                    </div>
+
                     <div class="form-col" style="margin-bottom: 2rem;">
                         <label>Mensaje Vencimiento MAÑANA (Aviso Previo)</label>
                         <div style="display:flex; gap:0.5rem; align-items:flex-start;">
@@ -2161,6 +2170,9 @@
                 document.getElementById('conf-discountAmount').value = storeConfig.discountAmount || 0;
             }
 
+            if (document.getElementById('conf-capMonthPolicyTemplate')) {
+                document.getElementById('conf-capMonthPolicyTemplate').value = storeConfig.capMonthPolicyTemplate || "Hola *{cliente}*, 📢 *Actualización de Servicio*:\n\nHemos unificado las fechas de corte. *Tu día de pago ya no se moverá mes a mes*; ahora se renovará el mismo día de tu fecha de compra original.\n\nEn meses cortos (de 30 días o febrero), el sistema pondrá el vencimiento el último día del mes de forma automática y lo recuperará al mes siguiente.\n\nGracias por tu confianza.";
+            }
             if (document.getElementById('conf-reminderTemplate')) {
                 document.getElementById('conf-reminderTemplate').value = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
             }
@@ -2297,6 +2309,9 @@
                 storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === "true";
                 storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
 
+                if (document.getElementById('conf-capMonthPolicyTemplate')) {
+                    storeConfig.capMonthPolicyTemplate = document.getElementById('conf-capMonthPolicyTemplate').value;
+                }
                 if (document.getElementById('conf-reminderTemplate')) {
                     storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
                 }
@@ -2890,6 +2905,9 @@
             storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === 'true';
             storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === 'true';
 
+            if (document.getElementById('conf-capMonthPolicyTemplate')) {
+                storeConfig.capMonthPolicyTemplate = document.getElementById('conf-capMonthPolicyTemplate').value;
+            }
             if (document.getElementById('conf-reminderTemplate')) {
                 storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
             }
@@ -4023,7 +4041,9 @@
             if (!currentEditingClientPhone) return alert('Busca un cliente primero.');
             const name = document.getElementById('edit-client-name').value.trim() || 'Cliente';
             
-            const msg = `Hola *${name}*, 📢 *Actualización de Servicio*:\n\nHemos unificado las fechas de corte. *Tu día de pago ya no se moverá mes a mes*; ahora se renovará el mismo día de tu fecha de compra original.\n\nEn meses cortos (de 30 días o febrero), el sistema pondrá el vencimiento el último día del mes de forma automática y lo recuperará al mes siguiente.\n\nGracias por tu confianza.`;
+            const fallbackMsg = "Hola *{cliente}*, 📢 *Actualización de Servicio*:\n\nHemos unificado las fechas de corte. *Tu día de pago ya no se moverá mes a mes*; ahora se renovará el mismo día de tu fecha de compra original.\n\nEn meses cortos (de 30 días o febrero), el sistema pondrá el vencimiento el último día del mes de forma automática y lo recuperará al mes siguiente.\n\nGracias por tu confianza.";
+            const msgTemplate = (window.storeConfig && window.storeConfig.capMonthPolicyTemplate) ? window.storeConfig.capMonthPolicyTemplate : fallbackMsg;
+            const msg = msgTemplate.replace(/{cliente}/g, name);
             
             let waPhone = currentEditingClientPhone.toString().replace(/\D/g, '');
             if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
