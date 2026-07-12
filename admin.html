@@ -3924,7 +3924,7 @@
                     if (clientSales[cleanPhone] && clientSales[cleanPhone][saleId]) {
                         const s = clientSales[cleanPhone][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
+                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(c.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000); // Cap Month
                         updates[`clientSales/${cleanPhone}/${saleId}/expirationDate`] = newExp;
                         updates[`clientSales/${cleanPhone}/${saleId}/isPaid`] = true;
                         
@@ -3942,7 +3942,7 @@
                         // Si no estaba en clientSales pero es una venta de vendedor
                         const s = sellerSales[sourceName][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const newExp = currentExp + (30 * 24 * 60 * 60 * 1000);
+                        const newExp = window.DPCBillingEngine ? window.DPCBillingEngine.calcularProximoVencimiento(c.fechaCompraOriginal || currentExp, currentExp).getTime() : currentExp + (30 * 24 * 60 * 60 * 1000); // Cap Month
                         updates[`sellerSales/${sourceName}/${saleId}/expirationDate`] = newExp;
                         updates[`sellerSales/${sourceName}/${saleId}/isPaid`] = true;
                         
@@ -4014,6 +4014,18 @@
                 window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
             }
         }
+
+        
+        window.sendCapMonthPolicy = function() {
+            if (!currentEditingClientPhone) return alert('Busca un cliente primero.');
+            const name = document.getElementById('edit-client-name').value.trim() || 'Cliente';
+            
+            const msg = `Hola *${name}*, 📢 *Actualización de Servicio*:\n\nHemos unificado las fechas de corte. *Tu día de pago ya no se moverá mes a mes*; ahora se renovará el mismo día de tu fecha de compra original.\n\nEn meses cortos (de 30 días o febrero), el sistema pondrá el vencimiento el último día del mes de forma automática y lo recuperará al mes siguiente.\n\nGracias por tu confianza.`;
+            
+            let waPhone = currentEditingClientPhone.toString().replace(/\D/g, '');
+            if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+            window.open('https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg), '_blank');
+        };
 
         window.openManualCRM = function() {
             const saleKey = document.getElementById('edit-client-select-sale').value;
@@ -5773,7 +5785,8 @@
                     clientCity: '',
                     clientPhone: phoneStr,
                     date: startDateStr ? new Date(startDateStr + 'T12:00:00').getTime() : Date.now(),
-                    expirationDate: endDateStr ? new Date(endDateStr + 'T' + (document.getElementById('manual-client-end-time').value || '23:59')).getTime() : (Date.now() + (30 * 24 * 60 * 60 * 1000)),
+                    expirationDate: endDateStr ? new Date(endDateStr + 'T' + (document.getElementById('manual-client-end-time').value || '23:59')).getTime() : window.DPCBillingEngine.calcularProximoVencimiento(Date.now(),
+                    fechaCompraOriginal: Date.now(), Date.now()).getTime(),
                     items: [],
                     total: 0,
                     sellerName: sellerNameVal,

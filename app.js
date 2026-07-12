@@ -1,3 +1,38 @@
+
+// ============================================
+// DPC BILLING ENGINE v1.0 (Cap Month)
+// ============================================
+window.DPCBillingEngine = {
+    calcularProximoVencimiento: function(fechaCompraOriginal, fechaVencimientoActual) {
+        if (!fechaCompraOriginal || isNaN(new Date(fechaCompraOriginal).getTime())) {
+            fechaCompraOriginal = fechaVencimientoActual || Date.now();
+        }
+        if (!fechaVencimientoActual || isNaN(new Date(fechaVencimientoActual).getTime())) {
+            fechaVencimientoActual = Date.now();
+        }
+        
+        const fco = new Date(fechaCompraOriginal);
+        const fva = new Date(fechaVencimientoActual);
+        const diaOriginal = fco.getDate();
+        
+        let prox = new Date(fva);
+        // Avanzamos un mes real
+        prox.setMonth(prox.getMonth() + 1);
+        
+        // Obtenemos cual es el ultimo dia de ese nuevo mes
+        const ultimoDiaMesProx = new Date(prox.getFullYear(), prox.getMonth() + 1, 0).getDate();
+        
+        // Si el dia original existe en el nuevo mes, lo asignamos. Si no, lo topamos al ultimo dia.
+        if (diaOriginal <= ultimoDiaMesProx) {
+            prox.setDate(diaOriginal);
+        } else {
+            prox.setDate(ultimoDiaMesProx);
+        }
+        
+        return prox;
+    }
+};
+
 // Inicializar Firebase (Compat Version)
 const firebaseConfig = {
     apiKey: "AIzaSyBscP8FT1dcnHlSFMXc3DlfXSgRO9ET9s4",
@@ -1341,6 +1376,12 @@ function setupEventListeners() {
 
     // Checkout
     checkoutBtn.addEventListener('click', () => {
+            const policyCheck = document.getElementById('accept-billing-policy');
+            if (policyCheck && !policyCheck.checked) {
+                showNotification('Debe aceptar la Política de Fechas de Corte Fijas para continuar con su pedido.', 'error');
+                return;
+            }
+
         if (cart.length === 0) return alert('Tu carrito está vacío');
 
         let isRecurrent = document.getElementById('recurrent-client').checked;
@@ -1522,7 +1563,8 @@ function setupEventListeners() {
                 clientCity: cCity || '',
                 clientPhone: cPhone || '',
                 date: Date.now(),
-                expirationDate: Date.now() + (30 * 24 * 60 * 60 * 1000), // +30 days
+                expirationDate: window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now()).getTime(),
+                fechaCompraOriginal: Date.now(), // Cap Month
                 items: stats.processedCart.map(item => ({ 
                     id: item.id || Date.now(), 
                     name: item.customName ? `${item.name} (${item.customName})` : (item.name || 'Pantalla'), 
@@ -1955,7 +1997,7 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
     const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     let monthText = 'el próximo mes';
     if (expirationDateTS && expirationDateTS !== 0) {
-        const d = new Date(parseInt(expirationDateTS) + (30 * 24 * 60 * 60 * 1000));
+        const d = window.DPCBillingEngine.calcularProximoVencimiento(parseInt(expirationDateTS), parseInt(expirationDateTS));
         monthText = `${d.getDate()} ${months[d.getMonth()]}`;
     }
 
