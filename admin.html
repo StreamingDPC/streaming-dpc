@@ -5676,7 +5676,9 @@
 
             const newSaleEnd = newSaleEndDateStr
                 ? new Date(newSaleEndDateStr + 'T' + (newSaleEndTimeStr || '23:59') + ':00').getTime()
-                : Date.now() + (30 * 24 * 60 * 60 * 1000);
+                : window.DPCBillingEngine
+                    ? window.DPCBillingEngine.calcularProximoVencimiento(newSaleStart, newSaleStart).getTime()
+                    : Date.now() + (30 * 24 * 60 * 60 * 1000); // fallback si engine no disponible
 
             const saleData = {
                 clientName: name,
@@ -5684,6 +5686,7 @@
                 clientPhone: currentEditingClientPhone,
                 date: newSaleStart,
                 expirationDate: newSaleEnd,
+                fechaCompraOriginal: newSaleStart, // ✅ CAP MONTH — ancla el día de corte para futuras renovaciones
                 items: [],
                 total: 0,
                 sellerName: sellerNameVal,
