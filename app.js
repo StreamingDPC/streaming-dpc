@@ -1990,30 +1990,52 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
     const clientName = decodeURIComponent(clientNameEnc);
     const itemsStr = decodeURIComponent(itemsEncoded);
 
-    // La lógica de renovación automática ha sido ELIMINADA del panel del vendedor
-    // para evitar que el vendedor sume días innecesariamente. 
-    // Ahora solo el ADMIN puede realizar renovaciones automáticas desde su panel.
+    // ✅ CAP MONTH FIX v2: Lee fechaCompraOriginal real del registro en Firebase
+    // para calcular el próximo vencimiento preservando el día original de compra
+    // (ej: compró el 5 → siempre vence el 5 del siguiente mes, no +30 días fijos).
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
-    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    let monthText = 'el próximo mes';
+    const _buildAndSend = (monthText) => {
+        let msg = '';
+        if (isMultiple) {
+            const tmpl = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+            msg = tmpl.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
+        } else {
+            const tmpl = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+            msg = tmpl.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
+        }
+        const encodedMsg = encodeURIComponent(msg);
+        let waPhone = clientPhone.toString().replace(/\D/g, '');
+        if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+        window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+    };
+
     if (expirationDateTS && expirationDateTS !== 0) {
-        const d = window.DPCBillingEngine.calcularProximoVencimiento(parseInt(expirationDateTS), parseInt(expirationDateTS));
-        monthText = `${d.getDate()} ${months[d.getMonth()]}`;
-    }
-
-    let msg = '';
-    if (isMultiple) {
-        const template = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
-        msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
+        (async () => {
+            // Buscar fechaCompraOriginal real en Firebase (fuente de verdad del día de compra)
+            let fco = parseInt(expirationDateTS); // fallback: ventas antiguas sin ese campo
+            if (saleId) {
+                try {
+                    const snapAll = await db.ref('sellerSales').once('value');
+                    const all = snapAll.val() || {};
+                    outer: for (const sellerObj of Object.values(all)) {
+                        if (!sellerObj) continue;
+                        for (const [key, sale] of Object.entries(sellerObj)) {
+                            if ((key === saleId || sale.id === saleId) && sale.fechaCompraOriginal) {
+                                const raw = parseInt(sale.fechaCompraOriginal);
+                                if (!isNaN(raw)) { fco = raw; break outer; }
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('[CAP MONTH] Error leyendo fechaCompraOriginal:', e); }
+            }
+            // Calcular próximo vencimiento desde la fecha exp actual pero anclado al día original
+            const d = window.DPCBillingEngine.calcularProximoVencimiento(fco, parseInt(expirationDateTS));
+            _buildAndSend(`${d.getDate()} ${months[d.getMonth()]}`);
+        })();
     } else {
-        const template = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
-        msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
+        _buildAndSend('el próximo mes');
     }
-
-    const encodedMsg = encodeURIComponent(msg);
-    let waPhone = clientPhone.toString().replace(/\D/g, '');
-    if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
-    window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
 }
 
 function sendCRMMessageFromSale(saleId, clientName, clientPhone, itemsEncoded) {
@@ -2023,7 +2045,13 @@ function sendCRMMessageFromSale(saleId, clientName, clientPhone, itemsEncoded) {
     msg = msg.replace(/{nombre}/g, clientName)
              .replace(/{pantalla}/g, itemsStr)
              .replace(/{inicio}/g, new Date().toLocaleDateString())
-             .replace(/{fin}/g, new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString());
+             .replace(/{fin}/g, (() => {
+                 // ✅ CAP MONTH FIX: fecha fin real (mismo día del mes siguiente) no +30 días fijos
+                 const d = window.DPCBillingEngine
+                     ? window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now())
+                     : new Date(Date.now() + 30*24*60*60*1000);
+                 return d.toLocaleDateString('es-CO');
+             })());
     const sendOnly = storeConfig.sendOnlyStep1 === true || storeConfig.sendOnlyStep1 === 'true';
     if (!sendOnly) {
         const tmpl2 = storeConfig.msgTemplate2 || '';
