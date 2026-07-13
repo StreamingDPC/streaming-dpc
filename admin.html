@@ -1036,9 +1036,13 @@
                     <div id="polla-save-status" style="font-size: 0.8rem; text-align: right; margin-top: -1.5rem; margin-bottom: 1rem; color: #4cd137; display:none;">¡Ajustes actualizados!</div>
 
                     <script>
-                        db.ref('storeConfig/pollaEnabled').on('value', snap => {
-                            const val = snap.val();
-                            if(val !== null) document.getElementById('polla-enabled-input').value = val === true ? 'true' : 'false';
+                        window.addEventListener('load', () => {
+                            if (typeof db !== 'undefined') {
+                                db.ref('storeConfig/pollaEnabled').on('value', snap => {
+                                    const val = snap.val();
+                                    if(val !== null) document.getElementById('polla-enabled-input').value = val === true ? 'true' : 'false';
+                                });
+                            }
                         });
 
                         async function updatePollaPrice() {
