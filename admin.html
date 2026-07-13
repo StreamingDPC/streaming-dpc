@@ -1827,7 +1827,7 @@
                     finalDay = maxDaysNextMonth;
                 }
 
-                const finalDate = new Date(targetYear, targetMonth, finalDay, F_ACTUAL.getHours(), F_ACTUAL.getMinutes(), F_ACTUAL.getSeconds());
+                const finalDate = new Date(targetYear, targetMonth, finalDay, 23, 59, 59, 999);
                 return finalDate;
             }
         };
@@ -3860,7 +3860,7 @@
                         const totalDisp = sale.total ? `$${sale.total.toLocaleString()}` : 'No registrado';
 
                         const startDate = sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A';
-                        const endDate = sale.expirationDate ? new Date(sale.expirationDate).toLocaleDateString() : 'N/A';
+                        const endDate = sale.expirationDate ? (() => { let d = new Date(sale.expirationDate); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); })() : 'N/A';
 
                         const saleCard = document.createElement('div');
                         saleCard.style.padding = '1rem';
@@ -4093,7 +4093,7 @@
             const phone = currentEditingClientPhone;
             const name = document.getElementById('edit-client-name').value;
             const startDate = sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A';
-            const endDate = sale.expirationDate ? new Date(sale.expirationDate).toLocaleDateString() : 'N/A';
+            const endDate = sale.expirationDate ? (() => { let d = new Date(sale.expirationDate); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); })() : 'N/A';
             const pin = document.getElementById('edit-client-pin').value || '';
             const itemsStr = sale.items ? sale.items.map(i => i.name).join(', ') : 'Pantalla';
             const sellerName = sale.sellerName || 'Página Web Oficial';
@@ -4535,7 +4535,7 @@
             const totalDisp = sale.total ? `$${sale.total.toLocaleString()} ` : 'No registrado';
 
             const startDate = sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A';
-            const endDate = sale.expirationDate ? new Date(sale.expirationDate).toLocaleDateString() : 'N/A';
+            const endDate = sale.expirationDate ? (() => { let d = new Date(sale.expirationDate); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); })() : 'N/A';
 
             const saleCard = document.createElement('div');
             saleCard.style.padding = '1rem';

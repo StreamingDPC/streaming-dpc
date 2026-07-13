@@ -29,6 +29,9 @@ window.DPCBillingEngine = {
             prox.setDate(ultimoDiaMesProx);
         }
         
+        // Fijar exactamente a las 23:59:59 (para que el cliente tenga servicio todo ese día pase lo que pase)
+        prox.setHours(23, 59, 59, 999);
+        
         return prox;
     }
 };
