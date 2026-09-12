@@ -1177,8 +1177,13 @@
                         </div>
                     </div>
 
-                    <div id="email-accounts-list"
-                        style="margin-top:2rem; display:flex; flex-direction:column; gap:10px;">
+                    <div style="margin-top:2rem; margin-bottom:1rem; position:relative;">
+                        <input type="text" id="search-email-accounts" placeholder="🔍 Buscar cuenta de correo..."
+                            onkeyup="filterEmailAccounts()"
+                            style="width:100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color:white; font-size:0.95rem;">
+                    </div>
+
+                    <div id="email-accounts-list" style="display:flex; flex-direction:column; gap:10px;">
                         <!-- Lista de correos -->
                         <p style="color:#777; text-align:center;">Cargando cuentas vinculadas...</p>
                     </div>
@@ -2048,6 +2053,20 @@
         }
 
         // Primera definición de showSubConf unificada con la segunda más abajo (ver línea ~2519)
+
+        window.filterEmailAccounts = function () {
+            const val = document.getElementById('search-email-accounts').value.toLowerCase();
+            const list = document.getElementById('email-accounts-list');
+            if (!list) return;
+            const items = list.querySelectorAll('.admin-item');
+            items.forEach(item => {
+                if (item.innerText.toLowerCase().includes(val)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
 
         window.fetchEmailAccounts = function () {
             const list = document.getElementById('email-accounts-list');
