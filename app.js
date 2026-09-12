@@ -192,10 +192,12 @@ function init() {
     renderProducts('individual');
     setupEventListeners();
     setupConfigUI();
-    // Si el cliente ya tiene sesión persistida, mostrar botón "Obtener Código"
+    // Si el cliente ya tiene sesión persistida, mostrar botón "Obtener Código" y ocultar "Vendedores"
     if (clientPhoneLoggedIn) {
         const codeNavBtn = document.getElementById('open-code-btn');
         if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
+        const vendBtn = document.getElementById('open-vendedores-btn');
+        if (vendBtn) vendBtn.style.display = 'none';
     }
 }
 
@@ -1127,9 +1129,11 @@ function setupEventListeners() {
             // Success Access
             localStorage.setItem('clientPhone', windowTempClientPhone);
             clientPhoneLoggedIn = windowTempClientPhone;
-            // Mostrar botón "Obtener Código" ahora que hay sesión
+            // Mostrar botón "Obtener Código" y ocultar "Vendedores" al iniciar sesión
             const codeNavBtn = document.getElementById('open-code-btn');
             if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
+            const vendBtn = document.getElementById('open-vendedores-btn');
+            if (vendBtn) vendBtn.style.display = 'none';
             clientLoginModal.style.display = 'none';
             renderClientDashboard();
             clientDashboardModal.style.display = 'block';
@@ -1166,9 +1170,11 @@ function setupEventListeners() {
         logoutClientBtn.addEventListener('click', () => {
             localStorage.removeItem('clientPhone');
             clientPhoneLoggedIn = '';
-            // Ocultar botón "Obtener Código" al cerrar sesión
+            // Ocultar "Obtener Código" y restaurar "Vendedores" al cerrar sesión
             const codeNavBtn = document.getElementById('open-code-btn');
             if (codeNavBtn) codeNavBtn.style.display = 'none';
+            const vendBtn = document.getElementById('open-vendedores-btn');
+            if (vendBtn) vendBtn.style.display = 'inline-flex';
             clientDashboardModal.style.display = 'none';
             alert('Sesión cerrada. Vuelve pronto.');
         });
