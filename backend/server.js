@@ -58,7 +58,14 @@ app.post('/api/get-code', async (req, res) => {
             return res.status(404).json({ success: false, error: 'No hay cuentas de correo configuradas en Firebase.' });
         }
 
-        const accounts = Object.values(accountsData).filter(a => a && a.email && a.password);
+        const targetEmail = email.toLowerCase().trim();
+        const accounts = Object.values(accountsData).filter(a =>
+            a && a.email && a.password && a.email.toLowerCase().trim() === targetEmail
+        );
+
+        if (accounts.length === 0) {
+            return res.status(404).json({ success: false, error: `La cuenta ${email} no está vinculada en el panel de Configuración.` });
+        }
 
         console.log(`[DEBUG] Procesando ${accounts.length} cuentas en PARALELO para mayor velocidad...`);
         let debugInfo = [];
