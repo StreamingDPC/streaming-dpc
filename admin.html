@@ -3058,8 +3058,19 @@
             if (!platformDiv) return;
             const photosList = platformDiv.querySelector('.platform-photos-list');
 
-            const safePhoto = (data.photo === 'undefined' || !data.photo) ? '' : data.photo;
-            const safeText = (data.text === 'undefined' || !data.text) ? '' : data.text;
+            // Limpiar rutas locales de Windows (D:\..., C:\...) o referencias IMG antiguas
+            let rawPhoto = (data.photo === 'undefined' || !data.photo) ? '' : data.photo;
+            let rawText = (data.text === 'undefined' || !data.text) ? '' : data.text;
+
+            // Si el "photo" es una ruta local de Windows, descartarla
+            if (/^[A-Za-z]:\\/.test(rawPhoto)) rawPhoto = '';
+
+            // Función helper para escapar HTML y evitar romper el innerHTML
+            const escAttr = str => str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const escHtml = str => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            const safePhoto = escAttr(rawPhoto);
+            const safeText = escHtml(rawText);
 
             const div = document.createElement('div');
             div.className = 'gallery-item';
