@@ -1154,8 +1154,15 @@
 
                         <div
                             style="margin-top: 1.5rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 1.5rem;">
-                            <h4 style="margin:0 0 0.5rem 0; color:#2ecc71; font-size: 0.95rem;"><i
-                                    class="fa-solid fa-file-csv"></i> Carga Masiva (CSV)</h4>
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
+                                <h4 style="margin:0; color:#2ecc71; font-size: 0.95rem;"><i
+                                        class="fa-solid fa-file-csv"></i> Carga Masiva (CSV)</h4>
+                                <button class="save-btn" onclick="exportEmailAccountsCSV()"
+                                    style="margin:0; width:auto; background:#8e44ad; padding: 8px 15px; font-size: 0.85rem;">
+                                    <i class="fa-solid fa-file-arrow-down"></i> Exportar CSV
+                                </button>
+                            </div>
                             <p style="font-size:0.75rem; color:#888; margin-bottom:1rem;">Formato:
                                 <code>correo,contraseña</code> (uno por fila)
                             </p>
@@ -2170,6 +2177,39 @@
             if (confirm('¿Estás seguro de que quieres eliminar esta cuenta de correo? El lector de PIN dejará de funcionar para los clientes asociados a este email.')) {
                 db.ref('emailAccounts/' + key).remove();
             }
+        }
+
+        window.exportEmailAccountsCSV = function () {
+            db.ref('emailAccounts').once('value').then(snap => {
+                const accounts = snap.val() || {};
+                const keys = Object.keys(accounts);
+
+                if (keys.length === 0) {
+                    return alert('No hay cuentas de correo registradas para exportar.');
+                }
+
+                let csv = 'correo,contraseña,proveedor,fecha\n';
+                keys.forEach(key => {
+                    const acc = accounts[key];
+                    const email = (acc.email || '').replace(/,/g, ';');
+                    const pass = (acc.password || '').replace(/,/g, ';');
+                    const prov = acc.provider || 'gmail';
+                    const fecha = acc.createdAt ? new Date(acc.createdAt).toLocaleDateString() : '';
+                    csv += `${email},${pass},${prov},${fecha}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cuentas_correo_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }).catch(err => {
+                alert('Error al exportar: ' + err.message);
+            });
         }
 
         async function loadMonthlySalesReport() {
