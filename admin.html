@@ -3077,17 +3077,36 @@
             }
         }
 
-        function saveProductsToStorage() {
-            // Limpia posiciones vacías (null/undefined) causadas por eliminaciones
+        async function saveProductsToStorage() {
+            // Limpia posiciones vacías
             const cleanProducts = dynamicProducts.filter(p => p !== null && p !== undefined);
-
-            // Asegurarnos de que no haya propiedades "undefined" (Firebase rechaza los undefined y cancela el guardado)
             const safeData = JSON.parse(JSON.stringify(cleanProducts));
-
             dynamicProducts = cleanProducts;
-            db.ref('products').set(safeData)
-                .then(() => console.log('Sincronización con base de datos exitosa.'))
-                .catch(err => alert('🔴 Error guardando en Firebase: ' + err.message));
+
+            try {
+                // Obtenemos el usuario activo
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const token = await user.getIdToken();
+                    const url = `https://streamingdpc-7e7fa-default-rtdb.firebaseio.com/products.json?auth=${token}`;
+
+                    // Usamos API REST (Límite 256 MB) en lugar del WebSocket del SDK (Límite 16 MB) 
+                    // para evitar el crash crítico "Write too large" al guardar base64
+                    const resp = await fetch(url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(safeData)
+                    });
+
+                    if (!resp.ok) throw new Error(await resp.text());
+                    console.log('Sincronización masiva vía REST (Anti Write-too-large) exitosa.');
+                } else {
+                    // Fallback si por alguna razón falla el auth
+                    await db.ref('products').set(safeData);
+                }
+            } catch (err) {
+                alert('🔴 Error guardando catálogo: ' + err.message);
+            }
         }
 
         function saveConfig() {
