@@ -3079,10 +3079,15 @@
 
         function saveProductsToStorage() {
             // Limpia posiciones vacías (null/undefined) causadas por eliminaciones
-            // Evita que Firebase RDB asuma que es un diccionario y lance límites ocultos
             const cleanProducts = dynamicProducts.filter(p => p !== null && p !== undefined);
+
+            // Asegurarnos de que no haya propiedades "undefined" (Firebase rechaza los undefined y cancela el guardado)
+            const safeData = JSON.parse(JSON.stringify(cleanProducts));
+
             dynamicProducts = cleanProducts;
-            db.ref('products').set(cleanProducts);
+            db.ref('products').set(safeData)
+                .then(() => console.log('Sincronización con base de datos exitosa.'))
+                .catch(err => alert('🔴 Error guardando en Firebase: ' + err.message));
         }
 
         function saveConfig() {
