@@ -346,7 +346,8 @@ function setupConfigUI() {
 
     if (publicSellerRef) {
         openVendedoresBtn.style.display = 'none';
-        if (openClientBtn) openClientBtn.style.display = 'none';
+        // 'Mis Compras' ahora se mantiene visible en la tienda del vendedor
+        if (openClientBtn) openClientBtn.style.display = 'inline-flex';
     }
 
     // Floating Banners Handling
