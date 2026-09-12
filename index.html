@@ -295,55 +295,102 @@
                 <span class="close-modal code-close">&times;</span>
             </div>
             <div class="code-body" style="padding: 1.5rem;">
-                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                    Si te pide actualizar tu hogar (Netflix) o un código de acceso (Disney), selecciona la plataforma y
-                    digita el <strong>correo de la cuenta</strong> y lo buscaremos automáticamente por ti.
-                </p>
 
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Plataforma:</label>
-                    <select id="code-platform" class="input-modern">
-                        <option value="netflix">Netflix (Actualizar Hogar)</option>
-                        <option value="disney">Disney+ (Código de Acceso)</option>
-                        <option value="logincode">Código de Inicio de Sesión (TV/App)</option>
-                    </select>
+                <!-- BLOQUEO: Sin sesión -->
+                <div id="code-no-session" style="display:none; text-align:center; padding: 1.5rem 0;">
+                    <i class="fa-solid fa-lock"
+                        style="font-size: 3rem; color: var(--accent-primary); margin-bottom:1rem;"></i>
+                    <h3 style="color:white; margin-bottom:0.5rem;">Acceso Exclusivo para Clientes</h3>
+                    <p style="color: var(--text-secondary); font-size:0.9rem;">Debes iniciar sesión con tu número de
+                        cliente para poder solicitar tu código de acceso.</p>
+                    <button
+                        onclick="document.getElementById('code-modal').style.display='none'; document.getElementById('open-client-btn').click();"
+                        style="margin-top:1.5rem; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border:none; color:black; font-weight:700; padding:12px 24px; border-radius:10px; cursor:pointer; font-size:1rem;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                    </button>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Correo Electrónico de la
-                        cuenta:</label>
-                    <input type="email" id="code-email" class="input-modern" placeholder="Ej: cuenta@gmail.com">
+                <!-- BLOQUEO: Ya usó su intento -->
+                <div id="code-already-used" style="display:none; text-align:center; padding:1.5rem 0;">
+                    <i class="fa-solid fa-ban" style="font-size:3rem; color:#ff4d4d; margin-bottom:1rem;"></i>
+                    <h3 style="color:white; margin-bottom:0.5rem;">Ya solicitaste tu código</h3>
+                    <p style="color:#ff4d4d; font-size:0.9rem; margin-bottom:1rem;">Ya utilizaste tu oportunidad de
+                        solicitud de código. Si el código apareció pero no pudiste ingresar a tiempo, comunícate con tu
+                        vendedor para que el <strong>administrador</strong> verifique el caso y te habilite otro
+                        intento.</p>
+                    <div
+                        style="background:rgba(255,165,0,0.1); border: 1px solid #f39c12; border-radius:12px; padding:1rem; font-size:0.85rem; color:#f39c12;">
+                        <i class="fa-solid fa-circle-info"></i> Solo el administrador puede habilitar intentos
+                        adicionales.
+                    </div>
                 </div>
 
-                <button id="fetch-code-btn" class="checkout-btn"
-                    style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                    <i class="fa-solid fa-satellite-dish"></i> Buscar mi Código
-                </button>
+                <!-- PANEL ACTIVO: Tiene sesión y tiene intento disponible -->
+                <div id="code-active-panel">
+                    <!-- Instrucciones de intento -->
+                    <div
+                        style="background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.4); border-radius:12px; padding:1rem; margin-bottom:1.5rem;">
+                        <p style="font-weight:700; color:#f39c12; margin-bottom:0.5rem;"><i
+                                class="fa-solid fa-shield-halved"></i> Oportunidades de solicitud: <span
+                                style="font-size:1.2rem;">1 vez</span></p>
+                        <ul style="font-size:0.82rem; color:var(--text-secondary); padding-left:1.2rem; margin:0;">
+                            <li>Debes ingresar el código en tu dispositivo <strong style="color:white;">antes de 15
+                                    minutos</strong>, o se cancelará y no podrás solicitar otro.</li>
+                            <li>Si solicitaste tu código y no pudiste ingresar por alguna razón, comunícate con tu
+                                vendedor para que el <strong style="color:white;">administrador</strong> verifique el
+                                caso y habilite otro intento.</li>
+                            <li>El sistema identificará automáticamente el correo asociado a tu cuenta.</li>
+                        </ul>
+                    </div>
 
-                <!-- Loading State -->
-                <div id="code-loading" style="display: none; text-align: center; margin-top: 1.5rem;">
-                    <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--accent-primary)"></i>
-                    <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Buscando en la
-                        bandeja de entrada... esto puede tardar unos 10-30 seg.</p>
-                </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Plataforma:</label>
+                        <select id="code-platform" class="input-modern">
+                            <option value="netflix">Netflix (Actualizar Hogar)</option>
+                            <option value="disney">Disney+ (Código de Acceso)</option>
+                            <option value="logincode">Código de Inicio de Sesión (TV/App)</option>
+                        </select>
+                    </div>
 
-                <!-- Result Code Box -->
-                <div id="code-result"
-                    style="display: none; margin-top: 1.5rem; background: var(--glass); border: 1px solid var(--accent-primary); border-radius: 16px; padding: 1.5rem; text-align: center;">
-                    <h3 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Tu código de
-                        acceso es:</h3>
-                    <div id="the-magic-code"
-                        style="font-size: 2.5rem; font-weight: 900; letter-spacing: 5px; color: white;">----</div>
-                    <p id="code-time" style="font-size: 0.8rem; color: #4cd137; margin-top: 0.5rem;">Extraído hace unos
-                        segundos</p>
-                </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Correo de tu
+                            cuenta:</label>
+                        <select id="code-email" class="input-modern">
+                            <option value="">-- Cargando tus cuentas... --</option>
+                        </select>
+                    </div>
 
-                <!-- Error Box -->
-                <div id="code-error"
-                    style="display: none; margin-top: 1.5rem; background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; border-radius: 16px; padding: 1rem; text-align: center;">
-                    <i class="fa-solid fa-triangle-exclamation" style="color: #ff4d4d; margin-bottom: 0.5rem;"></i>
-                    <p id="error-msg" style="color: #ff4d4d; font-size: 0.9rem;">No pudimos encontrar ningún código
-                        reciente para este correo. Intenta enviarlo nuevamente desde tu TV.</p>
+                    <button id="fetch-code-btn" class="checkout-btn"
+                        style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
+                        <i class="fa-solid fa-satellite-dish"></i> Buscar mi Código
+                    </button>
+
+                    <!-- Loading State -->
+                    <div id="code-loading" style="display: none; text-align: center; margin-top: 1.5rem;">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--accent-primary)"></i>
+                        <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Buscando en la
+                            bandeja de entrada... esto puede tardar unos 10-30 seg.</p>
+                    </div>
+
+                    <!-- Result Code Box -->
+                    <div id="code-result"
+                        style="display: none; margin-top: 1.5rem; background: var(--glass); border: 1px solid var(--accent-primary); border-radius: 16px; padding: 1.5rem; text-align: center;">
+                        <h3 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Tu código de
+                            acceso es:</h3>
+                        <div id="the-magic-code"
+                            style="font-size: 2.5rem; font-weight: 900; letter-spacing: 5px; color: white;">----</div>
+                        <p style="font-size: 0.8rem; color: #ff4d4d; margin-top: 0.5rem;"><i
+                                class="fa-solid fa-clock"></i> Tienes <strong>15 minutos</strong> para usarlo. Esta fue
+                            tu única oportunidad.</p>
+                    </div>
+
+                    <!-- Error Box -->
+                    <div id="code-error"
+                        style="display: none; margin-top: 1.5rem; background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; border-radius: 16px; padding: 1rem; text-align: center;">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: #ff4d4d; margin-bottom: 0.5rem;"></i>
+                        <p id="error-msg" style="color: #ff4d4d; font-size: 0.9rem;">No pudimos encontrar ningún código
+                            reciente. Intenta enviarlo nuevamente desde tu TV.</p>
+                    </div>
                 </div>
             </div>
         </div>

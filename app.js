@@ -1334,70 +1334,163 @@ function setupEventListeners() {
         });
     }
 
-    // Code Fetch Logic (To be connected to Backend later)
-    fetchCodeBtn.addEventListener('click', async () => {
-        const email = document.getElementById('code-email').value.trim();
-        const platform = document.getElementById('code-platform').value;
+    // ==========================================
+    // SISTEMA SEGURO DE CÓDIGOS DE ACCESO
+    // ==========================================
 
-        if (!email) return alert('Por favor ingresa el correo de tu cuenta.');
+    // Función para inicializar el modal de código con las restricciones correctas
+    window.initCodeModal = async function () {
+        const noSession = document.getElementById('code-no-session');
+        const alreadyUsed = document.getElementById('code-already-used');
+        const activePanel = document.getElementById('code-active-panel');
 
-        // 1. Mostrar estado de carga y ocultar error/resultado
-        document.getElementById('code-loading').style.display = 'block';
-        document.getElementById('code-result').style.display = 'none';
-        document.getElementById('code-error').style.display = 'none';
-        fetchCodeBtn.style.display = 'none';
+        if (!noSession || !alreadyUsed || !activePanel) return;
 
-        try {
-            // El backend está corriendo en la nube (Render)
-            const serverUrl = "https://streaming-backend-ce1u.onrender.com/api/get-code";
+        // Ocultar todos los paneles
+        noSession.style.display = 'none';
+        alreadyUsed.style.display = 'none';
+        activePanel.style.display = 'none';
 
-            const response = await fetch(serverUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, platform })
+        // 1. VERIFICAR SESIÓN
+        if (!clientPhoneLoggedIn) {
+            noSession.style.display = 'block';
+            return;
+        }
+
+        // 2. VERIFICAR SI YA USÓ SU INTENTO EN FIREBASE
+        const attemptSnap = await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed`).once('value');
+        const attemptUsed = attemptSnap.val();
+        if (attemptUsed === true) {
+            alreadyUsed.style.display = 'block';
+            return;
+        }
+
+        // 3. CARGAR CORREOS DESDE SUS COMPRAS EN FIREBASE
+        const emailSelect = document.getElementById('code-email');
+        if (emailSelect) {
+            emailSelect.innerHTML = '<option value="">-- Cargando tus cuentas... --</option>';
+            try {
+                const salesSnap = await db.ref(`clientSales/${clientPhoneLoggedIn}`).once('value');
+                const sales = salesSnap.val() || {};
+                const emails = new Set();
+                Object.values(sales).forEach(sale => {
+                    if (sale.clientEmail) emails.add(sale.clientEmail.toLowerCase().trim());
+                    // Buscar también dentro de items si el correo está ahí
+                    if (sale.items && Array.isArray(sale.items)) {
+                        sale.items.forEach(item => {
+                            if (item.accountEmail) emails.add(item.accountEmail.toLowerCase().trim());
+                        });
+                    }
+                });
+                if (emails.size > 0) {
+                    emailSelect.innerHTML = '';
+                    emails.forEach(em => {
+                        const opt = document.createElement('option');
+                        opt.value = em;
+                        opt.textContent = em;
+                        emailSelect.appendChild(opt);
+                    });
+                } else {
+                    emailSelect.innerHTML = '<option value="">-- Sin cuentas de correo registradas --</option>';
+                }
+            } catch (e) {
+                emailSelect.innerHTML = '<option value="">-- Error al cargar cuentas --</option>';
+            }
+        }
+
+        // 4. MOSTRAR PANEL ACTIVO
+        activePanel.style.display = 'block';
+    };
+
+    // Cuando el modal de código abre, inicializarlo
+    if (codeModal) {
+        const originalOpenCode = document.getElementById('open-code-btn');
+        if (originalOpenCode) {
+            originalOpenCode.addEventListener('click', () => {
+                codeModal.style.display = 'block';
+                window.initCodeModal();
             });
+        }
+        // También inicializar si ya fue abierto directamente
+        const codeCloseBtn = document.querySelector('.code-close');
+        if (codeCloseBtn) codeCloseBtn.addEventListener('click', () => codeModal.style.display = 'none');
+    }
 
-            const data = await response.json();
+    // Code Fetch Logic — con sistema de intento único
+    if (fetchCodeBtn) {
+        fetchCodeBtn.addEventListener('click', async () => {
+            const emailSelect = document.getElementById('code-email');
+            const email = emailSelect ? emailSelect.value.trim() : '';
+            const platform = document.getElementById('code-platform').value;
 
-            if (data.success && data.code) {
-                document.getElementById('code-loading').style.display = 'none';
-                document.getElementById('code-result').style.display = 'block';
-                document.getElementById('the-magic-code').innerText = data.code;
-            } else {
-                // Caso Error / No encontrado
+            if (!email) return alert('Selecciona el correo de tu cuenta.');
+            if (!clientPhoneLoggedIn) return alert('Debes iniciar sesión para solicitar un código.');
+
+            // Guardar intento ANTES de llamar al servidor (así si falla la conexión, no consume el intento)
+            // Solo se marca como usado si el código es EXITOSO (ver más abajo)
+
+            // 1. Mostrar estado de carga y ocultar error/resultado
+            document.getElementById('code-loading').style.display = 'block';
+            document.getElementById('code-result').style.display = 'none';
+            document.getElementById('code-error').style.display = 'none';
+            fetchCodeBtn.style.display = 'none';
+
+            try {
+                const serverUrl = "https://streaming-backend-ce1u.onrender.com/api/get-code";
+                const response = await fetch(serverUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, platform })
+                });
+                const data = await response.json();
+
+                if (data.success && data.code) {
+                    // ✅ ÉXITO: Marcar el intento como USADO en Firebase
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed`).set(true);
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeHistory`).push({
+                        code: data.code,
+                        email: email,
+                        platform: platform,
+                        timestamp: Date.now()
+                    });
+
+                    document.getElementById('code-loading').style.display = 'none';
+                    document.getElementById('code-result').style.display = 'block';
+                    document.getElementById('the-magic-code').innerText = data.code;
+                    // No mostrar el botón de nuevo — ya usó su intento
+                } else {
+                    // ❌ Código no encontrado: NO consumir el intento
+                    document.getElementById('code-loading').style.display = 'none';
+                    document.getElementById('code-error').style.display = 'block';
+                    fetchCodeBtn.style.display = 'block'; // Puede reintentar la búsqueda (correo aún no llegó)
+
+                    let msg = data.error || "Código no encontrado. Intenta enviarlo nuevamente desde tu TV.";
+                    if (data.debugTree && data.debugTree.length > 0) {
+                        msg += `<div style="margin-top:10px;font-size:0.8rem;text-align:left;background:rgba(0,0,0,0.5);padding:5px;border-radius:8px;">`;
+                        msg += `<p style="margin-bottom:5px;font-weight:bold;">Trazabilidad del escáner:</p>`;
+                        data.debugTree.forEach(acc => {
+                            msg += `<div style="margin-bottom:5px;"><b style="color:#d8b4fe;">${acc.email}</b> - Escaneados: ${acc.scanned}`;
+                            if (acc.error) msg += ` <span style="color:red;">[Error: ${acc.error}]</span>`;
+                            if (acc.subjects && acc.subjects.length > 0) {
+                                msg += `<ul style="margin:3px 0 0 15px;color:#aaa;font-size:0.75rem;">`;
+                                acc.subjects.slice(0, 3).forEach(sub => { msg += `<li>${sub}</li>`; });
+                                if (acc.subjects.length > 3) msg += `<li>... y ${acc.subjects.length - 3} más</li>`;
+                                msg += `</ul>`;
+                            }
+                            msg += `</div>`;
+                        });
+                        msg += `</div>`;
+                    }
+                    document.getElementById('error-msg').innerHTML = msg;
+                }
+            } catch (err) {
                 document.getElementById('code-loading').style.display = 'none';
                 document.getElementById('code-error').style.display = 'block';
-
-                let msg = data.error || "Código no encontrado para este correo.";
-                if (data.debugTree && data.debugTree.length > 0) {
-                    msg += `<div style="margin-top: 10px; font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px;">`;
-                    msg += `<p style="margin-bottom:5px;font-weight:bold;">Trazabilidad del escáner:</p>`;
-                    data.debugTree.forEach(acc => {
-                        msg += `<div style="margin-bottom:5px;">`;
-                        msg += `<b style="color:#d8b4fe;">${acc.email}</b> - Escaneados: ${acc.scanned}`;
-                        if (acc.error) msg += ` <span style="color:red;">[Error: ${acc.error}]</span>`;
-                        if (acc.subjects && acc.subjects.length > 0) {
-                            msg += `<ul style="margin: 3px 0 0 15px; color:#aaa; font-size: 0.75rem;">`;
-                            acc.subjects.slice(0, 3).forEach(sub => {
-                                msg += `<li>${sub}</li>`;
-                            });
-                            if (acc.subjects.length > 3) msg += `<li>... y ${acc.subjects.length - 3} más</li>`;
-                            msg += `</ul>`;
-                        }
-                        msg += `</div>`;
-                    });
-                    msg += `</div>`;
-                }
-                document.getElementById('error-msg').innerHTML = msg;
+                document.getElementById('error-msg').innerText = "Error de conexión con el servidor. Intenta de nuevo.";
+                fetchCodeBtn.style.display = 'block';
             }
-        } catch (err) {
-            document.getElementById('code-loading').style.display = 'none';
-            document.getElementById('code-error').style.display = 'block';
-            document.getElementById('error-msg').innerText = "Oops, hubo un error de conexión con el servidor de correos.";
-        } finally {
-            fetchCodeBtn.style.display = 'block';
-        }
-    });
+        });
+    }
 
     // Checkout
     checkoutBtn.addEventListener('click', () => {

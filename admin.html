@@ -1187,6 +1187,26 @@
                         <!-- Lista de correos -->
                         <p style="color:#777; text-align:center;">Cargando cuentas vinculadas...</p>
                     </div>
+
+                    <!-- SECCIÓN: Habilitar Intentos de Código (Solo Admin) -->
+                    <div style="margin-top:2.5rem; border-top: 1px dashed rgba(255,165,0,0.3); padding-top:1.5rem;">
+                        <h3 style="color:#f39c12; font-size:1rem; margin-bottom:0.5rem;">
+                            <i class="fa-solid fa-key"></i> Gestión de Intentos de Código
+                        </h3>
+                        <p style="font-size:0.82rem; color:#888; margin-bottom:1rem;">Si un cliente no pudo usar su
+                            código a tiempo, ingresa su número de celular para verificar el historial y habilitar un
+                            nuevo intento.</p>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="admin-client-phone-reset"
+                                placeholder="Número de celular del cliente (Ej: 3105551234)"
+                                style="flex:1; min-width:200px; padding:10px 15px; border-radius:8px; border:1px solid rgba(255,165,0,0.4); background:rgba(0,0,0,0.2); color:white; font-size:0.9rem;">
+                            <button
+                                onclick="resetClientCodeAttempt(document.getElementById('admin-client-phone-reset').value.trim())"
+                                style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; white-space:nowrap;">
+                                <i class="fa-solid fa-rotate-right"></i> Habilitar Intento
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SUB TAB: GENERAL -->
@@ -2195,6 +2215,35 @@
         window.deleteEmailAccount = function (key) {
             if (confirm('¿Estás seguro de que quieres eliminar esta cuenta de correo? El lector de PIN dejará de funcionar para los clientes asociados a este email.')) {
                 db.ref('emailAccounts/' + key).remove();
+            }
+        }
+
+        // =====================================================
+        // BOTÓN EXCLUSIVO ADMIN: Habilitar nuevo intento de código
+        // =====================================================
+        window.resetClientCodeAttempt = async function (clientPhone) {
+            if (!clientPhone) return alert('Número de cliente no válido.');
+
+            // Consultar historial previo
+            const histSnap = await db.ref(`clientProfiles/${clientPhone}/codeHistory`).once('value');
+            const history = histSnap.val();
+
+            let msg = `¿Deseas habilitar UN NUEVO INTENTO de código para el cliente ${clientPhone}?\n\n`;
+            if (history) {
+                const entries = Object.values(history);
+                const last = entries[entries.length - 1];
+                if (last) {
+                    const fecha = new Date(last.timestamp).toLocaleString('es-CO');
+                    msg += `⚠️ HISTORIAL: Ya solicitó un código anteriomente.\n Correo: ${last.email}\n Código: ${last.code}\n Fecha: ${fecha}\n\n`;
+                }
+            } else {
+                msg += 'ℹ️ Sin historial previo de códigos para este cliente.\n\n';
+            }
+            msg += '¿Confirmas que el código NO fue usado exitosamente y se debe habilitar otro intento?';
+
+            if (confirm(msg)) {
+                await db.ref(`clientProfiles/${clientPhone}/codeAttemptUsed`).remove();
+                alert(`✅ Intento habilitado correctamente para ${clientPhone}. El cliente ya puede solicitar su código nuevamente.`);
             }
         }
 
