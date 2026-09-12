@@ -61,9 +61,11 @@ app.post('/api/get-code', async (req, res) => {
         const accounts = Object.values(accountsData).filter(a => a && a.email && a.password);
 
         console.log(`[DEBUG] Procesando ${accounts.length} cuentas en PARALELO para mayor velocidad...`);
+        let debugInfo = [];
 
         // Función individual para procesar cada cuenta
         const checkAccount = async (account) => {
+            let accountLogs = { email: account.email, scanned: 0, subjects: [], error: null, found: false };
             let connection = null;
             try {
                 console.log(`[DEBUG] Intentando conexión: ${account.email}`);
@@ -100,6 +102,9 @@ app.post('/api/get-code', async (req, res) => {
 
                     const parsed = await simpleParser(all.body);
                     const subject = (parsed.subject || "").toString().toLowerCase();
+                    accountLogs.subjects.push(subject);
+                    accountLogs.scanned++;
+
                     const textContent = (parsed.text || "").toString().toLowerCase();
                     const htmlContent = (parsed.html || "").toString();
 
@@ -117,6 +122,7 @@ app.post('/api/get-code', async (req, res) => {
                         if (platformLower.includes('netflix')) {
                             const codeMatch = textContent.match(/\b\d{4}\b/);
                             if (codeMatch && (textContent.includes('código') || textContent.includes('access') || subject.includes('netflix'))) {
+                                accountLogs.found = true;
                                 return codeMatch[0];
                             } else {
                                 const $ = cheerio.load(htmlContent);
@@ -128,13 +134,19 @@ app.post('/api/get-code', async (req, res) => {
                                 for (const link of links) {
                                     if (link.includes('verify') || link.includes('token') || link.includes('travel') || link.includes('update-primary-location')) {
                                         const code = await getCodeFromNetflixUrl(link);
-                                        if (code) return code;
+                                        if (code) {
+                                            accountLogs.found = true;
+                                            return code;
+                                        }
                                     }
                                 }
                             }
                         } else if (platformLower.includes('disney')) {
                             const codeMatch = textContent.match(/\b\d{6}\b/);
-                            if (codeMatch) return codeMatch[0];
+                            if (codeMatch) {
+                                accountLogs.found = true;
+                                return codeMatch[0];
+                            }
                         } else if (platformLower.includes('logincode')) {
                             // Busca el texto de los correos de inicio de sesión en el texto, HTML o ASUNTO
                             const loginKeywords = [
@@ -175,6 +187,7 @@ app.post('/api/get-code', async (req, res) => {
                                             continue;
                                         }
                                         console.log(`[DEBUG] Código Extractor Global hallado: ${num}`);
+                                        accountLogs.found = true;
                                         return num;
                                     }
                                 }
@@ -185,10 +198,12 @@ app.post('/api/get-code', async (req, res) => {
                 }
             } catch (err) {
                 console.error(`[DEBUG] Error en ${account.email}:`, err.message);
+                accountLogs.error = err.message;
             } finally {
                 if (connection) {
                     try { connection.end(); } catch (e) { }
                 }
+                debugInfo.push(accountLogs);
             }
             return null;
         };
@@ -199,9 +214,9 @@ app.post('/api/get-code', async (req, res) => {
 
         if (foundCode) {
             console.log(`[DEBUG] ÉXITO FINAL: ${foundCode}`);
-            return res.json({ success: true, code: foundCode });
+            return res.json({ success: true, code: foundCode, debugTree: debugInfo });
         } else {
-            return res.status(404).json({ success: false, error: 'Código no encontrado. Revisa si el correo ya llegó o si faltan cuentas por vincular.' });
+            return res.status(404).json({ success: false, error: 'Código no encontrado. Revisa si el correo ya llegó o si faltan cuentas por vincular.', debugTree: debugInfo });
         }
 
     } catch (err) {

@@ -1367,7 +1367,28 @@ function setupEventListeners() {
                 // Caso Error / No encontrado
                 document.getElementById('code-loading').style.display = 'none';
                 document.getElementById('code-error').style.display = 'block';
-                document.getElementById('error-msg').innerText = data.error || "Código no encontrado para este correo.";
+
+                let msg = data.error || "Código no encontrado para este correo.";
+                if (data.debugTree && data.debugTree.length > 0) {
+                    msg += `<div style="margin-top: 10px; font-size: 0.8rem; text-align: left; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px;">`;
+                    msg += `<p style="margin-bottom:5px;font-weight:bold;">Trazabilidad del escáner:</p>`;
+                    data.debugTree.forEach(acc => {
+                        msg += `<div style="margin-bottom:5px;">`;
+                        msg += `<b style="color:#d8b4fe;">${acc.email}</b> - Escaneados: ${acc.scanned}`;
+                        if (acc.error) msg += ` <span style="color:red;">[Error: ${acc.error}]</span>`;
+                        if (acc.subjects && acc.subjects.length > 0) {
+                            msg += `<ul style="margin: 3px 0 0 15px; color:#aaa; font-size: 0.75rem;">`;
+                            acc.subjects.slice(0, 3).forEach(sub => {
+                                msg += `<li>${sub}</li>`;
+                            });
+                            if (acc.subjects.length > 3) msg += `<li>... y ${acc.subjects.length - 3} más</li>`;
+                            msg += `</ul>`;
+                        }
+                        msg += `</div>`;
+                    });
+                    msg += `</div>`;
+                }
+                document.getElementById('error-msg').innerHTML = msg;
             }
         } catch (err) {
             document.getElementById('code-loading').style.display = 'none';
