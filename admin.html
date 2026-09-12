@@ -3078,7 +3078,11 @@
         }
 
         function saveProductsToStorage() {
-            db.ref('products').set(dynamicProducts);
+            // Limpia posiciones vacías (null/undefined) causadas por eliminaciones
+            // Evita que Firebase RDB asuma que es un diccionario y lance límites ocultos
+            const cleanProducts = dynamicProducts.filter(p => p !== null && p !== undefined);
+            dynamicProducts = cleanProducts;
+            db.ref('products').set(cleanProducts);
         }
 
         function saveConfig() {
