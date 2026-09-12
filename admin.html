@@ -265,6 +265,9 @@
             <button class="admin-tab" onclick="switchTab('vendedores', this)">👔 Vendedores</button>
             <button class="admin-tab" onclick="switchTab('clientes', this)">👥 Clientes</button>
             <button class="admin-tab" onclick="switchTab('ventas', this)">📈 Ventas</button>
+            <button class="admin-tab" onclick="switchTab('historial', this); renderGlobalHistory();"
+                style="border: 1px solid rgba(255, 77, 77, 0.4);"><i class="fa-solid fa-clock-rotate-left"
+                    style="color:#ff4d4d;"></i> Historial</button>
             <button class="admin-tab" onclick="switchTab('stats', this); renderStats();">📊 Estadísticas</button>
             <button class="admin-tab" onclick="switchTab('crm', this)">💬 Respuestas CRM</button>
             <button class="admin-tab" onclick="switchTab('polla', this)"
@@ -571,6 +574,21 @@
                     </div>
                 </div>
                 <div id="admin-list-sellers-stats" class="admin-list"></div>
+            </div>
+        </div>
+
+        <!-- TAB HISTORIAL -->
+        <div id="tab-historial" class="tab-content" style="display:none;">
+            <div class="admin-form">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                    <div>
+                        <h3 style="margin-bottom:0;"><i class="fa-solid fa-folder-open" style="color:#ff4d4d;"></i>
+                            Historial de Ventas Vencidas</h3>
+                        <p style="font-size:0.85rem; color:#a0a0a0; margin-top:0.3rem;">Todas las ventas que superaron
+                            su fecha de vencimiento. No son visibles en las demás pestañas para limpiar el registro.</p>
+                    </div>
+                </div>
+                <div id="admin-list-history" class="admin-list"></div>
             </div>
         </div>
 
@@ -4050,11 +4068,14 @@
                         const now = Date.now();
                         const expEndOfDay = sale.expirationDate;
                         const isExpired = now > expEndOfDay;
+
+                        // Ocultar ventas vencidas de la lista principal de vendedores (se envían a Historial)
+                        if (isExpired) return;
+
                         const daysLeft = Math.ceil((expEndOfDay - now) / (1000 * 60 * 60 * 24));
 
                         let statusColor = '#4cd137';
                         if (!isExpired && daysLeft <= 3) statusColor = '#f39c12';
-                        if (isExpired) statusColor = '#ff4d4d';
 
                         const itemsStr = sale.items ? sale.items.map(i => {
                             let formatName = i.name;
@@ -4820,6 +4841,104 @@
             container.appendChild(saleCard);
         }
 
+        function renderGlobalHistory() {
+            const listDiv = document.getElementById('admin-list-history');
+            if (!listDiv) return;
+            listDiv.innerHTML = '';
+
+            let allExpired = [];
+
+            // Coleccionar Clientes Globales
+            Object.keys(allClientSalesMap).forEach(phone => {
+                const sales = allClientSalesMap[phone] || {};
+                const salesArray = Array.isArray(sales) ? sales : Object.values(sales);
+                salesArray.forEach(sale => {
+                    if (!sale) return;
+                    if (Date.now() > sale.expirationDate) {
+                        allExpired.push({ ...sale, _sourceType: 'direct', _clientObj: { phone, name: sale.clientName } });
+                    }
+                });
+            });
+
+            // Coleccionar Ventas Vendedores
+            const sellers = storeConfig.sellers || [];
+            sellers.forEach(seller => {
+                const sName = seller.name;
+                const sales = globalSellerSalesDataStore[sName] || {};
+                Object.keys(sales).forEach(key => {
+                    const sale = sales[key];
+                    if (!sale) return;
+                    if (Date.now() > sale.expirationDate) {
+                        allExpired.push({ ...sale, id: sale.id || key, _sourceType: 'seller', sellerName: sName, _clientObj: { phone: sale.clientPhone, name: sale.clientName } });
+                    }
+                });
+            });
+
+            // Sort newest expiration first
+            allExpired.sort((a, b) => b.expirationDate - a.expirationDate);
+
+            if (allExpired.length === 0) {
+                listDiv.innerHTML = '<p style="color:#ccc;">No hay ventas vencidas registradas en el historial.</p>';
+                return;
+            }
+
+            allExpired.forEach(sale => {
+                const clientObj = sale._clientObj;
+                const isSellerSale = sale._sourceType === 'seller';
+                const safeClientName = safeDecode(clientObj.name || 'Desconocido');
+                const itemsStr = (sale.items || []).map(i => i.name).join(', ') || 'Pantallas';
+                const totalDisp = sale.total ? `$${sale.total.toLocaleString()}` : (sale.price ? `$${sale.price.toLocaleString()}` : 'N/A');
+
+                let reminderOnclick = '';
+                if (isSellerSale) {
+                    reminderOnclick = `sendAdminReminderToSeller('${encodeURIComponent(sale.sellerName)}', '${encodeURIComponent(safeClientName)}', '${encodeURIComponent(itemsStr)}', '${clientObj.phone}', ${sale.total || 0})`;
+                } else {
+                    reminderOnclick = `sendAdminReminderToDirectClient('${encodeURIComponent(safeClientName)}', '${encodeURIComponent(itemsStr)}', '${clientObj.phone}', ${sale.total || 0})`;
+                }
+
+                const d = document.createElement('div');
+                d.style.background = 'rgba(255, 77, 77, 0.05)';
+                d.style.borderLeft = '4px solid #ff4d4d';
+                d.style.padding = '1rem';
+                d.style.marginBottom = '1rem';
+                d.style.borderRadius = '8px';
+
+                let sellerBadge = isSellerSale ? `<span style="background:#8e44ad; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; margin-left:0.5rem;"><i class="fa-solid fa-user-tie"></i> ${sale.sellerName}</span>` : `<span style="background:#2ab7ca; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; margin-left:0.5rem;"><i class="fa-solid fa-globe"></i> Global</span>`;
+
+                d.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <strong style="color:white; font-size:1.1rem; display:flex; align-items:center;">
+                            ${safeClientName} ${sellerBadge}
+                        </strong>
+                        <span style="background:#ff4d4d; color:white; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight:bold;">Vencida</span>
+                    </div>
+                    <p style="font-size:0.85rem; color:#ccc; margin-bottom:0.8rem; line-height:1.4;">
+                        📱 ${clientObj.phone} <br>
+                        📅 Venció: ${new Date(sale.expirationDate).toLocaleDateString()} a las ${new Date(sale.expirationDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br>
+                        📺 Compra: ${itemsStr}<br>
+                        💰 Valor: ${totalDisp}
+                    </p>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button onclick="${reminderOnclick}" style="flex:1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: rgba(255, 77, 77, 0.1); color:#ff4d4d; font-size:0.8rem;">
+                            <i class="fa-brands fa-whatsapp"></i> ${isSellerSale ? 'Avisar Vendedor' : 'Recordar al Cliente'}
+                        </button>
+                        <button onclick="sendAdminRenovadaMessage('${encodeURIComponent(safeClientName)}', '${clientObj.phone}', '${encodeURIComponent(itemsStr)}', false, ${sale.expirationDate || 0}, '${sale.id}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', '${isSellerSale ? 'seller' : 'client'}')" 
+                            style="flex:1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem;">
+                            <i class="fa-brands fa-whatsapp"></i> Renovada
+                        </button>
+                        ${isSellerSale ? `
+                        <button onclick="deleteSellerSale('${encodeURIComponent(sale.sellerName)}', '${sale.id}')" 
+                                style="padding:0.6rem; border-radius:8px; cursor:pointer; border:1px solid #555; background:transparent; color:#ff4d4d;"><i class="fa-solid fa-trash"></i></button>
+                        ` : `
+                        <button onclick="deleteClientSale('${clientObj.phone}', '${sale.id}')" 
+                                style="padding:0.6rem; border-radius:8px; cursor:pointer; border:1px solid #555; background:transparent; color:#ff4d4d;"><i class="fa-solid fa-trash"></i></button>
+                        `}
+                    </div>
+                `;
+                listDiv.appendChild(d);
+            });
+        }
+
         function renderAllClientsList() {
             try {
                 const listDiv = document.getElementById('admin-list-all-clients');
@@ -4870,7 +4989,7 @@
                         div.style.gap = '1rem';
 
                         div.innerHTML = `
-                        <div style="display:flex; gap:1rem; width:100%; align-items:center;">
+                    < div style = "display:flex; gap:1rem; width:100%; align-items:center;" >
                         <div><i class="fa-solid fa-user" style="color:#2ab7ca; font-size:1.5rem"></i></div>
                         <div style="flex:1;">
                             <strong style="color: white; font-size:1.1rem">${safeDecode(c.name)}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
@@ -4881,8 +5000,8 @@
                                 <i class="fa-solid fa-pen"></i>
                             </button>
                         </div>
-                    </div>
-                `;
+                    </div >
+                    `;
 
                         if (salesArray.length > 0) {
                             const salesContainer = document.createElement('div');
@@ -4911,27 +5030,7 @@
                                 renderAdminSaleCard(sale, false, c, salesContainer);
                             });
 
-                            // Render Expired Section
-                            if (expiredSales.length > 0) {
-                                const expHeader = document.createElement('div');
-                                expHeader.style.gridColumn = '1 / -1';
-                                expHeader.style.padding = '0.5rem';
-                                expHeader.style.background = 'rgba(255, 77, 77, 0.1)';
-                                expHeader.style.borderRadius = '8px';
-                                expHeader.style.color = '#ff4d4d';
-                                expHeader.style.fontSize = '0.9rem';
-                                expHeader.style.fontWeight = 'bold';
-                                expHeader.style.marginTop = '1rem';
-                                expHeader.style.textAlign = 'center';
-                                expHeader.style.border = '1px dashed rgba(255, 77, 77, 0.3)';
-                                expHeader.innerHTML = '<i class="fa-solid fa-folder-open"></i> PANTALLAS VENCIDAS (HISTORIAL)';
-                                salesContainer.appendChild(expHeader);
-
-                                expiredSales.forEach(sale => {
-                                    renderAdminSaleCard(sale, true, c, salesContainer);
-                                });
-                            }
-
+                            // Ocultar sección de ventas vencidas (movidas al Historial Global)
                             div.appendChild(salesContainer);
                         }
 
@@ -4947,7 +5046,7 @@
 
         function deleteClientSale(phone, saleId) {
             if (confirm('¿Estás seguro de que quieres eliminar este registro? (Útil si fue una prueba o error)')) {
-                db.ref(`clientSales/${phone}/${saleId}`).remove().then(() => {
+                db.ref(`clientSales / ${phone}/${saleId}`).remove().then(() => {
                     alert('Registro eliminado del historial del cliente.');
                     fetchClientSalesHistory();
                 });

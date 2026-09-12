@@ -1826,26 +1826,7 @@ function renderSellerDashboard() {
             activeSales.forEach(sale => renderSellerSaleCard(sale, false, sellerSalesList));
         }
 
-        // Render Expired Section (Folder)
-        if (expiredSales.length > 0) {
-            const folderWrapper = document.createElement('details');
-            folderWrapper.style.cssText = 'margin-top: 1.5rem; background: rgba(255, 77, 77, 0.05); border: 1px solid rgba(255, 77, 77, 0.1); border-radius: 12px; padding: 0.5rem;';
-
-            const summary = document.createElement('summary');
-            summary.style.cssText = 'color: #ff4d4d; font-weight: bold; cursor: pointer; padding: 0.5rem; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between;';
-            summary.innerHTML = `
-                <span><i class="fa-solid fa-folder-open" style="margin-right: 8px;"></i> VENTAS VENCIDAS (HISTORIAL)</span>
-                <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem;"></i>
-            `;
-            folderWrapper.appendChild(summary);
-
-            const folderContent = document.createElement('div');
-            folderContent.style.marginTop = '1rem';
-            expiredSales.forEach(sale => renderSellerSaleCard(sale, true, folderContent));
-            folderWrapper.appendChild(folderContent);
-
-            sellerSalesList.appendChild(folderWrapper);
-        }
+        // Se eliminó por completo la renderización de ventas vencidas para los vendedores a petición.
     });
 }
 
