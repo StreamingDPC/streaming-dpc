@@ -1392,11 +1392,16 @@ function setupEventListeners() {
                 const sales = salesSnap.val() || {};
                 const emails = new Set();
                 Object.values(sales).forEach(sale => {
-                    if (sale.clientEmail) emails.add(sale.clientEmail.toLowerCase().trim());
-                    // Buscar también dentro de items si el correo está ahí
+                    // El admin general guarda como `sale.email`
+                    if (sale.email) emails.add(sale.email.toLowerCase().trim());
+                    // El admin detallado guarda en `item.specificEmails[].email`
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(item => {
-                            if (item.accountEmail) emails.add(item.accountEmail.toLowerCase().trim());
+                            if (item.specificEmails && Array.isArray(item.specificEmails)) {
+                                item.specificEmails.forEach(se => {
+                                    if (se.email) emails.add(se.email.toLowerCase().trim());
+                                });
+                            }
                         });
                     }
                 });
