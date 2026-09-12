@@ -1986,6 +1986,10 @@ function renderSellerSaleCard(sale, isExpired, container) {
     if (!isExpired) {
         buttonsHtml = `
             <div style="display:flex; gap: 0.5rem; flex-wrap:wrap;">
+                <button onclick="sendTicketToAdminFromDash('${encodeURIComponent(sale.clientName)}', '${sale.clientPhone || ''}', '${encodeURIComponent(JSON.stringify(sale.items || []))}')" 
+                    style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:none; background: linear-gradient(135deg, #3498db, #2980b9); color:white;" title="Enviar el comprobante de pago al Admin con Precio Vendedor">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Ticket Admin
+                </button>
                 ${canRenew ? `
                 <button onclick="renewFromDash('${safeDecode(sale.clientName)}', '${sale.clientPhone}', '${sale.clientCity}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${sale.id}', 'seller')" 
                     style="flex: 1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:none; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color:black;">
@@ -2071,6 +2075,47 @@ window.renewFromDash = function (cName, cPhone, cCity, itemsJsonEncoded, saleId 
         alert('Error al armar el carrito de renovación.');
         console.error(e);
     }
+}
+
+window.sendTicketToAdminFromDash = function (cNameEnc, cPhone, itemsJsonEncoded) {
+    const saleItems = JSON.parse(decodeURIComponent(itemsJsonEncoded));
+    const cName = safeDecode(cNameEnc);
+
+    let message = `🚀 *Nuevo Pedido - Streaming DPC*\n\n`;
+    message += `🔥 *Orden procesada por Vendedor:* ${currentSellerName}\n\n`;
+    message += `*DATOS DEL CLIENTE (Adquirido en Página)*\n`;
+    message += `👤 Nombre: ${cName}\n`;
+    if (cPhone) message += `📱 Celular: ${cPhone}\n`;
+    message += `--------------------\n\n`;
+    message += `Hola, me gustaría procesar el pago de estas pantallas para mi cliente:\n\n`;
+
+    let totalMayorista = 0;
+
+    saleItems.forEach((item, i) => {
+        const pDb = products.find(p => p.id === item.id) || products.find(p => item.name && item.name.includes(p.name));
+        let pWholesale = pDb && pDb.sellerPrice ? pDb.sellerPrice : (item.finalPrice || 0);
+
+        if (pDb && typeof pDb.sellerPrice === 'number' && pDb.sellerPrice > 0) {
+            pWholesale = pDb.sellerPrice;
+        } else if (pDb && typeof pDb.price === 'number' && pDb.price > 0 && pWholesale === 0) {
+            pWholesale = pDb.price;
+        }
+
+        totalMayorista += pWholesale;
+
+        let displayItemName = item.customName ? `${item.name} (${item.customName})` : item.name;
+        message += `${i + 1}. *${displayItemName}* - $${pWholesale.toLocaleString()} (P. Vendedor)\n`;
+    });
+
+    message += `\n💼 *Valor Mayorista (Para el Admin):* $${totalMayorista.toLocaleString()}\n\n`;
+
+    let currentPaymentInfo = storeConfig.paymentInfo || '💳 *Por favor contáctame para indicarte mis métodos de pago...*';
+    message += `${currentPaymentInfo}\n\n`;
+    message += `Quedo atento a la activación de mis pantallas con respectivo comprobante.`;
+
+    const adminPhone = formatWaPhone(storeConfig.whatsappNumber || '573155182545');
+    const encodedMsg = encodeURIComponent(message);
+    window.open(`https://wa.me/${adminPhone}?text=${encodedMsg}`, '_blank');
 }
 
 window.sendReminderFromDash = async function (saleId, cName, cPhone, itemsEncoded) {
