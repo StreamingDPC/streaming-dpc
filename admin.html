@@ -4848,9 +4848,10 @@
 
             let allExpired = [];
 
-            // Coleccionar Clientes Globales
-            Object.keys(allClientSalesMap).forEach(phone => {
-                const sales = allClientSalesMap[phone] || {};
+            // Coleccionar Clientes Globales (usar window.* porque el let local no tiene scope aquí)
+            const _clientMap = window.allClientSalesMap || {};
+            Object.keys(_clientMap).forEach(phone => {
+                const sales = _clientMap[phone] || {};
                 const salesArray = Array.isArray(sales) ? sales : Object.values(sales);
                 salesArray.forEach(sale => {
                     if (!sale) return;
@@ -4860,11 +4861,12 @@
                 });
             });
 
-            // Coleccionar Ventas Vendedores
+            // Coleccionar Ventas Vendedores (usar window.* por scope)
+            const _sellerStore = window.globalSellerSalesDataStore || {};
             const sellers = storeConfig.sellers || [];
             sellers.forEach(seller => {
                 const sName = seller.name;
-                const sales = globalSellerSalesDataStore[sName] || {};
+                const sales = _sellerStore[sName] || {};
                 Object.keys(sales).forEach(key => {
                     const sale = sales[key];
                     if (!sale) return;
