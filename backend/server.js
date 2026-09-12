@@ -70,7 +70,7 @@ app.post('/api/get-code', async (req, res) => {
                 const imapConfig = {
                     imap: {
                         user: account.email,
-                        password: account.password,
+                        password: account.password.replace(/\s+/g, ''),
                         host: account.email.includes('gmail.com') ? 'imap.gmail.com' : 'imap.titan.email',
                         port: 993,
                         tls: true,
@@ -109,7 +109,7 @@ app.post('/api/get-code', async (req, res) => {
                     const targetEmail = email.toLowerCase();
                     const platformLower = platform.toLowerCase();
 
-                    const isFromPlatform = subject.includes(platformLower) || fromText.includes(platformLower);
+                    const isFromPlatform = platformLower === 'logincode' ? true : (subject.includes(platformLower) || fromText.includes(platformLower));
                     const mentionsEmail = textContent.includes(targetEmail) || htmlContent.toLowerCase().includes(targetEmail);
 
                     if (isFromPlatform || mentionsEmail) {

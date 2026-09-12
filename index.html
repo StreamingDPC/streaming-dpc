@@ -368,7 +368,10 @@
 
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Contraseña:</label>
-                    <input type="password" id="seller-password" class="input-modern" placeholder="••••••••">
+                    <form onsubmit="return false;">
+                        <input type="password" id="seller-password" class="input-modern" placeholder="••••••••"
+                            autocomplete="current-password">
+                    </form>
                 </div>
 
                 <button id="login-seller-btn" class="checkout-btn"
@@ -584,8 +587,11 @@
                         Ingresa tu PIN de seguridad (4 dígitos).
                     </p>
                     <div style="margin-bottom: 1.5rem;">
-                        <input type="password" id="client-login-pin" class="input-modern" placeholder="****"
-                            maxlength="4" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                        <form onsubmit="return false;">
+                            <input type="password" id="client-login-pin" class="input-modern" placeholder="****"
+                                maxlength="4" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;"
+                                autocomplete="current-password">
+                        </form>
                     </div>
                     <button id="login-client-btn" class="checkout-btn"
                         style="background: linear-gradient(135deg, #27ae60, #2ecc71); margin-bottom: 1rem;">
