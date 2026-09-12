@@ -2638,6 +2638,49 @@
                 if (document.getElementById('conf-msgDiscountAmount')) storeConfig.msgDiscountAmount = parseInt(document.getElementById('conf-msgDiscountAmount').value) || 0;
                 if (document.getElementById('conf-useLocalRobotCRM')) storeConfig.useLocalRobotCRM = document.getElementById('conf-useLocalRobotCRM').value === "true";
 
+                if (document.getElementById('conf-maintenanceEnabled')) {
+                    storeConfig.maintenanceEnabled = document.getElementById('conf-maintenanceEnabled').value === 'true';
+                    storeConfig.maintenanceMessage = document.getElementById('conf-maintenanceMessage').value;
+                }
+
+                const newCrmDict = {};
+                const newCrmPlatforms = {};
+                const platformsContainer = document.getElementById('crm-platforms-container');
+                if (platformsContainer) {
+                    platformsContainer.querySelectorAll('.crm-platform-section').forEach((section, index) => {
+                        let name = section.querySelector('.platform-name-input').value.trim();
+                        let variant = section.querySelector('.platform-variant-input').value.trim();
+                        let guideUrl = section.querySelector('.platform-guide-url').value.trim();
+
+                        if (!name) name = "Carpeta " + (index + 1);
+
+                        let keyBase = variant ? `${name} | ${variant}` : name;
+                        let finalName = keyBase;
+                        let counter = 1;
+                        while (newCrmDict.hasOwnProperty(finalName)) {
+                            finalName = keyBase + " (" + counter + ")";
+                            counter++;
+                        }
+
+                        const items = [];
+                        section.querySelectorAll('.gallery-item').forEach(item => {
+                            const photo = item.querySelector('.gallery-photo').value.trim();
+                            const text = item.querySelector('.gallery-text').value.trim();
+                            const cleanPhoto = (photo === 'undefined') ? '' : photo;
+                            const cleanText = (text === 'undefined') ? '' : text;
+                            if (cleanPhoto || cleanText) {
+                                items.push({ photo: cleanPhoto, text: cleanText });
+                            }
+                        });
+
+                        newCrmDict[finalName] = items;
+                        newCrmPlatforms[finalName] = { name: finalName, manualUrl: guideUrl };
+                    });
+                    storeConfig.crmGalleryDict = newCrmDict;
+                    storeConfig.crmPlatforms = newCrmPlatforms;
+                    storeConfig.crmGallery = [];
+                }
+
                 await db.ref('storeConfig').set(storeConfig);
                 alert('¡Configuración guardada exitosamente en la base de datos!');
             } catch (err) {
@@ -3011,18 +3054,21 @@
             if (!platformDiv) return;
             const photosList = platformDiv.querySelector('.platform-photos-list');
 
+            const safePhoto = (data.photo === 'undefined' || !data.photo) ? '' : data.photo;
+            const safeText = (data.text === 'undefined' || !data.text) ? '' : data.text;
+
             const div = document.createElement('div');
             div.className = 'gallery-item';
             div.style = 'border: 1px solid rgba(255,255,255,0.08); padding: 0.8rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.6rem; background: rgba(0,0,0,0.2);';
             div.innerHTML = `
                 <div style="display:flex; gap:0.5rem; align-items:center;">
                     <i class="fa-solid fa-image" style="color:rgba(255,255,255,0.4); font-size:0.8rem;"></i>
-                    <input type="text" class="gallery-photo" placeholder="URL de la Foto" style="flex:1; border-radius:6px; font-size:0.85rem;" value="${data.photo}">
+                    <input type="text" class="gallery-photo" placeholder="URL de la Foto" style="flex:1; border-radius:6px; font-size:0.85rem;" value="${safePhoto}">
                     <button class="btn-icon" style="color:#ff4d4d; padding:4px;" onclick="this.parentElement.parentElement.remove()">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <textarea class="gallery-text" rows="2" placeholder="Texto o Copy..." style="width:100%; border-radius:6px; padding:6px; font-size:0.85rem;">${data.text}</textarea>
+                <textarea class="gallery-text" rows="2" placeholder="Texto o Copy..." style="width:100%; border-radius:6px; padding:6px; font-size:0.85rem;">${safeText}</textarea>
             `;
             photosList.appendChild(div);
         }
@@ -3134,152 +3180,7 @@
             }
         }
 
-        function saveConfig() {
-            if (document.getElementById('conf-maintenanceEnabled')) {
-                storeConfig.maintenanceEnabled = document.getElementById('conf-maintenanceEnabled').value === 'true';
-                storeConfig.maintenanceMessage = document.getElementById('conf-maintenanceMessage').value;
-            }
-
-            storeConfig.whatsappNumber = document.getElementById('conf-whatsapp').value;
-            if (document.getElementById('conf-facebook')) storeConfig.facebookUrl = document.getElementById('conf-facebook').value.trim();
-            if (document.getElementById('conf-instagram')) storeConfig.instagramUrl = document.getElementById('conf-instagram').value.trim();
-            if (document.getElementById('conf-tiktok')) storeConfig.tiktokUrl = document.getElementById('conf-tiktok').value.trim();
-            if (document.getElementById('conf-kwai')) storeConfig.kwaiUrl = document.getElementById('conf-kwai').value.trim();
-            if (document.getElementById('conf-youtube')) storeConfig.youtubeUrl = document.getElementById('conf-youtube').value.trim();
-
-            storeConfig.paymentInfo = document.getElementById('conf-paymentInfo').value;
-            storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === 'true';
-            storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
-
-            storeConfig.sellerDiscountEnabled = document.getElementById('conf-sellerDiscountEnabled').value === 'true';
-            storeConfig.sellerDiscountAmount = parseInt(document.getElementById('conf-sellerDiscountAmount').value) || 0;
-
-            storeConfig.clientBannerEnabled = document.getElementById('conf-clientBannerEnabled').value === 'true';
-            storeConfig.clientBannerText = document.getElementById('conf-clientBannerText').value;
-            storeConfig.sellerBannerEnabled = document.getElementById('conf-sellerBannerEnabled').value === 'true';
-            storeConfig.sellerBannerText = document.getElementById('conf-sellerBannerText').value;
-
-            storeConfig.clientPromoDiscount = parseInt(document.getElementById('conf-clientPromoDiscount').value) || 0;
-            storeConfig.clientPromoLimit = parseInt(document.getElementById('conf-clientPromoLimit').value) || 0;
-            storeConfig.sellerPromoDiscount = parseInt(document.getElementById('conf-sellerPromoDiscount').value) || 0;
-            storeConfig.sellerPromoLimit = parseInt(document.getElementById('conf-sellerPromoLimit').value) || 0;
-
-            storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === 'true';
-            storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === 'true';
-
-            if (document.getElementById('conf-capMonthPolicyTemplate')) {
-                storeConfig.capMonthPolicyTemplate = document.getElementById('conf-capMonthPolicyTemplate').value;
-            }
-            if (document.getElementById('conf-reminderTemplate')) {
-                storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
-            }
-            if (document.getElementById('conf-reminderTomorrowTemplate')) {
-                storeConfig.reminderTomorrowTemplate = document.getElementById('conf-reminderTomorrowTemplate').value;
-            }
-            if (document.getElementById('conf-sellerReminderTemplate')) {
-                storeConfig.sellerReminderTemplate = document.getElementById('conf-sellerReminderTemplate').value;
-            }
-            if (document.getElementById('conf-sellerReminderTomorrowTemplate')) {
-                storeConfig.sellerReminderTomorrowTemplate = document.getElementById('conf-sellerReminderTomorrowTemplate').value;
-            }
-            if (document.getElementById('conf-renovadaSingularTemplate')) {
-                storeConfig.renovadaSingularTemplate = document.getElementById('conf-renovadaSingularTemplate').value;
-            }
-            if (document.getElementById('conf-renovadaPluralTemplate')) {
-                storeConfig.renovadaPluralTemplate = document.getElementById('conf-renovadaPluralTemplate').value;
-            }
-
-            storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
-            if (document.getElementById('conf-autoReminderTomorrowEnabled')) storeConfig.autoReminderTomorrowEnabled = document.getElementById('conf-autoReminderTomorrowEnabled').value === "true";
-            storeConfig.autoReminderHour = parseInt(document.getElementById('conf-autoReminderHour').value) || 0;
-
-            if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
-
-            storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
-            storeConfig.adminPassword = document.getElementById('conf-adminPassword').value || 'admin123';
-
-            if (document.getElementById('conf-incentiveEnabled')) storeConfig.incentiveEnabled = document.getElementById('conf-incentiveEnabled').value === 'true';
-            if (document.getElementById('conf-incentiveMessage')) storeConfig.incentiveMessage = document.getElementById('conf-incentiveMessage').value;
-            if (document.getElementById('conf-incentiveNetflix')) {
-                storeConfig.incentiveNetflix = parseInt(document.getElementById('conf-incentiveNetflix').value) || 0;
-                storeConfig.incentiveNetflixPrivada = parseInt(document.getElementById('conf-incentiveNetflixPrivada').value) || 0;
-                storeConfig.incentiveDisney = parseInt(document.getElementById('conf-incentiveDisney').value) || 0;
-                storeConfig.incentiveHbo = parseInt(document.getElementById('conf-incentiveHbo').value) || 0;
-                storeConfig.incentiveMax = storeConfig.incentiveHbo;
-                storeConfig.incentivePrime = parseInt(document.getElementById('conf-incentivePrime').value) || 0;
-                storeConfig.incentiveParamount = parseInt(document.getElementById('conf-incentiveParamount').value) || 0;
-                storeConfig.incentiveVix = parseInt(document.getElementById('conf-incentiveVix').value) || 0;
-                storeConfig.incentiveIptv = parseInt(document.getElementById('conf-incentiveIptv').value) || 0;
-                storeConfig.incentiveCrunchyroll = parseInt(document.getElementById('conf-incentiveCrunchyroll').value) || 0;
-                storeConfig.incentiveApple = parseInt(document.getElementById('conf-incentiveApple').value) || 0;
-                storeConfig.incentiveCombo2 = parseInt(document.getElementById('conf-incentiveCombo2').value) || 0;
-                storeConfig.incentiveCombo3 = parseInt(document.getElementById('conf-incentiveCombo3').value) || 0;
-                storeConfig.incentiveCombo4 = parseInt(document.getElementById('conf-incentiveCombo4').value) || 0;
-                storeConfig.incentiveCombo5 = parseInt(document.getElementById('conf-incentiveCombo5').value) || 0;
-                storeConfig.incentiveFinde = parseInt(document.getElementById('conf-incentiveFinde').value) || 0;
-                storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
-            }
-
-            if (document.getElementById('conf-tabOrder')) {
-                const arr = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim()).filter(s => s);
-                storeConfig.tabOrder = arr.length > 0 ? arr : null;
-            }
-            if (document.getElementById('conf-nequiEnabled')) {
-                storeConfig.nequiEnabled = document.getElementById('conf-nequiEnabled').value === 'true';
-                storeConfig.nequiLabel = document.getElementById('conf-nequiLabel').value.trim();
-                storeConfig.nequiImg = document.getElementById('conf-nequiImg').value.trim();
-
-                storeConfig.nuEnabled = document.getElementById('conf-nuEnabled').value === 'true';
-                storeConfig.nuLabel = document.getElementById('conf-nuLabel').value.trim();
-                storeConfig.nuImg = document.getElementById('conf-nuImg').value.trim();
-            }
-
-            // Save CRM Messaging Config
-            if (document.getElementById('conf-msgTemplate1')) storeConfig.msgTemplate1 = document.getElementById('conf-msgTemplate1').value;
-            if (document.getElementById('conf-msgTemplate2')) storeConfig.msgTemplate2 = document.getElementById('conf-msgTemplate2').value;
-            if (document.getElementById('conf-sendOnlyStep1')) storeConfig.sendOnlyStep1 = document.getElementById('conf-sendOnlyStep1').value === 'true';
-            if (document.getElementById('conf-msgDiscountAmount')) storeConfig.msgDiscountAmount = parseInt(document.getElementById('conf-msgDiscountAmount').value) || 0;
-            if (document.getElementById('conf-useLocalRobotCRM')) storeConfig.useLocalRobotCRM = document.getElementById('conf-useLocalRobotCRM').value === 'true';
-
-            const newCrmDict = {};
-            const newCrmPlatforms = {};
-            const platformsContainer = document.getElementById('crm-platforms-container');
-            if (platformsContainer) {
-                platformsContainer.querySelectorAll('.crm-platform-section').forEach((section, index) => {
-                    let name = section.querySelector('.platform-name-input').value.trim();
-                    let variant = section.querySelector('.platform-variant-input').value.trim();
-                    let guideUrl = section.querySelector('.platform-guide-url').value.trim();
-
-                    if (!name) name = "Carpeta " + (index + 1);
-
-                    let keyBase = variant ? `${name} | ${variant}` : name;
-                    let finalName = keyBase;
-                    let counter = 1;
-                    while (newCrmDict.hasOwnProperty(finalName)) {
-                        finalName = keyBase + " (" + counter + ")";
-                        counter++;
-                    }
-
-                    const items = [];
-                    section.querySelectorAll('.gallery-item').forEach(item => {
-                        const photo = item.querySelector('.gallery-photo').value.trim();
-                        const text = item.querySelector('.gallery-text').value.trim();
-                        if (photo || text) items.push({ photo, text });
-                    });
-
-                    newCrmDict[finalName] = items;
-                    newCrmPlatforms[finalName] = { name: finalName, manualUrl: guideUrl };
-                });
-            }
-            storeConfig.crmGalleryDict = newCrmDict;
-            storeConfig.crmPlatforms = newCrmPlatforms;
-            storeConfig.crmGallery = [];
-
-            db.ref('storeConfig').set(storeConfig).then(() => {
-                alert('¡Configuración guardada exitosamente!');
-            });
-        }
-
+        // Función duplicada de saveConfig() eliminada para preservar la estabilidad de Firebase Sync
         function renderEstrenosList() {
             const listDiv = document.getElementById('admin-list-estrenos');
             listDiv.innerHTML = '';
