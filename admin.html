@@ -2532,30 +2532,26 @@
         async function saveConfig() {
             try {
                 // Generales
-                storeConfig.whatsappNumber = document.getElementById('conf-whatsapp').value;
+                if (document.getElementById('conf-whatsapp')) storeConfig.whatsappNumber = document.getElementById('conf-whatsapp').value;
                 if (document.getElementById('conf-facebook')) storeConfig.facebookUrl = document.getElementById('conf-facebook').value;
                 if (document.getElementById('conf-instagram')) storeConfig.instagramUrl = document.getElementById('conf-instagram').value;
                 if (document.getElementById('conf-tiktok')) storeConfig.tiktokUrl = document.getElementById('conf-tiktok').value;
                 if (document.getElementById('conf-kwai')) storeConfig.kwaiUrl = document.getElementById('conf-kwai').value;
                 if (document.getElementById('conf-youtube')) storeConfig.youtubeUrl = document.getElementById('conf-youtube').value;
 
-                storeConfig.paymentInfo = document.getElementById('conf-paymentInfo').value;
-                storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === "true";
-                storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
+                if (document.getElementById('conf-paymentInfo')) storeConfig.paymentInfo = document.getElementById('conf-paymentInfo').value;
+                if (document.getElementById('conf-discountEnabled')) storeConfig.discountEnabled = document.getElementById('conf-discountEnabled').value === "true";
+                if (document.getElementById('conf-discountAmount')) storeConfig.discountAmount = parseInt(document.getElementById('conf-discountAmount').value) || 0;
 
-                if (document.getElementById('conf-capMonthPolicyTemplate')) {
-                    storeConfig.capMonthPolicyTemplate = document.getElementById('conf-capMonthPolicyTemplate').value;
-                }
-                if (document.getElementById('conf-reminderTemplate')) {
-                    storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
-                }
+                if (document.getElementById('conf-capMonthPolicyTemplate')) storeConfig.capMonthPolicyTemplate = document.getElementById('conf-capMonthPolicyTemplate').value;
+                if (document.getElementById('conf-reminderTemplate')) storeConfig.reminderTemplate = document.getElementById('conf-reminderTemplate').value;
 
-                storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === "true";
-                storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === "true";
+                if (document.getElementById('conf-netflixEnabled')) storeConfig.netflixEnabled = document.getElementById('conf-netflixEnabled').value === "true";
+                if (document.getElementById('conf-disneyEnabled')) storeConfig.disneyEnabled = document.getElementById('conf-disneyEnabled').value === "true";
 
-                storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
+                if (document.getElementById('conf-autoReminderEnabled')) storeConfig.autoReminderEnabled = document.getElementById('conf-autoReminderEnabled').value === "true";
                 if (document.getElementById('conf-autoReminderTomorrowEnabled')) storeConfig.autoReminderTomorrowEnabled = document.getElementById('conf-autoReminderTomorrowEnabled').value === "true";
-                storeConfig.autoReminderHour = document.getElementById('conf-autoReminderHour').value || "0";
+                if (document.getElementById('conf-autoReminderHour')) storeConfig.autoReminderHour = document.getElementById('conf-autoReminderHour').value || "0";
 
                 if (document.getElementById('conf-reminderTomorrowTemplate')) {
                     storeConfig.reminderTomorrowTemplate = document.getElementById('conf-reminderTomorrowTemplate').value;
@@ -2648,9 +2644,13 @@
                 const platformsContainer = document.getElementById('crm-platforms-container');
                 if (platformsContainer) {
                     platformsContainer.querySelectorAll('.crm-platform-section').forEach((section, index) => {
-                        let name = section.querySelector('.platform-name-input').value.trim();
-                        let variant = section.querySelector('.platform-variant-input').value.trim();
-                        let guideUrl = section.querySelector('.platform-guide-url').value.trim();
+                        const nameEl = section.querySelector('.platform-name-input');
+                        const variantEl = section.querySelector('.platform-variant-input');
+                        const guideUrlEl = section.querySelector('.platform-guide-url');
+
+                        let name = nameEl ? nameEl.value.trim() : '';
+                        let variant = variantEl ? variantEl.value.trim() : '';
+                        let guideUrl = guideUrlEl ? guideUrlEl.value.trim() : '';
 
                         if (!name) name = "Carpeta " + (index + 1);
 
@@ -2664,10 +2664,14 @@
 
                         const items = [];
                         section.querySelectorAll('.gallery-item').forEach(item => {
-                            const photo = item.querySelector('.gallery-photo').value.trim();
-                            const text = item.querySelector('.gallery-text').value.trim();
+                            const photoEl = item.querySelector('.gallery-photo');
+                            const textEl = item.querySelector('.gallery-text');
+                            const photo = photoEl ? photoEl.value.trim() : '';
+                            const text = textEl ? textEl.value.trim() : '';
+
                             const cleanPhoto = (photo === 'undefined') ? '' : photo;
                             const cleanText = (text === 'undefined') ? '' : text;
+
                             if (cleanPhoto || cleanText) {
                                 items.push({ photo: cleanPhoto, text: cleanText });
                             }
