@@ -157,12 +157,14 @@ app.post('/api/get-code', async (req, res) => {
                             );
 
                             if (hasLoginText) {
-                                // Extraer código numérico de 4 a 8 dígitos aislandolo
-                                // A veces los códigos vienen sueltos o remarcados en negritas
-                                const codeMatch = textContent.match(/\b(\d{4,8})\b/) || htmlContent.match(/\b(\d{4,8})\b/);
+                                // Extraer código numérico de 4 a 8 dígitos, pudiendo tener espacios (ej: 4 0 3 9)
+                                const regexEspacios = /\b(\d(?:\s*\d){3,7})\b/;
+                                const codeMatch = textContent.match(regexEspacios) || htmlContent.match(regexEspacios);
+
                                 if (codeMatch) {
-                                    console.log(`[DEBUG] Código de inicio de sesión encontrado: ${codeMatch[1]}`);
-                                    return codeMatch[1];
+                                    const cleanCode = codeMatch[1].replace(/\s+/g, '');
+                                    console.log(`[DEBUG] Código de inicio de sesión encontrado: ${cleanCode}`);
+                                    return cleanCode;
                                 }
                             }
                         }
