@@ -28,7 +28,7 @@ async function getCodeFromNetflixUrl(url) {
         const $ = cheerio.load(response.data);
         const pageText = $('body').text();
         const codeMatch = pageText.match(/\b\d{4}\b/);
-        
+
         if (codeMatch) {
             console.log("Código encontrado en la web:", codeMatch[0]);
             return codeMatch[0];
@@ -48,7 +48,7 @@ app.post('/api/get-code', async (req, res) => {
 
     try {
         console.log(`[DEBUG] Nueva solicitud: ${email} para ${platform}`);
-        
+
         // 1. Obtener cuentas
         const dbResponse = await axios.get(`${FIREBASE_DB_URL}/emailAccounts.json`);
         const accountsData = dbResponse.data;
@@ -59,7 +59,7 @@ app.post('/api/get-code', async (req, res) => {
         }
 
         const accounts = Object.values(accountsData).filter(a => a && a.email && a.password);
-        
+
         console.log(`[DEBUG] Procesando ${accounts.length} cuentas en PARALELO para mayor velocidad...`);
 
         // Función individual para procesar cada cuenta
@@ -81,14 +81,14 @@ app.post('/api/get-code', async (req, res) => {
 
                 connection = await imaps.connect(imapConfig);
                 const box = await connection.openBox('INBOX');
-                
+
                 // OPTIMIZACIÓN: En lugar de buscar en todo el buzón, pedimos directamente los últimos 15 correos
                 const total = box.messages.total;
                 if (total === 0) return null;
-                
+
                 const range = `${Math.max(1, total - 15)}:*`;
                 let messages = await connection.fetch(range, { bodies: ['HEADER', 'TEXT'], markSeen: false });
-                
+
                 console.log(`[DEBUG] Realsando ${messages.length} últimos correos en ${account.email}`);
 
                 for (let i = messages.length - 1; i >= 0; i--) {
@@ -102,7 +102,7 @@ app.post('/api/get-code', async (req, res) => {
                     const subject = (parsed.subject || "").toString().toLowerCase();
                     const textContent = (parsed.text || "").toString().toLowerCase();
                     const htmlContent = (parsed.html || "").toString();
-                    
+
                     let fromText = "";
                     if (parsed.from && parsed.from.text) fromText = parsed.from.text.toLowerCase();
 
@@ -135,6 +135,27 @@ app.post('/api/get-code', async (req, res) => {
                         } else if (platformLower.includes('disney')) {
                             const codeMatch = textContent.match(/\b\d{6}\b/);
                             if (codeMatch) return codeMatch[0];
+                        } else if (platformLower.includes('logincode')) {
+                            // Busca el texto "ngresa este código para iniciar sesión" (cubre "Ingresa" o "ingresa")
+                            const loginKeywords = [
+                                'ngresa este código para iniciar sesión',
+                                'ngresa este codigo para iniciar sesion',
+                                'enter this code to sign in',
+                                'sign-in code',
+                                'your sign in code',
+                                'código de inicio de sesión',
+                                'login code',
+                                'verification code'
+                            ];
+                            const hasLoginText = loginKeywords.some(kw => textContent.includes(kw));
+                            if (hasLoginText) {
+                                // Extraer código numérico de 4 a 8 dígitos que venga después del texto clave
+                                const codeMatch = textContent.match(/\b(\d{4,8})\b/);
+                                if (codeMatch) {
+                                    console.log(`[DEBUG] Código de inicio de sesión encontrado: ${codeMatch[1]}`);
+                                    return codeMatch[1];
+                                }
+                            }
                         }
                     }
                 }
@@ -142,7 +163,7 @@ app.post('/api/get-code', async (req, res) => {
                 console.error(`[DEBUG] Error en ${account.email}:`, err.message);
             } finally {
                 if (connection) {
-                    try { connection.end(); } catch(e) {}
+                    try { connection.end(); } catch (e) { }
                 }
             }
             return null;
@@ -161,9 +182,9 @@ app.post('/api/get-code', async (req, res) => {
 
     } catch (err) {
         console.error("DEBUG - Fallo Crítico:", err);
-        return res.status(500).json({ 
-            success: false, 
-            error: "Error interno del servidor.", 
+        return res.status(500).json({
+            success: false,
+            error: "Error interno del servidor.",
             details: err.message,
             stack: err.stack // Solo para diagnosticar el problema actual
         });
