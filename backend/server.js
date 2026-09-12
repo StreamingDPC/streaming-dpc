@@ -157,48 +157,28 @@ app.post('/api/get-code', async (req, res) => {
                             );
 
                             if (hasLoginText) {
-                                // Algoritmo robusto: Encontramos dónde está la palabra clave en el texto
-                                let matchIndex = -1;
-                                for (let kw of loginKeywords) {
-                                    const idx = textContent.indexOf(kw);
-                                    if (idx !== -1 && (matchIndex === -1 || idx < matchIndex)) {
-                                        matchIndex = idx;
+                                // Algoritmo Extractor Global
+                                // Aplana por completo todo el texto y HTML del correo y extrae cualquier grupo de 4 a 8 dígitos.
+                                const pureText = textContent.replace(/[\s\-_;&]+/g, '');
+                                const pureHtml = htmlContent.replace(/<[^>]*>?/gm, '').toLowerCase().replace(/[\s\-_;&]+/g, '');
+                                const combined = pureText + " " + pureHtml;
+
+                                // Busca TODAS las secuencias de 4 a 8 dígitos rodeadas de no-dígitos
+                                const regexGrupos = /(?:^|\D)(\d{4,8})(?=$|\D)/g;
+                                const matches = combined.match(regexGrupos);
+
+                                if (matches) {
+                                    for (let m of matches) {
+                                        const num = m.replace(/\D/g, ''); // Limpiar para dejar solo los números
+                                        // Ignorar años típicamente ocultos en el footer (ej. 2023, 2024, 2025)
+                                        if (num.length === 4 && (num.startsWith('202') || num.startsWith('199'))) {
+                                            continue;
+                                        }
+                                        console.log(`[DEBUG] Código Extractor Global hallado: ${num}`);
+                                        return num;
                                     }
                                 }
-
-                                if (matchIndex !== -1) {
-                                    // Tomamos el texto que está justo DESPUÉS de la orden "ingresa tu código..."
-                                    const textAfter = textContent.substring(matchIndex);
-                                    // Pulverizamos de ese segmento TODO espacio, salto de línea, guión, tabulación, etc.
-                                    const cleanTextAfter = textAfter.replace(/[\s\-_]+/g, '');
-
-                                    // Con todo pegado, el primer número de 4 a 8 dígitos que aparezca TIENE que ser el código
-                                    const codeMatch = cleanTextAfter.match(/(?:^|\D)(\d{4,8})(?=$|\D)/);
-                                    if (codeMatch) {
-                                        console.log(`[DEBUG] Código ultra-limpio encontrado en TEXTO: ${codeMatch[1]}`);
-                                        return codeMatch[1];
-                                    }
-                                }
-
-                                // Fallback: Hacer lo mismo en el HTML si no se detectó en el texto plano
-                                const cleanHTML = htmlContent.replace(/<[^>]*>?/gm, '').toLowerCase();
-                                let htmlMatchIndex = -1;
-                                for (let kw of loginKeywords) {
-                                    const idx = cleanHTML.indexOf(kw);
-                                    if (idx !== -1 && (htmlMatchIndex === -1 || idx < htmlMatchIndex)) {
-                                        htmlMatchIndex = idx;
-                                    }
-                                }
-
-                                if (htmlMatchIndex !== -1) {
-                                    const htmlAfter = cleanHTML.substring(htmlMatchIndex);
-                                    const pureHtmlAfter = htmlAfter.replace(/[\s\-_;&]+/g, '');
-                                    const codeMatchHTML = pureHtmlAfter.match(/(?:^|\D)(\d{4,8})(?=$|\D)/);
-                                    if (codeMatchHTML) {
-                                        console.log(`[DEBUG] Código ultra-limpio encontrado en HTML: ${codeMatchHTML[1]}`);
-                                        return codeMatchHTML[1];
-                                    }
-                                }
+                                console.log('[DEBUG] No se encontró ningún número válido en el mensaje de inicio de sesión.');
                             }
                         }
                     }
