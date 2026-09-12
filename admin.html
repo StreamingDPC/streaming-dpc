@@ -580,12 +580,19 @@
         <!-- TAB HISTORIAL -->
         <div id="tab-historial" class="tab-content">
             <div class="admin-form">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; flex-wrap:wrap; gap:1rem;">
                     <div>
                         <h3 style="margin-bottom:0;"><i class="fa-solid fa-folder-open" style="color:#ff4d4d;"></i>
                             Historial de Ventas Vencidas</h3>
                         <p style="font-size:0.85rem; color:#a0a0a0; margin-top:0.3rem;">Todas las ventas que superaron
                             su fecha de vencimiento. No son visibles en las demás pestañas para limpiar el registro.</p>
+                    </div>
+                    <div style="display:flex; align-items:center; flex:1; max-width:500px; min-width:300px;">
+                        <input type="text" id="search-historial-ventas"
+                            placeholder="🔍 Buscar nombre, cel, vendedor o compra..." class="input-modern"
+                            style="margin-bottom:0; width: 100%; border-radius: 12px; padding: 0.8rem; background: var(--bg-dark); color: white; border: 1px solid var(--glass-border);"
+                            oninput="renderGlobalHistory()">
                     </div>
                 </div>
                 <div id="admin-list-history" class="admin-list"></div>
@@ -4879,8 +4886,20 @@
             // Sort newest expiration first
             allExpired.sort((a, b) => b.expirationDate - a.expirationDate);
 
+            const searchInputText = document.getElementById('search-historial-ventas') ? document.getElementById('search-historial-ventas').value.toLowerCase().trim() : '';
+            if (searchInputText) {
+                allExpired = allExpired.filter(sale => {
+                    const clientObj = sale._clientObj || {};
+                    const isSellerSale = sale._sourceType === 'seller';
+                    const sellerStr = isSellerSale ? (sale.sellerName || '') : 'global';
+                    const itemsStr = (sale.items || []).map(i => i.name).join(' ');
+                    const searchPool = `${clientObj.name || ''} ${clientObj.phone || ''} ${sellerStr} ${itemsStr}`.toLowerCase();
+                    return searchPool.includes(searchInputText);
+                });
+            }
+
             if (allExpired.length === 0) {
-                listDiv.innerHTML = '<p style="color:#ccc;">No hay ventas vencidas registradas en el historial.</p>';
+                listDiv.innerHTML = '<p style="color:#ccc;">No se encontraron resultados para la búsqueda actual o no hay ventas vencidas registradas en el historial.</p>';
                 return;
             }
 
