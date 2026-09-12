@@ -157,14 +157,47 @@ app.post('/api/get-code', async (req, res) => {
                             );
 
                             if (hasLoginText) {
-                                // Extraer código numérico de 4 a 8 dígitos, pudiendo tener espacios (ej: 4 0 3 9)
-                                const regexEspacios = /\b(\d(?:\s*\d){3,7})\b/;
-                                const codeMatch = textContent.match(regexEspacios) || htmlContent.match(regexEspacios);
+                                // Algoritmo robusto: Encontramos dónde está la palabra clave en el texto
+                                let matchIndex = -1;
+                                for (let kw of loginKeywords) {
+                                    const idx = textContent.indexOf(kw);
+                                    if (idx !== -1 && (matchIndex === -1 || idx < matchIndex)) {
+                                        matchIndex = idx;
+                                    }
+                                }
 
-                                if (codeMatch) {
-                                    const cleanCode = codeMatch[1].replace(/\s+/g, '');
-                                    console.log(`[DEBUG] Código de inicio de sesión encontrado: ${cleanCode}`);
-                                    return cleanCode;
+                                if (matchIndex !== -1) {
+                                    // Tomamos el texto que está justo DESPUÉS de la orden "ingresa tu código..."
+                                    const textAfter = textContent.substring(matchIndex);
+                                    // Pulverizamos de ese segmento TODO espacio, salto de línea, guión, tabulación, etc.
+                                    const cleanTextAfter = textAfter.replace(/[\s\-_]+/g, '');
+
+                                    // Con todo pegado, el primer número de 4 a 8 dígitos que aparezca TIENE que ser el código
+                                    const codeMatch = cleanTextAfter.match(/(?:^|\D)(\d{4,8})(?=$|\D)/);
+                                    if (codeMatch) {
+                                        console.log(`[DEBUG] Código ultra-limpio encontrado en TEXTO: ${codeMatch[1]}`);
+                                        return codeMatch[1];
+                                    }
+                                }
+
+                                // Fallback: Hacer lo mismo en el HTML si no se detectó en el texto plano
+                                const cleanHTML = htmlContent.replace(/<[^>]*>?/gm, '').toLowerCase();
+                                let htmlMatchIndex = -1;
+                                for (let kw of loginKeywords) {
+                                    const idx = cleanHTML.indexOf(kw);
+                                    if (idx !== -1 && (htmlMatchIndex === -1 || idx < htmlMatchIndex)) {
+                                        htmlMatchIndex = idx;
+                                    }
+                                }
+
+                                if (htmlMatchIndex !== -1) {
+                                    const htmlAfter = cleanHTML.substring(htmlMatchIndex);
+                                    const pureHtmlAfter = htmlAfter.replace(/[\s\-_;&]+/g, '');
+                                    const codeMatchHTML = pureHtmlAfter.match(/(?:^|\D)(\d{4,8})(?=$|\D)/);
+                                    if (codeMatchHTML) {
+                                        console.log(`[DEBUG] Código ultra-limpio encontrado en HTML: ${codeMatchHTML[1]}`);
+                                        return codeMatchHTML[1];
+                                    }
                                 }
                             }
                         }
