@@ -3,35 +3,35 @@
 // DPC BILLING ENGINE v1.0 (Cap Month)
 // ============================================
 window.DPCBillingEngine = {
-    calcularProximoVencimiento: function(fechaCompraOriginal, fechaVencimientoActual) {
+    calcularProximoVencimiento: function (fechaCompraOriginal, fechaVencimientoActual) {
         if (!fechaCompraOriginal || isNaN(new Date(fechaCompraOriginal).getTime())) {
             fechaCompraOriginal = fechaVencimientoActual || Date.now();
         }
         if (!fechaVencimientoActual || isNaN(new Date(fechaVencimientoActual).getTime())) {
             fechaVencimientoActual = Date.now();
         }
-        
+
         const fco = new Date(fechaCompraOriginal);
         const fva = new Date(fechaVencimientoActual);
         const diaOriginal = fco.getDate();
-        
+
         let prox = new Date(fva);
         // Avanzamos un mes real
         prox.setMonth(prox.getMonth() + 1);
-        
+
         // Obtenemos cual es el ultimo dia de ese nuevo mes
         const ultimoDiaMesProx = new Date(prox.getFullYear(), prox.getMonth() + 1, 0).getDate();
-        
+
         // Si el dia original existe en el nuevo mes, lo asignamos. Si no, lo topamos al ultimo dia.
         if (diaOriginal <= ultimoDiaMesProx) {
             prox.setDate(diaOriginal);
         } else {
             prox.setDate(ultimoDiaMesProx);
         }
-        
+
         // Fijar exactamente a las 23:59:59 (para que el cliente tenga servicio todo ese día pase lo que pase)
         prox.setHours(23, 59, 59, 999);
-        
+
         return prox;
     }
 };
@@ -63,10 +63,10 @@ db.ref('config/app_version').on('value', snap => {
     }
 });
 
-window.sanitizePhone = function(val) {
-    if(!val) return "";
+window.sanitizePhone = function (val) {
+    if (!val) return "";
     let c = val.toString().replace(/\D/g, "");
-    if(c.length >= 12 && c.startsWith("57")) {
+    if (c.length >= 12 && c.startsWith("57")) {
         c = c.substring(2);
     }
     return c;
@@ -657,6 +657,7 @@ function renderProducts(category) {
             <span class="brand-badge">${product.brand}</span>
             <h3 class="product-title">${product.name}</h3>
             <p class="product-desc" style="margin-bottom: 0.5rem">${product.desc || 'Pantalla original premium con garantía.'}</p>
+            ${isSellerMode ? `<div style="color: #00d2d3; font-size: 0.85rem; font-weight: bold; margin-bottom: 0.4rem;"><i class="fa-solid fa-tag"></i> Sugerido al Cliente: $${product.price.toLocaleString()}</div>` : ''}
             ${sellerBadge}
             ${product.stock > 0 ? `<div style="color:#f39c12; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;"><i class="fa-solid fa-layer-group"></i> Disponibles: ${product.stock}</div>` : ''}
             <div class="price-row" style="margin-top:1rem">
@@ -842,36 +843,36 @@ function setupEventListeners() {
             // Populate Dropdown
             if (sellerClientSelector && sellerClientsDropdown) {
                 sellerClientSelector.style.display = 'block';
-                
-                    // Add search input if not exists at the TOP
-                    let searchInput = document.getElementById('seller-client-search');
-                    if (!searchInput) {
-                        searchInput = document.createElement('input');
-                        searchInput.id = 'seller-client-search';
-                        searchInput.type = 'text';
-                        searchInput.className = 'input-modern';
-                        searchInput.placeholder = '🔍 Buscar cliente guardado...';
-                        searchInput.style.marginBottom = '0.5rem';
-                        searchInput.style.padding = '0.5rem';
-                        searchInput.style.fontSize = '0.95rem';
-                        searchInput.style.border = '1px solid var(--accent-primary)';
-                        sellerClientSelector.prepend(searchInput);
-                        
-                        searchInput.addEventListener('input', (e) => {
-                            const query = e.target.value.toLowerCase();
-                            let found = false;
-                            Array.from(sellerClientsDropdown.options).forEach((opt, idx) => {
-                                if (idx === 0) return; // ignore first
-                                if (opt.value === "") return;
-                                const text = opt.text.toLowerCase();
-                                const isMatch = text.includes(query);
-                                opt.hidden = !isMatch;
-                                if (isMatch) found = true;
-                            });
+
+                // Add search input if not exists at the TOP
+                let searchInput = document.getElementById('seller-client-search');
+                if (!searchInput) {
+                    searchInput = document.createElement('input');
+                    searchInput.id = 'seller-client-search';
+                    searchInput.type = 'text';
+                    searchInput.className = 'input-modern';
+                    searchInput.placeholder = '🔍 Buscar cliente guardado...';
+                    searchInput.style.marginBottom = '0.5rem';
+                    searchInput.style.padding = '0.5rem';
+                    searchInput.style.fontSize = '0.95rem';
+                    searchInput.style.border = '1px solid var(--accent-primary)';
+                    sellerClientSelector.prepend(searchInput);
+
+                    searchInput.addEventListener('input', (e) => {
+                        const query = e.target.value.toLowerCase();
+                        let found = false;
+                        Array.from(sellerClientsDropdown.options).forEach((opt, idx) => {
+                            if (idx === 0) return; // ignore first
+                            if (opt.value === "") return;
+                            const text = opt.text.toLowerCase();
+                            const isMatch = text.includes(query);
+                            opt.hidden = !isMatch;
+                            if (isMatch) found = true;
                         });
-                    } else {
-                        searchInput.value = '';
-                    }
+                    });
+                } else {
+                    searchInput.value = '';
+                }
 
                 db.ref(`sellerSales/${currentSellerName}`).once('value').then(snap => {
                     const sales = snap.val();
@@ -883,7 +884,7 @@ function setupEventListeners() {
                             const cName = sales[key].clientName;
                             const cPhone = sales[key].clientPhone || '';
                             const clientId = (cName + cPhone).toLowerCase().replace(/\s/g, '');
-                            
+
                             // Detalle 2: No mostrar CRM en la lista de clientes del vendedor
                             const isCRM = cName && cName.toLowerCase().trim() === 'crm';
 
@@ -896,7 +897,7 @@ function setupEventListeners() {
                             }
                         });
 
-                        Object.values(uniqueClients).sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+                        Object.values(uniqueClients).sort((a, b) => a.name.localeCompare(b.name)).forEach(c => {
                             const opt = document.createElement('option');
                             opt.value = encodeURIComponent(JSON.stringify({ name: c.name, phone: c.phone, city: c.city }));
                             opt.text = `${c.name} (${c.phone})`;
@@ -1096,7 +1097,7 @@ function setupEventListeners() {
         successWhatsappBtn.addEventListener('click', () => {
             const encoded = encodeURIComponent(pendingWhatsappMessage);
             window.openWhatsapp(pendingWhatsappNumber, decodeURIComponent(encoded));
-            
+
             // Cerrar modal y refrescar para limpiar estado
             successModal.style.display = 'none';
             setTimeout(() => window.location.reload(), 1000);
@@ -1132,7 +1133,7 @@ function setupEventListeners() {
         changeClientPinBtn.addEventListener('click', () => {
             const currentPin = prompt('Por seguridad, ingresa tu PIN ACTUAL (4 dígitos):');
             if (currentPin === null) return;
-            
+
             if (currentPin !== windowTempClientPin) {
                 return alert('❌ El PIN actual ingresado no coincide.');
             }
@@ -1379,11 +1380,11 @@ function setupEventListeners() {
 
     // Checkout
     checkoutBtn.addEventListener('click', () => {
-            const policyCheck = document.getElementById('accept-billing-policy');
-            if (policyCheck && !policyCheck.checked) {
-                alert('Debe aceptar la Política de Fechas de Corte Fijas para continuar con su pedido.');
-                return;
-            }
+        const policyCheck = document.getElementById('accept-billing-policy');
+        if (policyCheck && !policyCheck.checked) {
+            alert('Debe aceptar la Política de Fechas de Corte Fijas para continuar con su pedido.');
+            return;
+        }
 
         if (cart.length === 0) return alert('Tu carrito está vacío');
 
@@ -1488,146 +1489,146 @@ function setupEventListeners() {
             let fTotal = isNaN(total) ? 0 : total;
             message += `\n💰 *Total a pagar:* $${fTotal.toLocaleString()}\n\n`;
         }
-            if (storeConfig.incentiveEnabled) {
-                console.log("[INCENTIVE] Logic starting... Enabled:", storeConfig.incentiveEnabled);
-                stats.processedCart.forEach(item => {
-                    const prodCat = (item.category || '').toLowerCase().trim();
-                    const cleanCat = prodCat.replace(/[\s\-_]/g, '');
-                    const prodMarca = ((item.brand || '') + ' ' + (item.name || '')).toLowerCase().replace(/[\s\-_]/g, '');
+        if (storeConfig.incentiveEnabled) {
+            console.log("[INCENTIVE] Logic starting... Enabled:", storeConfig.incentiveEnabled);
+            stats.processedCart.forEach(item => {
+                const prodCat = (item.category || '').toLowerCase().trim();
+                const cleanCat = prodCat.replace(/[\s\-_]/g, '');
+                const prodMarca = ((item.brand || '') + ' ' + (item.name || '')).toLowerCase().replace(/[\s\-_]/g, '');
 
-                    console.log("[INCENTIVE] Analyzing Item:", { name: item.name, brand: item.brand, prodCat, cleanCat, prodMarca });
-                    
-                    if (cleanCat.includes('individual') || cleanCat.includes('ventasextras')) {
-                        let b = 0; let bName = '';
-                        if (prodMarca.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; bName = 'Netflix Privada'; }
-                        else if (prodMarca.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; bName = 'Netflix'; }
-                        else if (prodMarca.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; bName = 'Disney+'; }
-                        else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; bName = 'HBO Max'; }
-                        else if (prodMarca.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; bName = 'Prime Video'; }
-                        else if (prodMarca.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; bName = 'Paramount+'; }
-                        else if (prodMarca.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; bName = 'Vix'; }
-                        else if (prodMarca.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; bName = 'IPTV'; }
-                        else if (prodMarca.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; bName = 'Crunchyroll'; }
-                        else if (prodMarca.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; bName = 'Apple TV'; }
+                console.log("[INCENTIVE] Analyzing Item:", { name: item.name, brand: item.brand, prodCat, cleanCat, prodMarca });
 
-                        if (b > 0) {
-                            incentiveEarned += b;
-                            incentiveDetails.push(`${bName} (+$${b})`);
-                            console.log(`[INCENTIVE] MATCH! Brand Bonus: ${b} (${bName})`);
-                        }
+                if (cleanCat.includes('individual') || cleanCat.includes('ventasextras')) {
+                    let b = 0; let bName = '';
+                    if (prodMarca.includes('privada')) { b = parseInt(storeConfig.incentiveNetflixPrivada) || 0; bName = 'Netflix Privada'; }
+                    else if (prodMarca.includes('netflix')) { b = parseInt(storeConfig.incentiveNetflix) || 0; bName = 'Netflix'; }
+                    else if (prodMarca.includes('disney')) { b = parseInt(storeConfig.incentiveDisney) || 0; bName = 'Disney+'; }
+                    else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { b = parseInt(storeConfig.incentiveMax) || 0; bName = 'HBO Max'; }
+                    else if (prodMarca.includes('prime')) { b = parseInt(storeConfig.incentivePrime) || 0; bName = 'Prime Video'; }
+                    else if (prodMarca.includes('paramount')) { b = parseInt(storeConfig.incentiveParamount) || 0; bName = 'Paramount+'; }
+                    else if (prodMarca.includes('vix')) { b = parseInt(storeConfig.incentiveVix) || 0; bName = 'Vix'; }
+                    else if (prodMarca.includes('iptv')) { b = parseInt(storeConfig.incentiveIptv) || 0; bName = 'IPTV'; }
+                    else if (prodMarca.includes('crunchyroll')) { b = parseInt(storeConfig.incentiveCrunchyroll) || 0; bName = 'Crunchyroll'; }
+                    else if (prodMarca.includes('apple')) { b = parseInt(storeConfig.incentiveApple) || 0; bName = 'Apple TV'; }
+
+                    if (b > 0) {
+                        incentiveEarned += b;
+                        incentiveDetails.push(`${bName} (+$${b})`);
+                        console.log(`[INCENTIVE] MATCH! Brand Bonus: ${b} (${bName})`);
                     }
-                    else if (cleanCat.includes('combo')) {
-                        let b = 0; let bName = '';
-                        const combinedMatch = (cleanCat + prodMarca);
-                        if (combinedMatch.includes('combo2') || combinedMatch.includes('combos2')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
-                        else if (combinedMatch.includes('combo3') || combinedMatch.includes('combos3')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
-                        else if (combinedMatch.includes('combo4') || combinedMatch.includes('combos4')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
-                        else if (combinedMatch.includes('combo5') || combinedMatch.includes('combos5')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
-                        else {
-                            if (prodMarca.includes('2pantalla')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
-                            else if (prodMarca.includes('3pantalla')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
-                            else if (prodMarca.includes('4pantalla')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
-                            else if (prodMarca.includes('5pantalla')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
-                        }
-                        
-                        if (b > 0) {
-                            incentiveEarned += b;
-                            incentiveDetails.push(`${bName} (+$${b})`);
-                            console.log(`[INCENTIVE] MATCH! Combo Bonus: ${b} (${bName})`);
-                        }
-                    }
-                    else if (cleanCat.includes('promocion') || cleanCat.includes('promo')) { 
-                        let b = 0; let bName = '';
-                        if (cleanCat.includes('finde')) { b = parseInt(storeConfig.incentiveFinde) || 0; bName = 'Promo Finde'; }
-                        else { b = parseInt(storeConfig.incentiveMes) || 0; bName = 'Promo Mes'; }
-                        
-                        if (b > 0) {
-                            incentiveEarned += b;
-                            incentiveDetails.push(`${bName} (+$${b})`);
-                            console.log(`[INCENTIVE] MATCH! Promo Bonus: ${b} (${bName})`);
-                        }
-                    }
-                });
-                console.log("[INCENTIVE] Total:", incentiveEarned, "Details:", incentiveDetails);
-            }
-            console.log("Total incentive earned:", incentiveEarned, "Details:", incentiveDetails);
-            
-            let successIncentive = 0;
-            let successDetailsStr = "";
-            
-            if (isSellerMode && incentiveEarned > 0) {
-                successIncentive = incentiveEarned;
-                successDetailsStr = incentiveDetails.join(', ');
-            } 
-
-
-            const saleData = {
-                clientName: cName || '',
-                clientCity: cCity || '',
-                clientPhone: cPhone || '',
-                date: Date.now(),
-                expirationDate: window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now()).getTime(),
-                fechaCompraOriginal: Date.now(), // Cap Month
-                items: stats.processedCart.map(item => ({ 
-                    id: item.id || Date.now(), 
-                    name: item.customName ? `${item.name} (${item.customName})` : (item.name || 'Pantalla'), 
-                    customName: item.customName || null,
-                    category: item.category || 'individual', 
-                    finalPrice: isNaN(item.finalPrice) ? 0 : item.finalPrice 
-                })),
-                total: isNaN(total) ? 0 : total,
-                sellerName: (isSellerMode ? currentSellerName : 'Página Web Oficial') || 'Página Web Oficial',
-                incentiveEarned: isNaN(incentiveEarned) ? 0 : incentiveEarned,
-                incentiveDetails: incentiveDetails || [],
-                isPaid: false
-            };
-
-            // Public Seller Checkout Forwarding
-            let finalSellerDestination = isSellerMode ? currentSellerName : 'Página Web Oficial';
-            if (publicSellerRef) finalSellerDestination = publicSellerRef;
-
-            if (extrasOriginalOwner) {
-                finalSellerDestination = extrasOriginalOwner;
-            }
-
-            // Always save to client historical indexed by their clean phone
-            const cleanPhoneTracking = cPhone ? cPhone.replace(/\D/g, '') : '';
-            
-            if (window.renewalSaleId) {
-                // UPDATE EL MISMO REGISTRO, NO GENERAR UNO NUEVO
-                if (window.renewalSource === 'seller') {
-                    if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
-                        db.ref(`sellerSales/${finalSellerDestination}/${window.renewalSaleId}`).set(saleData);
-                    }
-                    if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
-                        db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
-                    }
-                } else if (window.renewalSource === 'client') {
-                    if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
-                        db.ref(`clientSales/${cleanPhoneTracking}/${window.renewalSaleId}`).set(saleData);
-                    }
-                    // Si el cliente renueva, para que el admin lo vea en su lista, usualmente lo notifica por whatsapp. 
-                    // No crearemos un registro nuevo global para evitar el duplicado pedido expresamente.
                 }
+                else if (cleanCat.includes('combo')) {
+                    let b = 0; let bName = '';
+                    const combinedMatch = (cleanCat + prodMarca);
+                    if (combinedMatch.includes('combo2') || combinedMatch.includes('combos2')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
+                    else if (combinedMatch.includes('combo3') || combinedMatch.includes('combos3')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
+                    else if (combinedMatch.includes('combo4') || combinedMatch.includes('combos4')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
+                    else if (combinedMatch.includes('combo5') || combinedMatch.includes('combos5')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
+                    else {
+                        if (prodMarca.includes('2pantalla')) { b = parseInt(storeConfig.incentiveCombo2) || 0; bName = 'Combo 2 P.'; }
+                        else if (prodMarca.includes('3pantalla')) { b = parseInt(storeConfig.incentiveCombo3) || 0; bName = 'Combo 3 P.'; }
+                        else if (prodMarca.includes('4pantalla')) { b = parseInt(storeConfig.incentiveCombo4) || 0; bName = 'Combo 4 P.'; }
+                        else if (prodMarca.includes('5pantalla')) { b = parseInt(storeConfig.incentiveCombo5) || 0; bName = 'Combo 5+ P.'; }
+                    }
 
-                window.renewalSaleId = null;
-                window.renewalSource = null;
-            } else {
-                // NUEVA VENTA
-                // For admin or direct purchases when no seller is attached, track under 'Página Web Oficial'
-                if (!isSellerMode && !publicSellerRef && !extrasOriginalOwner) {
-                    db.ref(`sellerSales/Página Web Oficial`).push(saleData);
-                } else if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
-                    db.ref(`sellerSales/${finalSellerDestination}`).push(saleData);
+                    if (b > 0) {
+                        incentiveEarned += b;
+                        incentiveDetails.push(`${bName} (+$${b})`);
+                        console.log(`[INCENTIVE] MATCH! Combo Bonus: ${b} (${bName})`);
+                    }
                 }
+                else if (cleanCat.includes('promocion') || cleanCat.includes('promo')) {
+                    let b = 0; let bName = '';
+                    if (cleanCat.includes('finde')) { b = parseInt(storeConfig.incentiveFinde) || 0; bName = 'Promo Finde'; }
+                    else { b = parseInt(storeConfig.incentiveMes) || 0; bName = 'Promo Mes'; }
 
+                    if (b > 0) {
+                        incentiveEarned += b;
+                        incentiveDetails.push(`${bName} (+$${b})`);
+                        console.log(`[INCENTIVE] MATCH! Promo Bonus: ${b} (${bName})`);
+                    }
+                }
+            });
+            console.log("[INCENTIVE] Total:", incentiveEarned, "Details:", incentiveDetails);
+        }
+        console.log("Total incentive earned:", incentiveEarned, "Details:", incentiveDetails);
+
+        let successIncentive = 0;
+        let successDetailsStr = "";
+
+        if (isSellerMode && incentiveEarned > 0) {
+            successIncentive = incentiveEarned;
+            successDetailsStr = incentiveDetails.join(', ');
+        }
+
+
+        const saleData = {
+            clientName: cName || '',
+            clientCity: cCity || '',
+            clientPhone: cPhone || '',
+            date: Date.now(),
+            expirationDate: window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now()).getTime(),
+            fechaCompraOriginal: Date.now(), // Cap Month
+            items: stats.processedCart.map(item => ({
+                id: item.id || Date.now(),
+                name: item.customName ? `${item.name} (${item.customName})` : (item.name || 'Pantalla'),
+                customName: item.customName || null,
+                category: item.category || 'individual',
+                finalPrice: isNaN(item.finalPrice) ? 0 : item.finalPrice
+            })),
+            total: isNaN(total) ? 0 : total,
+            sellerName: (isSellerMode ? currentSellerName : 'Página Web Oficial') || 'Página Web Oficial',
+            incentiveEarned: isNaN(incentiveEarned) ? 0 : incentiveEarned,
+            incentiveDetails: incentiveDetails || [],
+            isPaid: false
+        };
+
+        // Public Seller Checkout Forwarding
+        let finalSellerDestination = isSellerMode ? currentSellerName : 'Página Web Oficial';
+        if (publicSellerRef) finalSellerDestination = publicSellerRef;
+
+        if (extrasOriginalOwner) {
+            finalSellerDestination = extrasOriginalOwner;
+        }
+
+        // Always save to client historical indexed by their clean phone
+        const cleanPhoneTracking = cPhone ? cPhone.replace(/\D/g, '') : '';
+
+        if (window.renewalSaleId) {
+            // UPDATE EL MISMO REGISTRO, NO GENERAR UNO NUEVO
+            if (window.renewalSource === 'seller') {
+                if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
+                    db.ref(`sellerSales/${finalSellerDestination}/${window.renewalSaleId}`).set(saleData);
+                }
                 if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
                     db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
-                    db.ref(`clientProfiles/${cleanPhoneTracking}`).update({
-                        name: cName || 'Cliente'
-                    });
                 }
+            } else if (window.renewalSource === 'client') {
+                if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
+                    db.ref(`clientSales/${cleanPhoneTracking}/${window.renewalSaleId}`).set(saleData);
+                }
+                // Si el cliente renueva, para que el admin lo vea en su lista, usualmente lo notifica por whatsapp. 
+                // No crearemos un registro nuevo global para evitar el duplicado pedido expresamente.
             }
+
+            window.renewalSaleId = null;
+            window.renewalSource = null;
+        } else {
+            // NUEVA VENTA
+            // For admin or direct purchases when no seller is attached, track under 'Página Web Oficial'
+            if (!isSellerMode && !publicSellerRef && !extrasOriginalOwner) {
+                db.ref(`sellerSales/Página Web Oficial`).push(saleData);
+            } else if (isSellerMode || publicSellerRef || extrasOriginalOwner) {
+                db.ref(`sellerSales/${finalSellerDestination}`).push(saleData);
+            }
+
+            if (cleanPhoneTracking && cleanPhoneTracking.length > 5) {
+                db.ref(`clientSales/${cleanPhoneTracking}`).push(saleData);
+                db.ref(`clientProfiles/${cleanPhoneTracking}`).update({
+                    name: cName || 'Cliente'
+                });
+            }
+        }
         // Fin de guardado en DB (Detalle 1: Corregido para que guarde siempre)
 
         let updatedProducts = false;
@@ -1829,7 +1830,7 @@ function renderSellerDashboard() {
         if (expiredSales.length > 0) {
             const folderWrapper = document.createElement('details');
             folderWrapper.style.cssText = 'margin-top: 1.5rem; background: rgba(255, 77, 77, 0.05); border: 1px solid rgba(255, 77, 77, 0.1); border-radius: 12px; padding: 0.5rem;';
-            
+
             const summary = document.createElement('summary');
             summary.style.cssText = 'color: #ff4d4d; font-weight: bold; cursor: pointer; padding: 0.5rem; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between;';
             summary.innerHTML = `
@@ -1977,7 +1978,7 @@ window.sendReminderFromDash = async function (saleId, cName, cPhone, itemsEncode
             if (snap.exists() && snap.val()) {
                 clientPin = snap.val();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
     msg += `\n\nCelular: ${cPhone || 'N/A'} y Pin: ${clientPin}`;
 
@@ -1996,7 +1997,7 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
     // ✅ CAP MONTH FIX v2: Lee fechaCompraOriginal real del registro en Firebase
     // para calcular el próximo vencimiento preservando el día original de compra
     // (ej: compró el 5 → siempre vence el 5 del siguiente mes, no +30 días fijos).
-    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
     const _buildAndSend = (monthText) => {
         let msg = '';
@@ -2030,7 +2031,7 @@ window.sendRenovadaFromDash = function (clientNameEnc, clientPhone, itemsEncoded
                             }
                         }
                     }
-                } catch(e) { console.warn('[CAP MONTH] Error leyendo fechaCompraOriginal:', e); }
+                } catch (e) { console.warn('[CAP MONTH] Error leyendo fechaCompraOriginal:', e); }
             }
             // Calcular próximo vencimiento desde la fecha exp actual pero anclado al día original
             const d = window.DPCBillingEngine.calcularProximoVencimiento(fco, parseInt(expirationDateTS));
@@ -2046,15 +2047,15 @@ function sendCRMMessageFromSale(saleId, clientName, clientPhone, itemsEncoded) {
     const itemsStr = decodeURIComponent(itemsEncoded);
     let msg = storeConfig.msgTemplate1 || '';
     msg = msg.replace(/{nombre}/g, clientName)
-             .replace(/{pantalla}/g, itemsStr)
-             .replace(/{inicio}/g, new Date().toLocaleDateString())
-             .replace(/{fin}/g, (() => {
-                 // ✅ CAP MONTH FIX: fecha fin real (mismo día del mes siguiente) no +30 días fijos
-                 const d = window.DPCBillingEngine
-                     ? window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now())
-                     : new Date(Date.now() + 30*24*60*60*1000);
-                 return d.toLocaleDateString('es-CO');
-             })());
+        .replace(/{pantalla}/g, itemsStr)
+        .replace(/{inicio}/g, new Date().toLocaleDateString())
+        .replace(/{fin}/g, (() => {
+            // ✅ CAP MONTH FIX: fecha fin real (mismo día del mes siguiente) no +30 días fijos
+            const d = window.DPCBillingEngine
+                ? window.DPCBillingEngine.calcularProximoVencimiento(Date.now(), Date.now())
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            return d.toLocaleDateString('es-CO');
+        })());
     const sendOnly = storeConfig.sendOnlyStep1 === true || storeConfig.sendOnlyStep1 === 'true';
     if (!sendOnly) {
         const tmpl2 = storeConfig.msgTemplate2 || '';
@@ -2073,12 +2074,12 @@ function sendCRMMessageFromSale(saleId, clientName, clientPhone, itemsEncoded) {
 
 window.editClientFromDash = function (saleId, cName, cPhone, cCity) {
     const newName = prompt('Editar Nombre del Cliente:', cName);
-    if(newName === null) return;
+    if (newName === null) return;
     const newPhone = prompt('Editar Celular del Cliente:', cPhone);
-    if(newPhone === null) return;
+    if (newPhone === null) return;
     const newCity = prompt('Editar Ciudad del Cliente:', cCity);
-    if(newCity === null) return;
-    
+    if (newCity === null) return;
+
     // Update in Firebase sellerSales (Specific Sale)
     let updates = {};
     updates[`sellerSales/${currentSellerName}/${saleId}/clientName`] = newName;
@@ -2109,7 +2110,7 @@ window.editClientFromDash = function (saleId, cName, cPhone, cCity) {
                 }
                 alert('Cliente editado correctamente.');
                 window.location.reload();
-            } catch(e) { 
+            } catch (e) {
                 console.error(e);
                 alert('Editado en dashboard, pero hubo un error sincronizando historial.');
                 window.location.reload();
@@ -2134,7 +2135,7 @@ function renderClientDashboard() {
         }
 
         const salesArray = Object.keys(sales).map(k => ({ id: k, ...sales[k] })).sort((a, b) => b.date - a.date);
-        
+
         const activeSales = [];
         const expiredSales = [];
 
@@ -2160,7 +2161,7 @@ function renderClientDashboard() {
         if (expiredSales.length > 0) {
             const folderWrapper = document.createElement('details');
             folderWrapper.style.cssText = 'margin-top: 1.5rem; background: rgba(255, 77, 77, 0.05); border: 1px solid rgba(255, 77, 77, 0.1); border-radius: 12px; padding: 0.5rem;';
-            
+
             const summary = document.createElement('summary');
             summary.style.cssText = 'color: #ff4d4d; font-weight: bold; cursor: pointer; padding: 0.5rem; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between;';
             summary.innerHTML = `
@@ -2197,7 +2198,7 @@ function renderSaleItem(sale, isExpired, container) {
     div.style.opacity = isExpired ? '0.7' : '1';
 
     const itemsStr = sale.items ? sale.items.map(i => i.name).join(', ') : 'Pantallas';
-    
+
     const sellerNetworksHtmlId = 'seller-networks-' + Math.random().toString(36).substr(2, 9);
     let sellerAttribution = '';
 
@@ -2229,23 +2230,23 @@ function renderSaleItem(sale, isExpired, container) {
         <div style="display:flex; flex-direction:column; gap: 0.5rem;">
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                 ${(sale.items || []).map(item => {
-                    const platformNameRaw = item.name.split(' ')[0].toLowerCase().replace(/\W/g, '');
-                    const crmPlatforms = storeConfig ? (storeConfig.crmPlatforms || {}) : {};
-                    const matchingConfig = Object.values(crmPlatforms).find(conf => 
-                        (conf.name && platformNameRaw.includes(conf.name.toLowerCase().replace(/\W/g, ''))) ||
-                        (conf.description && platformNameRaw.includes(conf.description.toLowerCase().replace(/\W/g, '')))
-                    );
-                    
-                    if (matchingConfig && matchingConfig.manualUrl) {
-                        return `
+        const platformNameRaw = item.name.split(' ')[0].toLowerCase().replace(/\W/g, '');
+        const crmPlatforms = storeConfig ? (storeConfig.crmPlatforms || {}) : {};
+        const matchingConfig = Object.values(crmPlatforms).find(conf =>
+            (conf.name && platformNameRaw.includes(conf.name.toLowerCase().replace(/\W/g, ''))) ||
+            (conf.description && platformNameRaw.includes(conf.description.toLowerCase().replace(/\W/g, '')))
+        );
+
+        if (matchingConfig && matchingConfig.manualUrl) {
+            return `
                         <button onclick="window.open('${matchingConfig.manualUrl}', '_blank')" 
                             style="flex:1; min-width:120px; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #2ab7ca; background: rgba(42, 183, 202, 0.1); color:#2ab7ca; font-size:0.8rem;">
                             <i class="fa-solid fa-eye"></i> Guía ${item.name.split(' ')[0]}
                         </button>
                         `;
-                    }
-                    return '';
-                }).join('')}
+        }
+        return '';
+    }).join('')}
             </div>
             ${daysLeft <= 3 ? `
             <button onclick="renewFromDash('${encodeURIComponent(sale.clientName)}', '${sale.clientPhone || clientPhoneLoggedIn}', '${sale.clientCity || ''}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${sale.id}', 'client')" 
@@ -2261,16 +2262,16 @@ function renderSaleItem(sale, isExpired, container) {
         db.ref(`sellerStores/${sale.sellerName}`).once('value').then(storeSnap => {
             const sData = storeSnap.val();
             const netDiv = document.getElementById(sellerNetworksHtmlId);
-            if(netDiv) {
-                if(sData) {
+            if (netDiv) {
+                if (sData) {
                     let netsHtml = '';
-                    if(sData.whatsapp) netsHtml += `<a href="https://wa.me/${formatWaPhone(sData.whatsapp)}" target="_blank" style="color:#25D366; transition:transform 0.2s;"><i class="fa-brands fa-whatsapp"></i></a>`;
-                    if(sData.facebookUrl) netsHtml += `<a href="${sData.facebookUrl}" target="_blank" style="color:#1877F2; transition:transform 0.2s;"><i class="fa-brands fa-facebook"></i></a>`;
-                    if(sData.instagramUrl) netsHtml += `<a href="${sData.instagramUrl}" target="_blank" style="color:#E1306C; transition:transform 0.2s;"><i class="fa-brands fa-instagram"></i></a>`;
-                    if(sData.tiktokUrl) netsHtml += `<a href="${sData.tiktokUrl}" target="_blank" style="color:#ffffff; transition:transform 0.2s;"><i class="fa-brands fa-tiktok"></i></a>`;
-                    if(sData.kwaiUrl) netsHtml += `<a href="${sData.kwaiUrl}" target="_blank" style="color:#FF5E00; transition:transform 0.2s;"><i class="fa-solid fa-video"></i></a>`;
-                    if(sData.youtubeUrl) netsHtml += `<a href="${sData.youtubeUrl}" target="_blank" style="color:#FF0000; transition:transform 0.2s;"><i class="fa-brands fa-youtube"></i></a>`;
-                    
+                    if (sData.whatsapp) netsHtml += `<a href="https://wa.me/${formatWaPhone(sData.whatsapp)}" target="_blank" style="color:#25D366; transition:transform 0.2s;"><i class="fa-brands fa-whatsapp"></i></a>`;
+                    if (sData.facebookUrl) netsHtml += `<a href="${sData.facebookUrl}" target="_blank" style="color:#1877F2; transition:transform 0.2s;"><i class="fa-brands fa-facebook"></i></a>`;
+                    if (sData.instagramUrl) netsHtml += `<a href="${sData.instagramUrl}" target="_blank" style="color:#E1306C; transition:transform 0.2s;"><i class="fa-brands fa-instagram"></i></a>`;
+                    if (sData.tiktokUrl) netsHtml += `<a href="${sData.tiktokUrl}" target="_blank" style="color:#ffffff; transition:transform 0.2s;"><i class="fa-brands fa-tiktok"></i></a>`;
+                    if (sData.kwaiUrl) netsHtml += `<a href="${sData.kwaiUrl}" target="_blank" style="color:#FF5E00; transition:transform 0.2s;"><i class="fa-solid fa-video"></i></a>`;
+                    if (sData.youtubeUrl) netsHtml += `<a href="${sData.youtubeUrl}" target="_blank" style="color:#FF0000; transition:transform 0.2s;"><i class="fa-brands fa-youtube"></i></a>`;
+
                     netDiv.innerHTML = netsHtml || `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
                 } else {
                     netDiv.innerHTML = `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
@@ -2278,16 +2279,16 @@ function renderSaleItem(sale, isExpired, container) {
             }
         }).catch(() => {
             const netDiv = document.getElementById(sellerNetworksHtmlId);
-            if(netDiv) netDiv.innerHTML = `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
+            if (netDiv) netDiv.innerHTML = `<span style="font-size:0.75rem; color:#a0a0a0;">Sin redes configuradas</span>`;
         });
     }
 }
 // --- CRM / RESPUESTAS FUNCTIONS ---
 let _crmTargetClient = { name: '', phone: '', start: '', end: '', pin: '', fullItems: [], sellerName: '' };
 
-window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '', fullItemsJson = '[]', sellerNameEnc = '') {
-    _crmTargetClient = { 
-        name: decodeURIComponent(nameEnc), 
+window.openCRMPlatformSelector = function (nameEnc, phone, start, end, pin, itemsEnc, email = '', pass = '', profile = '', fullItemsJson = '[]', sellerNameEnc = '') {
+    _crmTargetClient = {
+        name: decodeURIComponent(nameEnc),
         phone: phone,
         start: start,
         end: end,
@@ -2308,11 +2309,11 @@ window.openCRMPlatformSelector = function(nameEnc, phone, start, end, pin, items
     modal.style.display = 'flex';
 }
 
-window.filterCRMPlatforms = function(val) {
+window.filterCRMPlatforms = function (val) {
     renderCRMPlatformsList(val.toLowerCase());
 }
 
-window.renderCRMPlatformsList = function(filter) {
+window.renderCRMPlatformsList = function (filter) {
     const list = document.getElementById('crm-platforms-selection-list');
     if (!list) return;
 
@@ -2321,10 +2322,10 @@ window.renderCRMPlatformsList = function(filter) {
     const platforms = storeConfig.crmPlatforms || {};
     let allKeys = Object.keys(platforms);
     if (allKeys.length === 0) allKeys = Object.keys(dict);
-    
+
     const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
     const keys = allKeys.filter(k => k.toLowerCase().includes(filter));
-    
+
     const recommended = [];
     const others = [];
 
@@ -2339,7 +2340,7 @@ window.renderCRMPlatformsList = function(filter) {
         title.innerHTML = '✨ RECOMENDADOS:';
         list.appendChild(title);
         recommended.forEach(k => list.appendChild(createPlatformButton(k, true)));
-        
+
         const titleRest = document.createElement('p');
         titleRest.style = 'grid-column: 1 / -1; color: #777; font-weight: bold; margin: 10px 0 5px 0; font-size: 0.8rem;';
         titleRest.innerHTML = 'OTRAS PLATAFORMAS:';
@@ -2353,7 +2354,7 @@ function createPlatformButton(k, isRecommended) {
     const btn = document.createElement('button');
     btn.className = 'tab-btn'; // use existing styles
     btn.style = `margin:0; background:${isRecommended ? 'rgba(155, 89, 182, 0.2)' : 'var(--glass)'}; border: 1px solid ${isRecommended ? '#9b59b6' : 'var(--glass-border)'}; font-size:0.85rem; padding:12px 5px; text-align:center; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;`;
-    
+
     let displayName = k;
     let displayVariant = '';
     if (k.includes(' | ')) {
@@ -2367,7 +2368,7 @@ function createPlatformButton(k, isRecommended) {
         <span style="word-break: break-word; font-weight:bold;">${displayName}</span>
         ${displayVariant ? `<span style="font-size:0.65rem; color:#2ab7ca;">${displayVariant}</span>` : ''}
     `;
-    
+
     btn.onclick = () => {
         sendCRMStep1Message(k);
         btn.style.opacity = '0.5';
@@ -2376,7 +2377,7 @@ function createPlatformButton(k, isRecommended) {
     return btn;
 }
 
-window.closeCRMSelector = function() {
+window.closeCRMSelector = function () {
     const m = document.getElementById('crm-selector-modal');
     if (m) m.style.display = 'none';
 }
@@ -2395,18 +2396,18 @@ function replaceCRMVars(text, data) {
         .replace(/{perfil}/ig, data.profile || 'N/A');
 }
 
-window.sendCRMStep1Message = function(platformName) {
+window.sendCRMStep1Message = function (platformName) {
     const { name, phone, start, end, pin, sellerName } = _crmTargetClient;
     const dict = storeConfig.crmGalleryDict || {};
     const items = dict[platformName] || [];
 
     let targetEmail = _crmTargetClient.email && _crmTargetClient.email.trim() ? _crmTargetClient.email : 'N/A';
-    
+
     const fullItems = _crmTargetClient.fullItems || [];
     if (fullItems.length > 0) {
         fullItems.forEach(it => {
             if (it.specificEmails && Array.isArray(it.specificEmails)) {
-                const match = it.specificEmails.find(se => 
+                const match = it.specificEmails.find(se =>
                     se.platform && (se.platform.toLowerCase() === platformName.toLowerCase() || platformName.toLowerCase().includes(se.platform.toLowerCase()))
                 );
                 if (match && match.email && match.email.trim()) targetEmail = match.email;
@@ -2417,13 +2418,13 @@ window.sendCRMStep1Message = function(platformName) {
     const dataVars = { name, platformName, start, end, pin, email: targetEmail, pass: _crmTargetClient.pass, profile: _crmTargetClient.profile };
     let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
     let mainText = replaceCRMVars(template, dataVars);
-    
+
     let extraText = "";
     if (items.length > 0) {
         extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
         items.forEach((item, index) => {
             let itemText = replaceCRMVars(item.text, dataVars);
-            if (itemText) extraText += `\n\n📌 *Paso ${index+1}:* ${itemText}`;
+            if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
             if (item.photo && !storeConfig.useLocalRobotCRM) {
                 const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
                 urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
@@ -2438,11 +2439,11 @@ window.sendCRMStep1Message = function(platformName) {
 }
 
 
-window.openWhatsapp = function(phone, text) {
-            let encodedText = encodeURIComponent(text);
-            let url = (phone && phone !== 'null' && phone !== 'undefined') ? 'https://wa.me/' + phone + '?text=' + encodedText : 'https://wa.me/?text=' + encodedText;
-            window.open(url, '_blank');
-        };
+window.openWhatsapp = function (phone, text) {
+    let encodedText = encodeURIComponent(text);
+    let url = (phone && phone !== 'null' && phone !== 'undefined') ? 'https://wa.me/' + phone + '?text=' + encodedText : 'https://wa.me/?text=' + encodedText;
+    window.open(url, '_blank');
+};
 
 // ============================================================
 // Firebase Initialization - OPTIMIZADO: Carga solo datos necesarios
@@ -2484,14 +2485,14 @@ const loadInitialData = () => {
 
         if (storeConfig.pollaEnabled === false) {
             const pollaTab = document.querySelector('.tab-btn[data-tab="polla"]');
-            if(pollaTab) pollaTab.style.display = 'none';
+            if (pollaTab) pollaTab.style.display = 'none';
             const openPollaBtn = document.getElementById('open-polla-btn');
-            if(openPollaBtn) openPollaBtn.style.display = 'none';
+            if (openPollaBtn) openPollaBtn.style.display = 'none';
         } else {
             const pollaTab = document.querySelector('.tab-btn[data-tab="polla"]');
-            if(pollaTab) pollaTab.style.display = '';
+            if (pollaTab) pollaTab.style.display = '';
             const openPollaBtn = document.getElementById('open-polla-btn');
-            if(openPollaBtn) openPollaBtn.style.display = '';
+            if (openPollaBtn) openPollaBtn.style.display = '';
         }
 
         if (publicSellerRef) {
