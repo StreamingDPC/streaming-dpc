@@ -192,6 +192,11 @@ function init() {
     renderProducts('individual');
     setupEventListeners();
     setupConfigUI();
+    // Si el cliente ya tiene sesión persistida, mostrar botón "Obtener Código"
+    if (clientPhoneLoggedIn) {
+        const codeNavBtn = document.getElementById('open-code-btn');
+        if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
+    }
 }
 
 function setupConfigUI() {
@@ -1122,6 +1127,9 @@ function setupEventListeners() {
             // Success Access
             localStorage.setItem('clientPhone', windowTempClientPhone);
             clientPhoneLoggedIn = windowTempClientPhone;
+            // Mostrar botón "Obtener Código" ahora que hay sesión
+            const codeNavBtn = document.getElementById('open-code-btn');
+            if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
             clientLoginModal.style.display = 'none';
             renderClientDashboard();
             clientDashboardModal.style.display = 'block';
@@ -1158,6 +1166,9 @@ function setupEventListeners() {
         logoutClientBtn.addEventListener('click', () => {
             localStorage.removeItem('clientPhone');
             clientPhoneLoggedIn = '';
+            // Ocultar botón "Obtener Código" al cerrar sesión
+            const codeNavBtn = document.getElementById('open-code-btn');
+            if (codeNavBtn) codeNavBtn.style.display = 'none';
             clientDashboardModal.style.display = 'none';
             alert('Sesión cerrada. Vuelve pronto.');
         });
