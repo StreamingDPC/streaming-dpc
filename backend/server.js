@@ -84,14 +84,15 @@ app.post('/api/get-code', async (req, res) => {
                 connection = await imaps.connect(imapConfig);
                 const box = await connection.openBox('INBOX');
 
-                // OPTIMIZACIÓN: En lugar de buscar en todo el buzón, pedimos directamente los últimos 15 correos
-                const total = box.messages.total;
-                if (total === 0) return null;
+                // OPTIMIZACIÓN: Buscamos correos recientes usando search en lugar del fetch crudo que fallaba.
+                // Como IMAP-simple no tiene fetch() por secuencias expuesto fácilmente, buscamos ALL y cortamos los últimos 15.
+                let searchCriteria = ['ALL'];
+                let allMessages = await connection.search(searchCriteria, { bodies: ['HEADER', 'TEXT'], markSeen: false });
 
-                const range = `${Math.max(1, total - 15)}:*`;
-                let messages = await connection.fetch(range, { bodies: ['HEADER', 'TEXT'], markSeen: false });
+                // Extraer solo los últimos 15 para procesar rapidísimo
+                let messages = allMessages.slice(-15);
 
-                console.log(`[DEBUG] Realsando ${messages.length} últimos correos en ${account.email}`);
+                accountLogs.scanned = 0; // Iniciar contador
 
                 for (let i = messages.length - 1; i >= 0; i--) {
                     const item = messages[i];
