@@ -136,21 +136,30 @@ app.post('/api/get-code', async (req, res) => {
                             const codeMatch = textContent.match(/\b\d{6}\b/);
                             if (codeMatch) return codeMatch[0];
                         } else if (platformLower.includes('logincode')) {
-                            // Busca el texto "ngresa este código para iniciar sesión" (cubre "Ingresa" o "ingresa")
+                            // Busca el texto de los correos de inicio de sesión en el texto, HTML o ASUNTO
                             const loginKeywords = [
                                 'ngresa este código para iniciar sesión',
                                 'ngresa este codigo para iniciar sesion',
+                                'tu código de inicio de sesión',
+                                'tu codigo de inicio de sesion',
+                                'código de inicio de sesión',
+                                'codigo de inicio de sesion',
                                 'enter this code to sign in',
                                 'sign-in code',
                                 'your sign in code',
-                                'código de inicio de sesión',
                                 'login code',
                                 'verification code'
                             ];
-                            const hasLoginText = loginKeywords.some(kw => textContent.includes(kw));
+                            const hasLoginText = loginKeywords.some(kw =>
+                                textContent.includes(kw) ||
+                                subject.includes(kw) ||
+                                htmlContent.toLowerCase().includes(kw)
+                            );
+
                             if (hasLoginText) {
-                                // Extraer código numérico de 4 a 8 dígitos que venga después del texto clave
-                                const codeMatch = textContent.match(/\b(\d{4,8})\b/);
+                                // Extraer código numérico de 4 a 8 dígitos aislandolo
+                                // A veces los códigos vienen sueltos o remarcados en negritas
+                                const codeMatch = textContent.match(/\b(\d{4,8})\b/) || htmlContent.match(/\b(\d{4,8})\b/);
                                 if (codeMatch) {
                                     console.log(`[DEBUG] Código de inicio de sesión encontrado: ${codeMatch[1]}`);
                                     return codeMatch[1];
