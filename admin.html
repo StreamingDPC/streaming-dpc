@@ -2040,24 +2040,7 @@
             window.location.href = 'login.html';
         }
 
-        function showSubConf(subTabId, btn) {
-            document.querySelectorAll('.sub-conf-content').forEach(el => el.style.display = 'none');
-            document.getElementById('sub-conf-' + subTabId).style.display = 'block';
-
-            document.querySelectorAll('.sub-conf-btn').forEach(b => {
-                b.style.background = 'var(--glass)';
-                b.style.color = 'var(--text-secondary)';
-            });
-            btn.style.background = 'white';
-            btn.style.color = 'black';
-
-            if (subTabId === 'total') {
-                loadMonthlySalesReport();
-            }
-            if (subTabId === 'emails') {
-                fetchEmailAccounts();
-            }
-        }
+        // Primera definición de showSubConf unificada con la segunda más abajo (ver línea ~2519)
 
         window.fetchEmailAccounts = function () {
             const list = document.getElementById('email-accounts-list');
@@ -2527,6 +2510,13 @@
             });
             btn.style.background = 'white';
             btn.style.color = 'black';
+
+            if (subId === 'total') {
+                loadMonthlySalesReport();
+            }
+            if (subId === 'emails') {
+                fetchEmailAccounts();
+            }
         }
 
         async function saveConfig() {
