@@ -1187,6 +1187,24 @@
                             <div id="reset-seller-result" style="margin-top:0.8rem; font-size:0.85rem; display:none;">
                             </div>
                         </div>
+
+                        <!-- MODO 3: BLOQUEO MASIVO PARA CLIENTES ANTIGUOS -->
+                        <div style="margin-top:1.5rem; padding-top:1.5rem; border-top:1px dashed rgba(231,76,60,0.4);">
+                            <p style="font-size:0.85rem; color:#e74c3c; margin-bottom:0.8rem; font-weight:bold;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> BLOQUEO DE SEGURIDAD (Clientes
+                                Antiguos)
+                            </p>
+                            <p style="font-size:0.8rem; color:#aaa; margin-bottom:1rem;">
+                                Si apenas vas a lanzar esta función y quieres que NADIE del historial pasado pueda
+                                usarla (para evitar abusos), da clic aquí para <strong>quemar preventivamente
+                                </strong>los intentos de todos tus clientes. Los <strong>clientes nuevos</strong>
+                                creados a partir de hoy SÍ nacerán con su intento disponible.
+                            </p>
+                            <button type="button" onclick="blockAllOldClients(this)"
+                                style="background:linear-gradient(135deg,#c0392b,#e74c3c); border:none; color:white; font-weight:bold; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem; width:100%; text-align:center; box-shadow: 0 4px 10px rgba(231,76,60,0.3);">
+                                <i class="fa-solid fa-fire"></i> QUEMAR INTENTOS DE TODOS LOS CLIENTES HISTÓRICOS
+                            </button>
+                        </div>
                     </div>
 
                     <h3>Mis Cuentas de Correo para Lectura de PIN</h3>
@@ -2383,6 +2401,43 @@
                 if (btns[idx]) btns[idx].disabled = true;
                 alert(`✅ ¡Listo! Nuevo intento [${platLabel}] habilitado para ${clientName} (${phone}).`);
             }
+        };
+
+        // =====================================================
+        // BLOQUEO MASIVO PARA CLIENTES ANTIGUOS
+        // =====================================================
+        window.blockAllOldClients = async function (btn) {
+            if (!confirm('⚠️ ¡ATENCIÓN!\n\n¿Estás seguro de que quieres BLOQUEAR / QUEMAR la oportunidad de pedir códigos para TODOS los clientes actualmente guardados en la base de datos?\n\nEsto dejará a todos los clientes actuales en CERO (sin intentos) para Netflix, Disney+, HBO Max y Prime Video.\n\nSolo clientes nuevos podrán pedir código, a menos que se lo habilites manualmente.')) return;
+            if (!confirm('Esta acción es IRREVERSIBLE. Se afectará a toda tu base de datos.\n¿Confirmar de todos modos?')) return;
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PROCESANDO (NO CIERRES)...';
+            btn.disabled = true;
+
+            try {
+                const snap = await db.ref('clientProfiles').once('value');
+                const profiles = snap.val() || {};
+
+                const updates = {};
+                Object.keys(profiles).forEach(phone => {
+                    updates[`${phone}/codeAttemptUsed`] = {
+                        netflix: true,
+                        disney: true,
+                        hbomax: true,
+                        prime: true
+                    };
+                });
+
+                await db.ref('clientProfiles').update(updates);
+
+                alert('✅ ÉXITO: Los intentos de TODOS los clientes antiguos han sido quemados/bloqueados.\nA partir de ahora, todo está en cero y solo los clientes nuevos nacerán con el intento disponible.');
+            } catch (e) {
+                console.error(e);
+                alert('❌ Error al quemar intentos: ' + e.message);
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         };
 
         window.exportEmailAccountsCSV = function () {
