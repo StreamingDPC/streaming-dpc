@@ -110,6 +110,15 @@ app.post('/api/get-code', async (req, res) => {
                     if (!all || !all.body) continue;
 
                     const parsed = await simpleParser(all.body);
+                    
+                    // Filtrar correos que tengan más de 15 minutos (15 * 60 * 1000 ms)
+                    const emailDate = parsed.date ? new Date(parsed.date).getTime() : 0;
+                    const fifteenMinsAgo = Date.now() - 15 * 60 * 1000;
+                    if (emailDate > 0 && emailDate < fifteenMinsAgo) {
+                        console.log(`[DEBUG] Correo ignorado por tener más de 15 min. Fecha: ${parsed.date}`);
+                        continue;
+                    }
+
                     const subject = (parsed.subject || "").toString().toLowerCase();
                     accountLogs.subjects.push(subject);
                     accountLogs.scanned++;
