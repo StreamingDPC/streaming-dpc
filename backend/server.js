@@ -110,12 +110,15 @@ app.post('/api/get-code', async (req, res) => {
                     if (!all || !all.body) continue;
 
                     const parsed = await simpleParser(all.body);
-                    
-                    // Filtrar correos que tengan más de 15 minutos (15 * 60 * 1000 ms)
-                    const emailDate = parsed.date ? new Date(parsed.date).getTime() : 0;
+
+                    // Filtrar correos que tengan más de 15 minutos de antigüedad (15 * 60 * 1000 ms)
+                    // Preferimos item.attributes.date (Fecha IMAP Interna) que es mucho más precisa.
+                    const exactDate = (item.attributes && item.attributes.date) ? item.attributes.date : parsed.date;
+                    const emailDate = exactDate ? new Date(exactDate).getTime() : 0;
                     const fifteenMinsAgo = Date.now() - 15 * 60 * 1000;
-                    if (emailDate > 0 && emailDate < fifteenMinsAgo) {
-                        console.log(`[DEBUG] Correo ignorado por tener más de 15 min. Fecha: ${parsed.date}`);
+
+                    if (!emailDate || emailDate < fifteenMinsAgo) {
+                        console.log(`[DEBUG] Correo ignorado (>15 min o sin fecha). Fecha email: ${exactDate}`);
                         continue;
                     }
 
