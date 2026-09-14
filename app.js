@@ -1375,12 +1375,12 @@ function setupEventListeners() {
             return;
         }
 
-        // 2. VERIFICAR SI YA USÓ SU INTENTO EN FIREBASE
+        // 2. RECUPERAR INTENTOS USADOS EN FIREBASE (AHORA POR PLATAFORMA)
         const attemptSnap = await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed`).once('value');
-        const attemptUsed = attemptSnap.val();
-        if (attemptUsed === true) {
-            alreadyUsed.style.display = 'block';
-            return;
+        window.clientUsedAttempts = attemptSnap.val() || {};
+        // Si era true (sistema viejo), lo convertimos a objeto preventivo.
+        if (window.clientUsedAttempts === true) {
+            window.clientUsedAttempts = { netflix: true, disney: true, hbomax: true, prime: true };
         }
 
         // 3. CARGAR CORREOS DESDE SUS COMPRAS EN FIREBASE
@@ -1522,6 +1522,22 @@ function setupEventListeners() {
                     emailSelect.innerHTML = '<option value="">-- Sin correos para esta plataforma --</option>';
                 }
             }
+
+            // Validar si el intento YA fue consumido para esta plataforma en específico
+            const fetchBtn = document.getElementById('fetch-code-btn');
+            if (fetchBtn) {
+                if (window.clientUsedAttempts && window.clientUsedAttempts[chosen] === true) {
+                    fetchBtn.disabled = true;
+                    fetchBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Intento de esta plataforma agotado';
+                    fetchBtn.style.opacity = '0.5';
+                    fetchBtn.style.cursor = 'not-allowed';
+                } else {
+                    fetchBtn.disabled = false;
+                    fetchBtn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Buscar mi Código';
+                    fetchBtn.style.opacity = '1';
+                    fetchBtn.style.cursor = 'pointer';
+                }
+            }
         });
     });
 
@@ -1554,8 +1570,13 @@ function setupEventListeners() {
                 const data = await response.json();
 
                 if (data.success && data.code) {
-                    // ✅ ÉXITO: Marcar el intento como USADO en Firebase
-                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed`).set(true);
+                    // ✅ ÉXITO: Marcar el intento de ESTA PLATAFORMA como USADO en Firebase
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/${platform}`).set(true);
+
+                    // Actualizar estado local preventivamente
+                    if (!window.clientUsedAttempts) window.clientUsedAttempts = {};
+                    window.clientUsedAttempts[platform] = true;
+
                     await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeHistory`).push({
                         code: data.code,
                         email: email,
