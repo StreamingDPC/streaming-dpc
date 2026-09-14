@@ -135,7 +135,20 @@ app.post('/api/get-code', async (req, res) => {
                     const targetEmail = email.toLowerCase();
                     const platformLower = platform.toLowerCase();
 
-                    const isFromPlatform = platformLower === 'logincode' ? true : (subject.includes(platformLower) || fromText.includes(platformLower));
+                    // isFromPlatform: verifica que el correo sea de la plataforma seleccionada
+                    let isFromPlatform = false;
+                    if (platformLower === 'logincode') {
+                        isFromPlatform = true;
+                    } else if (platformLower === 'hbomax') {
+                        // HBO Max envía desde dominios hbo.com, max.com, hbomax.com
+                        isFromPlatform = subject.includes('hbo') || subject.includes(' max') ||
+                            fromText.includes('hbo') || fromText.includes('max.com');
+                    } else if (platformLower === 'prime') {
+                        // Prime Video / Amazon envía desde amazon.com
+                        isFromPlatform = subject.includes('amazon') || fromText.includes('amazon');
+                    } else {
+                        isFromPlatform = subject.includes(platformLower) || fromText.includes(platformLower);
+                    }
                     const mentionsEmail = textContent.includes(targetEmail) || htmlContent.toLowerCase().includes(targetEmail);
 
                     if (isFromPlatform || mentionsEmail) {
@@ -163,58 +176,41 @@ app.post('/api/get-code', async (req, res) => {
                                 }
                             }
                         } else if (platformLower.includes('disney')) {
-                            // Disney: asunto debe decir "código de acceso único para Disney+"
-                            const disneyKeywords = [
-                                'código de acceso único para disney',
-                                'codigo de acceso unico para disney',
-                                'disney+ one-time passcode',
-                                'disney+ access code',
-                                'one-time passcode'
-                            ];
-                            const isDisneyEmail = disneyKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
-                            if (isDisneyEmail) {
-                                const codeMatch = textContent.match(/\b\d{6}\b/);
-                                if (codeMatch) {
-                                    accountLogs.found = true;
-                                    return codeMatch[0];
-                                }
+                            // Disney: el correo ya fue confirmado como de Disney por isFromPlatform
+                            // (subject o from contiene 'disney'). Extraemos el 1er número de 6 dígitos.
+                            // Buscamos primero en texto plano, luego en HTML limpio.
+                            let codeMatch = textContent.match(/\b\d{6}\b/);
+                            if (!codeMatch) {
+                                const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
+                                codeMatch = htmlText.match(/\b\d{6}\b/);
+                            }
+                            if (codeMatch) {
+                                accountLogs.found = true;
+                                return codeMatch[0];
                             }
                         } else if (platformLower.includes('hbomax')) {
-                            // HBO Max: asunto "Urgente: Tu código de un solo uso de HBO Max"
-                            const hboKeywords = [
-                                'urgente: tu código de un solo uso de hbo max',
-                                'urgente: tu codigo de un solo uso de hbo max',
-                                'tu código de un solo uso de hbo',
-                                'hbo max one-time passcode',
-                                'hbo one-time code',
-                                'código de un solo uso de max',
-                                'codigo de un solo uso de max'
-                            ];
-                            const isHboEmail = hboKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
-                            if (isHboEmail) {
-                                const codeMatch = textContent.match(/\b\d{6}\b/);
-                                if (codeMatch) {
-                                    accountLogs.found = true;
-                                    return codeMatch[0];
-                                }
+                            // HBO Max: correo confirmado por isFromPlatform (contiene hbo/max).
+                            // Extraer el primer número de 6 dígitos.
+                            let hboMatch = textContent.match(/\b\d{6}\b/);
+                            if (!hboMatch) {
+                                const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
+                                hboMatch = htmlText.match(/\b\d{6}\b/);
+                            }
+                            if (hboMatch) {
+                                accountLogs.found = true;
+                                return hboMatch[0];
                             }
                         } else if (platformLower.includes('prime')) {
-                            // Prime Video: asunto "amazon.com: Intento de acceso a los datos de la cuenta"
-                            const primeKeywords = [
-                                'intento de acceso a los datos de la cuenta',
-                                'amazon.com: intento de acceso',
-                                'amazon sign-in attempt',
-                                'your amazon sign-in code',
-                                'código de acceso de amazon',
-                                'codigo de acceso de amazon'
-                            ];
-                            const isPrimeEmail = primeKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
-                            if (isPrimeEmail) {
-                                const codeMatch = textContent.match(/\b\d{6}\b/);
-                                if (codeMatch) {
-                                    accountLogs.found = true;
-                                    return codeMatch[0];
-                                }
+                            // Prime Video: correo confirmado por isFromPlatform (contiene amazon).
+                            // Extraer el primer número de 6 dígitos.
+                            let primeMatch = textContent.match(/\b\d{6}\b/);
+                            if (!primeMatch) {
+                                const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
+                                primeMatch = htmlText.match(/\b\d{6}\b/);
+                            }
+                            if (primeMatch) {
+                                accountLogs.found = true;
+                                return primeMatch[0];
                             }
                         } else if (platformLower.includes('logincode')) {
                             // Busca el texto de los correos de inicio de sesión en el texto, HTML o ASUNTO
