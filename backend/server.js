@@ -180,38 +180,41 @@ app.post('/api/get-code', async (req, res) => {
                             // Disney: el correo ya fue confirmado como de Disney por isFromPlatform
                             // (subject o from contiene 'disney'). Extraemos el 1er número de 6 dígitos.
                             // Buscamos primero en texto plano, luego en HTML limpio.
-                            let codeMatch = textContent.match(/\b\d{6}\b/);
-                            if (!codeMatch) {
+                            let matches = textContent.match(/\b\d{6}\b/g) || [];
+                            if (matches.length === 0) {
                                 const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
-                                codeMatch = htmlText.match(/\b\d{6}\b/);
+                                matches = htmlText.match(/\b\d{6}\b/g) || [];
                             }
-                            if (codeMatch) {
+                            const validCode = matches.find(m => m !== '000000');
+                            if (validCode) {
                                 accountLogs.found = true;
-                                return codeMatch[0];
+                                return validCode;
                             }
                         } else if (platformLower.includes('hbomax')) {
                             // HBO Max: correo confirmado por isFromPlatform (contiene hbo/max).
                             // Extraer el primer número de 6 dígitos.
-                            let hboMatch = textContent.match(/\b\d{6}\b/);
-                            if (!hboMatch) {
+                            let matches = textContent.match(/\b\d{6}\b/g) || [];
+                            if (matches.length === 0) {
                                 const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
-                                hboMatch = htmlText.match(/\b\d{6}\b/);
+                                matches = htmlText.match(/\b\d{6}\b/g) || [];
                             }
-                            if (hboMatch) {
+                            const validCode = matches.find(m => m !== '000000');
+                            if (validCode) {
                                 accountLogs.found = true;
-                                return hboMatch[0];
+                                return validCode;
                             }
                         } else if (platformLower.includes('prime')) {
                             // Prime Video: correo confirmado por isFromPlatform (contiene amazon).
                             // Extraer el primer número de 6 dígitos.
-                            let primeMatch = textContent.match(/\b\d{6}\b/);
-                            if (!primeMatch) {
+                            let matches = textContent.match(/\b\d{6}\b/g) || [];
+                            if (matches.length === 0) {
                                 const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ').toLowerCase();
-                                primeMatch = htmlText.match(/\b\d{6}\b/);
+                                matches = htmlText.match(/\b\d{6}\b/g) || [];
                             }
-                            if (primeMatch) {
+                            const validCode = matches.find(m => m !== '000000');
+                            if (validCode) {
                                 accountLogs.found = true;
-                                return primeMatch[0];
+                                return validCode;
                             }
                         } else if (platformLower.includes('logincode')) {
                             // Busca el texto de los correos de inicio de sesión en el texto, HTML o ASUNTO
