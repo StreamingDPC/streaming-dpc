@@ -95,7 +95,7 @@ app.post('/api/get-code', async (req, res) => {
                 // Si descargamos ['ALL'] con bodies, el servidor colapsa intentando descargar miles de correos antiguos a la memoria.
                 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
                 let searchCriteria = [['SINCE', yesterday]];
-                let allMessages = await connection.search(searchCriteria, { bodies: ['HEADER', 'TEXT'], markSeen: false });
+                let allMessages = await connection.search(searchCriteria, { bodies: [''], markSeen: false });
 
                 // Extraer solo los últimos 20 para procesar rapidísimo
                 let messages = allMessages.slice(-20);
@@ -106,7 +106,8 @@ app.post('/api/get-code', async (req, res) => {
                     const item = messages[i];
                     if (!item || !item.parts) continue;
 
-                    const all = item.parts.find(a => a.which === 'TEXT');
+                    // 'which: ""' (o identificador principal) trae el fuente crudo con headers MIME
+                    const all = item.parts.find(a => a.which === '');
                     if (!all || !all.body) continue;
 
                     const parsed = await simpleParser(all.body);
