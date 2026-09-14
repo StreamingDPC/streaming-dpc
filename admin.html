@@ -1144,10 +1144,18 @@
                         </h3>
                         <p style="font-size:0.85rem; color:#ccc; margin-bottom:1rem;">Si un cliente no pudo usar su
                             código a tiempo, ingresa su celular para habilitar un nuevo intento.</p>
-                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 0.8rem;">
+                            <select id="admin-platform-reset"
+                                style="flex:1; min-width:150px; padding:12px 15px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(0,0,0,0.5); color:white; font-size:0.95rem; position:relative; z-index:10;">
+                                <option value="all">TODAS las pantallas</option>
+                                <option value="netflix">Netflix</option>
+                                <option value="disney">Disney+</option>
+                                <option value="hbomax">HBO Max</option>
+                                <option value="prime">Prime Video</option>
+                            </select>
                             <input type="text" id="admin-client-phone-reset"
                                 placeholder="Celular del cliente (Ej: 3105551234)"
-                                style="flex:1; min-width:200px; padding:12px 15px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(0,0,0,0.5); color:white; font-size:0.95rem; position:relative; z-index:10;">
+                                style="flex:2; min-width:200px; padding:12px 15px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(0,0,0,0.5); color:white; font-size:0.95rem; position:relative; z-index:10;">
                             <button type="button"
                                 onclick="resetClientCodeAttempt(document.getElementById('admin-client-phone-reset').value.trim())"
                                 style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem; white-space:nowrap; position:relative; z-index:10; box-shadow: 0 4px 10px rgba(243,156,18,0.3);">
@@ -2251,17 +2259,20 @@
         window.resetClientCodeAttempt = async function (clientPhone) {
             if (!clientPhone) return alert('Número de cliente no válido.');
 
+            const platform = document.getElementById('admin-platform-reset').value;
+            const platLabel = platform === 'all' ? 'TODAS LAS PANTALLAS' : platform.toUpperCase();
+
             // Consultar historial previo
             const histSnap = await db.ref(`clientProfiles/${clientPhone}/codeHistory`).once('value');
             const history = histSnap.val();
 
-            let msg = `¿Deseas habilitar UN NUEVO INTENTO de código para el cliente ${clientPhone}?\n\n`;
+            let msg = `¿Deseas habilitar UN NUEVO INTENTO de código en [${platLabel}] para el cliente ${clientPhone}?\n\n`;
             if (history) {
                 const entries = Object.values(history);
                 const last = entries[entries.length - 1];
                 if (last) {
                     const fecha = new Date(last.timestamp).toLocaleString('es-CO');
-                    msg += `⚠️ HISTORIAL: Ya solicitó un código anteriomente.\n Correo: ${last.email}\n Código: ${last.code}\n Fecha: ${fecha}\n\n`;
+                    msg += `⚠️ HISTORIAL: Ya solicitó un código anteriomente.\n Correo: ${last.email}\n Plataforma: ${last.platform || 'Desconocida'}\n Fecha: ${fecha}\n\n`;
                 }
             } else {
                 msg += 'ℹ️ Sin historial previo de códigos para este cliente.\n\n';
@@ -2269,8 +2280,12 @@
             msg += '¿Confirmas que el código NO fue usado exitosamente y se debe habilitar otro intento?';
 
             if (confirm(msg)) {
-                await db.ref(`clientProfiles/${clientPhone}/codeAttemptUsed`).remove();
-                alert(`✅ Intento habilitado correctamente para ${clientPhone}. El cliente ya puede solicitar su código nuevamente.`);
+                if (platform === 'all') {
+                    await db.ref(`clientProfiles/${clientPhone}/codeAttemptUsed`).remove();
+                } else {
+                    await db.ref(`clientProfiles/${clientPhone}/codeAttemptUsed/${platform}`).remove();
+                }
+                alert(`✅ Intento de ${platLabel} habilitado correctamente para ${clientPhone}. El cliente ya puede solicitar su código nuevamente.`);
             }
         }
 
@@ -2351,15 +2366,22 @@
         };
 
         window.doResetAttemptFromSearch = async function (phone, clientName, idx) {
+            const platform = document.getElementById('admin-platform-reset').value;
+            const platLabel = platform === 'all' ? 'TODAS LAS PANTALLAS' : platform.toUpperCase();
+
             if (!phone) {
                 alert(`⚠️ Este cliente no tiene número de celular registrado. El vendedor usó su propio número.\nContacta al vendedor para obtener el número real del cliente "${clientName}".`);
                 return;
             }
-            if (confirm(`¿Habilitar UN NUEVO INTENTO de código para:\n\n👤 Cliente: ${clientName}\n📱 Celular: ${phone}\n\n¿Confirmas?`)) {
-                await db.ref(`clientProfiles/${phone}/codeAttemptUsed`).remove();
+            if (confirm(`¿Habilitar UN NUEVO INTENTO de código [${platLabel}] para:\n\n👤 Cliente: ${clientName}\n📱 Celular: ${phone}\n\n¿Confirmas?`)) {
+                if (platform === 'all') {
+                    await db.ref(`clientProfiles/${phone}/codeAttemptUsed`).remove();
+                } else {
+                    await db.ref(`clientProfiles/${phone}/codeAttemptUsed/${platform}`).remove();
+                }
                 const btns = document.querySelectorAll('#reset-seller-result button');
                 if (btns[idx]) btns[idx].disabled = true;
-                alert(`✅ ¡Listo! Nuevo intento habilitado para ${clientName} (${phone}).`);
+                alert(`✅ ¡Listo! Nuevo intento [${platLabel}] habilitado para ${clientName} (${phone}).`);
             }
         };
 
