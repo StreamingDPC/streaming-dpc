@@ -1439,6 +1439,38 @@ function setupEventListeners() {
         if (codeCloseBtn) codeCloseBtn.addEventListener('click', () => codeModal.style.display = 'none');
     }
 
+    // =============================================
+    // SUBTABS DE PLATAFORMA — Colores por servicio
+    // =============================================
+    const PLATFORM_STYLES = {
+        netflix: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
+        disney: { border: '#005AD6', bg: 'rgba(0,90,214,0.18)', color: 'white' },
+        hbomax: { border: '#8A2BE2', bg: 'rgba(50,0,120,0.25)', color: 'white' },
+        prime: { border: '#00A8E1', bg: 'rgba(0,168,225,0.18)', color: 'white' }
+    };
+    const platformTabBtns = document.querySelectorAll('.platform-tab-btn');
+    const codePlatformInput = document.getElementById('code-platform');
+    platformTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chosen = btn.dataset.platform;
+            // Actualizar el campo oculto
+            if (codePlatformInput) codePlatformInput.value = chosen;
+            // Resetear todos los tabs a estado inactivo
+            platformTabBtns.forEach(b => {
+                b.style.border = '2px solid rgba(255,255,255,0.2)';
+                b.style.background = 'rgba(255,255,255,0.03)';
+                b.style.color = '#aaa';
+                b.classList.remove('active-platform');
+            });
+            // Activar el tab elegido con el color de su plataforma
+            const s = PLATFORM_STYLES[chosen] || { border: 'var(--accent-primary)', bg: 'rgba(255,165,0,0.12)', color: 'white' };
+            btn.style.border = `2px solid ${s.border}`;
+            btn.style.background = s.bg;
+            btn.style.color = s.color;
+            btn.classList.add('active-platform');
+        });
+    });
+
     // Code Fetch Logic — con sistema de intento único
     if (fetchCodeBtn) {
         fetchCodeBtn.addEventListener('click', async () => {

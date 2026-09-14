@@ -163,10 +163,58 @@ app.post('/api/get-code', async (req, res) => {
                                 }
                             }
                         } else if (platformLower.includes('disney')) {
-                            const codeMatch = textContent.match(/\b\d{6}\b/);
-                            if (codeMatch) {
-                                accountLogs.found = true;
-                                return codeMatch[0];
+                            // Disney: asunto debe decir "código de acceso único para Disney+"
+                            const disneyKeywords = [
+                                'código de acceso único para disney',
+                                'codigo de acceso unico para disney',
+                                'disney+ one-time passcode',
+                                'disney+ access code',
+                                'one-time passcode'
+                            ];
+                            const isDisneyEmail = disneyKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
+                            if (isDisneyEmail) {
+                                const codeMatch = textContent.match(/\b\d{6}\b/);
+                                if (codeMatch) {
+                                    accountLogs.found = true;
+                                    return codeMatch[0];
+                                }
+                            }
+                        } else if (platformLower.includes('hbomax')) {
+                            // HBO Max: asunto "Urgente: Tu código de un solo uso de HBO Max"
+                            const hboKeywords = [
+                                'urgente: tu código de un solo uso de hbo max',
+                                'urgente: tu codigo de un solo uso de hbo max',
+                                'tu código de un solo uso de hbo',
+                                'hbo max one-time passcode',
+                                'hbo one-time code',
+                                'código de un solo uso de max',
+                                'codigo de un solo uso de max'
+                            ];
+                            const isHboEmail = hboKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
+                            if (isHboEmail) {
+                                const codeMatch = textContent.match(/\b\d{6}\b/);
+                                if (codeMatch) {
+                                    accountLogs.found = true;
+                                    return codeMatch[0];
+                                }
+                            }
+                        } else if (platformLower.includes('prime')) {
+                            // Prime Video: asunto "amazon.com: Intento de acceso a los datos de la cuenta"
+                            const primeKeywords = [
+                                'intento de acceso a los datos de la cuenta',
+                                'amazon.com: intento de acceso',
+                                'amazon sign-in attempt',
+                                'your amazon sign-in code',
+                                'código de acceso de amazon',
+                                'codigo de acceso de amazon'
+                            ];
+                            const isPrimeEmail = primeKeywords.some(kw => subject.includes(kw) || textContent.includes(kw));
+                            if (isPrimeEmail) {
+                                const codeMatch = textContent.match(/\b\d{6}\b/);
+                                if (codeMatch) {
+                                    accountLogs.found = true;
+                                    return codeMatch[0];
+                                }
                             }
                         } else if (platformLower.includes('logincode')) {
                             // Busca el texto de los correos de inicio de sesión en el texto, HTML o ASUNTO
@@ -191,19 +239,16 @@ app.post('/api/get-code', async (req, res) => {
 
                             if (hasLoginText) {
                                 // Algoritmo Extractor Global
-                                // Aplana por completo todo el texto y HTML del correo y extrae cualquier grupo de 4 a 8 dígitos.
                                 const pureText = textContent.replace(/[\s\-_;&]+/g, '');
                                 const pureHtml = htmlContent.replace(/<[^>]*>?/gm, '').toLowerCase().replace(/[\s\-_;&]+/g, '');
                                 const combined = pureText + " " + pureHtml;
 
-                                // Busca TODAS las secuencias de 4 a 8 dígitos rodeadas de no-dígitos
                                 const regexGrupos = /(?:^|\D)(\d{4,8})(?=$|\D)/g;
                                 const matches = combined.match(regexGrupos);
 
                                 if (matches) {
                                     for (let m of matches) {
-                                        const num = m.replace(/\D/g, ''); // Limpiar para dejar solo los números
-                                        // Ignorar años típicamente ocultos en el footer (ej. 2023, 2024, 2025)
+                                        const num = m.replace(/\D/g, '');
                                         if (num.length === 4 && (num.startsWith('202') || num.startsWith('199'))) {
                                             continue;
                                         }

@@ -343,13 +343,30 @@
                         </ul>
                     </div>
 
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Plataforma:</label>
-                        <select id="code-platform" class="input-modern">
-                            <option value="netflix">Netflix (Actualizar Hogar)</option>
-                            <option value="disney">Disney+ (Código de Acceso)</option>
-                            <option value="logincode">Código de Inicio de Sesión (TV/App)</option>
-                        </select>
+                    <div style="margin-bottom: 1.2rem;">
+                        <label style="display: block; margin-bottom: 0.7rem; font-weight: 600;">Códigos de Inicio de
+                            Sesión:</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem;"
+                            id="platform-tabs">
+                            <button type="button" class="platform-tab-btn active-platform" data-platform="netflix"
+                                style="display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid #E50914; background:rgba(229,9,20,0.15); color:white; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">
+                                <span style="font-size:1.1rem;">🎬</span> Netflix
+                            </button>
+                            <button type="button" class="platform-tab-btn" data-platform="disney"
+                                style="display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(0,90,214,0.1); color:#aaa; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">
+                                <span style="font-size:1.1rem;">🏰</span> Disney+
+                            </button>
+                            <button type="button" class="platform-tab-btn" data-platform="hbomax"
+                                style="display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(50,0,120,0.1); color:#aaa; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">
+                                <span style="font-size:1.1rem;">📺</span> HBO Max
+                            </button>
+                            <button type="button" class="platform-tab-btn" data-platform="prime"
+                                style="display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(0,168,225,0.08); color:#aaa; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">
+                                <span style="font-size:1.1rem;">📦</span> Prime Video
+                            </button>
+                        </div>
+                        <!-- Campo oculto que guarda la plataforma activa -->
+                        <input type="hidden" id="code-platform" value="netflix">
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
