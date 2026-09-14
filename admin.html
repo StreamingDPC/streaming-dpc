@@ -1136,6 +1136,25 @@
                         </ol>
                     </div>
 
+                    <!-- SECCIÓN: Habilitar Intentos de Código (Solo Admin) MOVIDA ARRIBA -->
+                    <div style="margin-bottom:2.5rem; background: rgba(243, 156, 18, 0.05); border: 1px solid rgba(243, 156, 18, 0.3); border-radius: 12px; padding:1.5rem; position:relative; z-index:10;">
+                        <h3 style="color:#f39c12; font-size:1.1rem; margin-top:0; margin-bottom:0.8rem;">
+                            <i class="fa-solid fa-key"></i> Gestión de Intentos de Código
+                        </h3>
+                        <p style="font-size:0.85rem; color:#ccc; margin-bottom:1rem;">Si un cliente no pudo usar su
+                            código a tiempo, ingresa su celular para habilitar un nuevo intento.</p>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="admin-client-phone-reset"
+                                placeholder="Celular del cliente (Ej: 3105551234)"
+                                style="flex:1; min-width:200px; padding:12px 15px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(0,0,0,0.5); color:white; font-size:0.95rem; position:relative; z-index:10;">
+                            <button type="button"
+                                onclick="resetClientCodeAttempt(document.getElementById('admin-client-phone-reset').value.trim())"
+                                style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem; white-space:nowrap; position:relative; z-index:10; box-shadow: 0 4px 10px rgba(243,156,18,0.3);">
+                                <i class="fa-solid fa-rotate-right"></i> Habilitar Intento
+                            </button>
+                        </div>
+                    </div>
+
                     <h3>Mis Cuentas de Correo para Lectura de PIN</h3>
                     <div class="admin-form">
                         <div class="form-grid">
@@ -1188,25 +1207,7 @@
                         <p style="color:#777; text-align:center;">Cargando cuentas vinculadas...</p>
                     </div>
 
-                    <!-- SECCIÓN: Habilitar Intentos de Código (Solo Admin) -->
-                    <div style="margin-top:2.5rem; border-top: 1px dashed rgba(255,165,0,0.3); padding-top:1.5rem;">
-                        <h3 style="color:#f39c12; font-size:1rem; margin-bottom:0.5rem;">
-                            <i class="fa-solid fa-key"></i> Gestión de Intentos de Código
-                        </h3>
-                        <p style="font-size:0.82rem; color:#888; margin-bottom:1rem;">Si un cliente no pudo usar su
-                            código a tiempo, ingresa su número de celular para verificar el historial y habilitar un
-                            nuevo intento.</p>
-                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <input type="text" id="admin-client-phone-reset"
-                                placeholder="Número de celular del cliente (Ej: 3105551234)"
-                                style="flex:1; min-width:200px; padding:10px 15px; border-radius:8px; border:1px solid rgba(255,165,0,0.4); background:rgba(0,0,0,0.2); color:white; font-size:0.9rem;">
-                            <button
-                                onclick="resetClientCodeAttempt(document.getElementById('admin-client-phone-reset').value.trim())"
-                                style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; white-space:nowrap;">
-                                <i class="fa-solid fa-rotate-right"></i> Habilitar Intento
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- SUB TAB: GENERAL -->
