@@ -1137,7 +1137,8 @@
                     </div>
 
                     <!-- SECCIÓN: Habilitar Intentos de Código (Solo Admin) MOVIDA ARRIBA -->
-                    <div style="margin-bottom:2.5rem; background: rgba(243, 156, 18, 0.05); border: 1px solid rgba(243, 156, 18, 0.3); border-radius: 12px; padding:1.5rem; position:relative; z-index:10;">
+                    <div
+                        style="margin-bottom:2.5rem; background: rgba(243, 156, 18, 0.05); border: 1px solid rgba(243, 156, 18, 0.3); border-radius: 12px; padding:1.5rem; position:relative; z-index:10;">
                         <h3 style="color:#f39c12; font-size:1.1rem; margin-top:0; margin-bottom:0.8rem;">
                             <i class="fa-solid fa-key"></i> Gestión de Intentos de Código
                         </h3>
@@ -1152,6 +1153,31 @@
                                 style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem; white-space:nowrap; position:relative; z-index:10; box-shadow: 0 4px 10px rgba(243,156,18,0.3);">
                                 <i class="fa-solid fa-rotate-right"></i> Habilitar Intento
                             </button>
+                        </div>
+
+                        <!-- MODO 2: Buscar por Vendedor + Nombre Cliente -->
+                        <div
+                            style="margin-top:1.2rem; padding-top:1.2rem; border-top:1px dashed rgba(243,156,18,0.25);">
+                            <p style="font-size:0.82rem; color:#aaa; margin-bottom:0.8rem;">
+                                <i class="fa-solid fa-magnifying-glass"></i> <strong style="color:#f39c12;">¿El vendedor
+                                    no te da el número del cliente?</strong>
+                                Búscalo por nombre del vendedor y nombre del cliente:
+                            </p>
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <input type="text" id="admin-seller-name-reset"
+                                    placeholder="Nombre del vendedor (Ej: Laura)"
+                                    style="flex:1; min-width:160px; padding:11px 14px; border-radius:8px; border:1px solid rgba(100,180,255,0.4); background:rgba(0,0,0,0.5); color:white; font-size:0.9rem; position:relative; z-index:10;">
+                                <input type="text" id="admin-client-name-reset"
+                                    placeholder="Nombre del cliente (Ej: Martha)"
+                                    style="flex:1; min-width:160px; padding:11px 14px; border-radius:8px; border:1px solid rgba(100,180,255,0.4); background:rgba(0,0,0,0.5); color:white; font-size:0.9rem; position:relative; z-index:10;">
+                                <button type="button"
+                                    onclick="resetClientCodeAttemptBySeller(document.getElementById('admin-seller-name-reset').value.trim(), document.getElementById('admin-client-name-reset').value.trim())"
+                                    style="background:linear-gradient(135deg,#3498db,#2980b9); border:none; color:white; font-weight:bold; padding:11px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; white-space:nowrap; box-shadow: 0 4px 10px rgba(52,152,219,0.3); position:relative; z-index:10;">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Buscar y Habilitar
+                                </button>
+                            </div>
+                            <div id="reset-seller-result" style="margin-top:0.8rem; font-size:0.85rem; display:none;">
+                            </div>
                         </div>
                     </div>
 
@@ -2247,6 +2273,95 @@
                 alert(`✅ Intento habilitado correctamente para ${clientPhone}. El cliente ya puede solicitar su código nuevamente.`);
             }
         }
+
+        // =====================================================
+        // BUSCAR POR VENDEDOR + NOMBRE CLIENTE: Habilitar intento
+        // =====================================================
+        window.resetClientCodeAttemptBySeller = async function (sellerName, clientNameSearch) {
+            const resultDiv = document.getElementById('reset-seller-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span style="color:#aaa;"><i class="fa-solid fa-spinner fa-spin"></i> Buscando...</span>';
+
+            if (!sellerName || !clientNameSearch) {
+                resultDiv.innerHTML = '<span style="color:#e74c3c;">⚠️ Debes ingresar el nombre del vendedor y el nombre del cliente.</span>';
+                return;
+            }
+
+            try {
+                // Buscar en sellerSales bajo el nodo del vendedor
+                const sellerSnap = await db.ref('sellerSales').once('value');
+                const allSellerSales = sellerSnap.val() || {};
+
+                const sellerLower = sellerName.toLowerCase().trim();
+                const clientLower = clientNameSearch.toLowerCase().trim();
+
+                // Buscar coincidencias en todos los vendedores que coincidan con el nombre
+                let matches = [];
+                Object.entries(allSellerSales).forEach(([vendedor, sales]) => {
+                    if (!vendedor.toLowerCase().includes(sellerLower)) return;
+                    Object.values(sales).forEach(sale => {
+                        const saleClientName = (sale.clientName || '').toLowerCase();
+                        if (saleClientName.includes(clientLower)) {
+                            matches.push({
+                                phone: sale.clientPhone || '',
+                                clientName: sale.clientName || 'Sin nombre',
+                                sellerName: sale.sellerName || vendedor,
+                                product: (sale.items || []).map(i => i.name).join(', ')
+                            });
+                        }
+                    });
+                });
+
+                // Eliminar duplicados por teléfono
+                const seen = new Set();
+                matches = matches.filter(m => {
+                    if (seen.has(m.phone + m.clientName)) return false;
+                    seen.add(m.phone + m.clientName);
+                    return true;
+                });
+
+                if (matches.length === 0) {
+                    resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ No se encontraron clientes con nombre "<strong>${clientNameSearch}</strong>" para el vendedor "<strong>${sellerName}</strong>".</span>`;
+                    return;
+                }
+
+                // Mostrar resultados con botón para habilitar cada uno
+                let html = `<div style="font-size:0.8rem; color:#f39c12; margin-bottom:0.5rem;">✅ Se encontraron <strong>${matches.length}</strong> cliente(s). Selecciona cuál habilitar:</div>`;
+                matches.forEach((m, idx) => {
+                    const phoneLabel = m.phone ? m.phone : '<em style="color:#888;">Sin teléfono (vendedor usa el propio)</em>';
+                    html += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(52,152,219,0.08); border:1px solid rgba(52,152,219,0.3); border-radius:8px; padding:10px 14px; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+                            <div>
+                                <div style="font-weight:bold; color:white;">${m.clientName}</div>
+                                <div style="color:#aaa; font-size:0.78rem;">📱 ${phoneLabel} &nbsp;|&nbsp; 🏪 Vendedor: ${m.sellerName} &nbsp;|&nbsp; 🎬 ${m.product}</div>
+                            </div>
+                            <button type="button"
+                                onclick="doResetAttemptFromSearch('${m.phone}', '${m.clientName.replace(/'/g, "\\'")}', ${idx})"
+                                style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:8px 14px; border-radius:7px; cursor:pointer; font-size:0.82rem;">
+                                <i class="fa-solid fa-rotate-right"></i> Habilitar
+                            </button>
+                        </div>`;
+                });
+                resultDiv.innerHTML = html;
+
+            } catch (err) {
+                resultDiv.innerHTML = `<span style="color:#e74c3c;">❌ Error al buscar: ${err.message}</span>`;
+                console.error(err);
+            }
+        };
+
+        window.doResetAttemptFromSearch = async function (phone, clientName, idx) {
+            if (!phone) {
+                alert(`⚠️ Este cliente no tiene número de celular registrado. El vendedor usó su propio número.\nContacta al vendedor para obtener el número real del cliente "${clientName}".`);
+                return;
+            }
+            if (confirm(`¿Habilitar UN NUEVO INTENTO de código para:\n\n👤 Cliente: ${clientName}\n📱 Celular: ${phone}\n\n¿Confirmas?`)) {
+                await db.ref(`clientProfiles/${phone}/codeAttemptUsed`).remove();
+                const btns = document.querySelectorAll('#reset-seller-result button');
+                if (btns[idx]) btns[idx].disabled = true;
+                alert(`✅ ¡Listo! Nuevo intento habilitado para ${clientName} (${phone}).`);
+            }
+        };
 
         window.exportEmailAccountsCSV = function () {
             db.ref('emailAccounts').once('value').then(snap => {
