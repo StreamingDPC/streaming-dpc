@@ -1390,31 +1390,65 @@ function setupEventListeners() {
             try {
                 const salesSnap = await db.ref(`clientSales/${clientPhoneLoggedIn}`).once('value');
                 const sales = salesSnap.val() || {};
-                const emails = new Set();
+                // Mapear plataformas activas y sus correos
+                window.clientActivePlatforms = {
+                    netflix: new Set(),
+                    disney: new Set(),
+                    hbomax: new Set(),
+                    prime: new Set(),
+                    global: new Set()
+                };
+
                 Object.values(sales).forEach(sale => {
-                    // El admin general guarda como `sale.email`
-                    if (sale.email) emails.add(sale.email.toLowerCase().trim());
-                    // El admin detallado guarda en `item.specificEmails[].email`
+                    // Validar si la venta está activa
+                    const isExpired = sale.expirationDate && sale.expirationDate < Date.now();
+                    if (isExpired) return;
+
+                    if (sale.email) window.clientActivePlatforms.global.add(sale.email.toLowerCase().trim());
+
                     if (sale.items && Array.isArray(sale.items)) {
                         sale.items.forEach(item => {
+                            let itemPlatform = null;
+                            const itemName = (item.name || '').toLowerCase();
+                            if (itemName.includes('netflix')) itemPlatform = 'netflix';
+                            else if (itemName.includes('disney')) itemPlatform = 'disney';
+                            else if (itemName.includes('hbo') || itemName.includes('max')) itemPlatform = 'hbomax';
+                            else if (itemName.includes('prime')) itemPlatform = 'prime';
+
                             if (item.specificEmails && Array.isArray(item.specificEmails)) {
                                 item.specificEmails.forEach(se => {
-                                    if (se.email) emails.add(se.email.toLowerCase().trim());
+                                    if (se.email) {
+                                        const emailL = se.email.toLowerCase().trim();
+                                        if (itemPlatform) window.clientActivePlatforms[itemPlatform].add(emailL);
+                                        else window.clientActivePlatforms.global.add(emailL);
+                                    }
                                 });
                             }
                         });
                     }
                 });
-                if (emails.size > 0) {
-                    emailSelect.innerHTML = '';
-                    emails.forEach(em => {
-                        const opt = document.createElement('option');
-                        opt.value = em;
-                        opt.textContent = em;
-                        emailSelect.appendChild(opt);
-                    });
+
+                // Mostrar/Ocultar Tabs según si tiene la plataforma
+                const hasGlobal = window.clientActivePlatforms.global.size > 0;
+                let firstValidPlatform = null;
+                const platformTabBtns = document.querySelectorAll('.platform-tab-btn');
+
+                platformTabBtns.forEach(btn => {
+                    const plat = btn.dataset.platform;
+                    const hasPlat = window.clientActivePlatforms[plat].size > 0;
+                    if (hasPlat || hasGlobal) {
+                        btn.style.display = 'flex';
+                        if (!firstValidPlatform) firstValidPlatform = btn;
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                });
+
+                if (firstValidPlatform) {
+                    firstValidPlatform.click();
                 } else {
-                    emailSelect.innerHTML = '<option value="">-- Sin cuentas de correo registradas --</option>';
+                    emailSelect.innerHTML = '<option value="">-- No tienes pantallas activas --</option>';
+                    platformTabBtns.forEach(btn => btn.style.display = 'none');
                 }
             } catch (e) {
                 emailSelect.innerHTML = '<option value="">-- Error al cargar cuentas --</option>';
@@ -1468,6 +1502,26 @@ function setupEventListeners() {
             btn.style.background = s.bg;
             btn.style.color = s.color;
             btn.classList.add('active-platform');
+
+            // Actualizar el selector de correos según las plataformas validadas (window.clientActivePlatforms)
+            const emailSelect = document.getElementById('code-email');
+            if (emailSelect && window.clientActivePlatforms) {
+                const specEmails = window.clientActivePlatforms[chosen] || new Set();
+                const globalEmails = window.clientActivePlatforms.global || new Set();
+                const combined = new Set([...specEmails, ...globalEmails]);
+
+                emailSelect.innerHTML = '';
+                if (combined.size > 0) {
+                    combined.forEach(em => {
+                        const opt = document.createElement('option');
+                        opt.value = em;
+                        opt.textContent = em;
+                        emailSelect.appendChild(opt);
+                    });
+                } else {
+                    emailSelect.innerHTML = '<option value="">-- Sin correos para esta plataforma --</option>';
+                }
+            }
         });
     });
 
