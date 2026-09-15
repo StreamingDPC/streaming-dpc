@@ -718,7 +718,8 @@
                         </div>
                         <div class="form-col"
                             style="margin-bottom: 1rem; grid-column: 1 / -1; background: rgba(255,0,0,0.05); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,0,0,0.1);">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                                 <label style="margin-bottom:0;"><i class="fa-solid fa-list-ul"></i> Seleccionar Venta
                                     del Historial:</label>
                                 <button onclick="deleteSpecificSale()" class="save-btn" id="btn-delete-sale-specific"
@@ -726,6 +727,37 @@
                                     <i class="fa-solid fa-trash-can"></i> ELIMINAR ESTA VENTA COMPLETAMENTE
                                 </button>
                             </div>
+
+                            <!-- FILTRO POR NOMBRE DE CLIENTE (aparece cuando hay múltiples clientes en el mismo número) -->
+                            <div id="client-name-filter-wrap" style="display:none; margin-top:10px;">
+                                <div
+                                    style="background:rgba(243,156,18,0.1); border:1px solid rgba(243,156,18,0.4); border-radius:8px; padding:8px 12px; margin-bottom:8px;">
+                                    <p style="margin:0; font-size:0.82rem; color:#f39c12; font-weight:bold;">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                        Este número tiene ventas de <strong id="distinct-clients-count">varios</strong>
+                                        clientes distintos.
+                                        Filtra por nombre para encontrar la venta correcta:
+                                    </p>
+                                </div>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <input type="text" id="filter-client-name-input"
+                                        placeholder="🔍 Escribe nombre del cliente..."
+                                        oninput="filterSalesByClientName(this.value)"
+                                        style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(0,0,0,0.5); color:white; font-size:0.9rem;">
+                                    <button onclick="filterSalesByClientName('')" title="Limpiar filtro"
+                                        style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:white; padding:10px 14px; border-radius:8px; cursor:pointer;">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Badge cliente activo -->
+                            <div id="active-sale-client-badge"
+                                style="display:none; margin-top:8px; padding:6px 12px; background:rgba(46,204,113,0.12); border:1px solid rgba(46,204,113,0.3); border-radius:8px; font-size:0.85rem; color:#2ecc71;">
+                                <i class="fa-solid fa-user-check"></i>
+                                Venta seleccionada pertenece a: <strong id="active-sale-client-name">-</strong>
+                            </div>
+
                             <select id="edit-client-select-sale"
                                 style="width: 100%; margin-top: 10px; padding: 0.8rem; background: rgba(0,0,0,0.8); border: 1px solid var(--glass-border); color: white; border-radius: 12px; font-size: 1rem;"
                                 onchange="onEditClientSaleChange()"></select>
@@ -5536,13 +5568,31 @@
         window.onEditClientSaleChange = function () {
             const selectElement = document.getElementById('edit-client-select-sale');
             const selectedKey = selectElement.value;
-            if (window.currentClientSales && selectedKey && window.currentClientSales[selectedKey]) {
-                window.currentEditingSaleKey = selectedKey;
-                const s = window.currentClientSales[selectedKey];
-                window.currentEditingOriginalDate = s.date;
-                updateEditClientDatesUI(s);
-                updateEditSaleEmailsUI(s);
+            if (!window.currentClientSales || !selectedKey || !window.currentClientSales[selectedKey]) return;
+
+            window.currentEditingSaleKey = selectedKey;
+            const s = window.currentClientSales[selectedKey];
+            window.currentEditingOriginalDate = s.date;
+
+            // Sincronizar nombre, ciudad y email con la venta seleccionada
+            const nameEl = document.getElementById('edit-client-name');
+            const cityEl = document.getElementById('edit-client-city');
+            const emailEl = document.getElementById('edit-client-email');
+            if (nameEl) nameEl.value = (typeof safeDecode === 'function' ? safeDecode(s.clientName || '') : (s.clientName || ''));
+            if (cityEl) cityEl.value = s.clientCity || '';
+            if (emailEl) emailEl.value = s.email || '';
+
+            // Actualizar badge del cliente activo
+            const badge = document.getElementById('active-sale-client-badge');
+            const badgeName = document.getElementById('active-sale-client-name');
+            if (badge && badgeName) {
+                const displayName = s.clientName || 'Sin nombre';
+                badgeName.textContent = displayName;
+                badge.style.display = 'block';
             }
+
+            updateEditClientDatesUI(s);
+            updateEditSaleEmailsUI(s);
         };
 
         function clickEditClient(phone) {
@@ -5550,6 +5600,57 @@
             searchClient();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+        // Filtra el select de ventas por nombre de cliente
+        window.filterSalesByClientName = function (query) {
+            const filterInput = document.getElementById('filter-client-name-input');
+            if (filterInput && query === '') filterInput.value = '';
+
+            const select = document.getElementById('edit-client-select-sale');
+            if (!select || !window.currentClientSales) return;
+
+            const q = query.toLowerCase().trim();
+            // Guardar la key actualmente seleccionada
+            const prevKey = select.value;
+
+            select.innerHTML = '';
+            const sales = window.currentClientSales;
+            const sortedKeys = Object.keys(sales).sort((a, b) => sales[b].date - sales[a].date);
+
+            let firstMatch = null;
+            sortedKeys.forEach(k => {
+                const s = sales[k];
+                const clientName = (s.clientName || '').toLowerCase();
+                if (q && !clientName.includes(q)) return; // filtrar
+
+                const opt = document.createElement('option');
+                opt.value = k;
+                const itemsText = s.items ? s.items.map(i => i.name).join(', ') : 'Pantalla';
+                const dateText = s.date ? new Date(s.date).toLocaleDateString() : 'N/A';
+                const nameTag = s.clientName ? `[${s.clientName}] ` : '';
+                let fName = nameTag + itemsText;
+                if (fName.length > 60) fName = fName.substring(0, 57) + '...';
+                opt.text = `${fName} (${dateText})`;
+                select.appendChild(opt);
+                if (!firstMatch) firstMatch = k;
+            });
+
+            if (select.options.length === 0) {
+                const opt = document.createElement('option');
+                opt.disabled = true;
+                opt.text = 'No hay ventas que coincidan con ese nombre';
+                select.appendChild(opt);
+                return;
+            }
+
+            // Restaurar selección previa si sigue disponible, sino ir al primero
+            const stillAvailable = Array.from(select.options).some(o => o.value === prevKey);
+            select.value = stillAvailable ? prevKey : firstMatch;
+            window.currentEditingSaleKey = select.value;
+            if (window.currentClientSales[select.value]) {
+                onEditClientSaleChange();
+            }
+        };
 
         async function searchClient() {
             const phone = window.sanitizePhone(document.getElementById('search-client-phone').value);
@@ -5568,6 +5669,15 @@
                 const sortedKeys = Object.keys(sales).sort((k1, k2) => sales[k2].date - sales[k1].date);
                 window.currentClientSales = sales;
 
+                // Detectar si hay múltiples clientes distintos bajo este número
+                const distinctClients = new Set();
+                sortedKeys.forEach(k => { if (sales[k].clientName) distinctClients.add((sales[k].clientName || '').trim().toLowerCase()); });
+                const hasMultipleClients = distinctClients.size > 1;
+
+                // Limpiar filtro
+                const filterInput = document.getElementById('filter-client-name-input');
+                if (filterInput) filterInput.value = '';
+
                 const selectElement = document.getElementById('edit-client-select-sale');
                 if (selectElement) {
                     selectElement.innerHTML = '';
@@ -5577,12 +5687,20 @@
                         opt.value = k;
                         const itemsText = s.items ? s.items.map(i => i.name).join(', ') : 'Pantalla';
                         const dateText = s.date ? new Date(s.date).toLocaleDateString() : 'N/A';
-                        let fName = itemsText;
-                        if (fName.length > 50) fName = fName.substring(0, 47) + '...';
+                        // Si hay múltiples clientes, mostrar el nombre en la opción
+                        const nameTag = hasMultipleClients && s.clientName ? `[${s.clientName}] ` : '';
+                        let fName = nameTag + itemsText;
+                        if (fName.length > 60) fName = fName.substring(0, 57) + '...';
                         opt.text = `${fName} (Comprado: ${dateText})`;
                         selectElement.appendChild(opt);
                     });
                 }
+
+                // Mostrar/ocultar filtro por nombre
+                const filterWrap = document.getElementById('client-name-filter-wrap');
+                const countEl = document.getElementById('distinct-clients-count');
+                if (filterWrap) filterWrap.style.display = hasMultipleClients ? 'block' : 'none';
+                if (countEl) countEl.textContent = distinctClients.size;
 
                 window.currentEditingSaleKey = sortedKeys[0];
                 if (selectElement) selectElement.value = window.currentEditingSaleKey;
@@ -5591,6 +5709,14 @@
                 document.getElementById('edit-client-name').value = safeDecode(latestSale.clientName || '');
                 document.getElementById('edit-client-city').value = latestSale.clientCity || '';
                 document.getElementById('edit-client-phone-new').value = '';
+
+                // Actualizar badge
+                const badge = document.getElementById('active-sale-client-badge');
+                const badgeName = document.getElementById('active-sale-client-name');
+                if (badge && badgeName) {
+                    badgeName.textContent = latestSale.clientName || 'Sin nombre';
+                    badge.style.display = 'block';
+                }
 
                 window.currentEditingOriginalDate = latestSale.date;
                 updateEditClientDatesUI(latestSale);
