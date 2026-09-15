@@ -5,6 +5,8 @@ const imaps = require('imap-simple');
 const simpleParser = require('mailparser').simpleParser;
 const axios = require('axios');
 const cheerio = require('cheerio');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 const app = express();
 app.use(cors());
@@ -293,6 +295,150 @@ app.post('/api/get-code', async (req, res) => {
             details: err.message,
             stack: err.stack // Solo para diagnosticar el problema actual
         });
+    }
+});
+
+// ============================================================
+// ENDPOINT: Activar Smart TV en Netflix (Robot Invisible)
+// ============================================================
+app.post('/api/activate-tv', async (req, res) => {
+    const { email, tvCode, phone } = req.body;
+
+    if (!email || !tvCode) {
+        return res.status(400).json({ success: false, error: 'Email y código de TV son requeridos.' });
+    }
+
+    let browser = null;
+    try {
+        console.log(`[TV-BOT] Iniciando activación TV: email=${email}, code=${tvCode}`);
+
+        // 1. Buscar las credenciales del email en Firebase
+        const dbResponse = await axios.get(`${FIREBASE_DB_URL}/emailAccounts.json`);
+        const accountsData = dbResponse.data;
+
+        if (!accountsData) {
+            return res.status(404).json({ success: false, error: 'No hay cuentas configuradas en Firebase.' });
+        }
+
+        const targetEmail = email.toLowerCase().trim();
+        const account = Object.values(accountsData).find(a =>
+            a && a.email && a.password && a.email.toLowerCase().trim() === targetEmail
+        );
+
+        if (!account) {
+            return res.status(404).json({ success: false, error: `La cuenta ${email} no está vinculada. Contacta al administrador.` });
+        }
+
+        const netflixPass = account.netflixPassword || account.password;
+        console.log(`[TV-BOT] Cuenta encontrada, iniciando navegador invisible...`);
+
+        // 2. Lanzar Puppeteer con Chromium (compatible con Render)
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+        });
+
+        const page = await browser.newPage();
+
+        // User-Agent real para no ser detectado como bot
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        // 3. Ir a la página de login de Netflix
+        console.log(`[TV-BOT] Navegando a Netflix login...`);
+        await page.goto('https://www.netflix.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
+
+        // 4. Ingresar email
+        await page.waitForSelector('input[name="userLoginId"]', { timeout: 10000 });
+        await page.type('input[name="userLoginId"]', account.email, { delay: 80 });
+
+        // 5. Ingresar contraseña
+        await page.waitForSelector('input[name="password"]', { timeout: 10000 });
+        await page.type('input[name="password"]', netflixPass.replace(/\s+/g, ''), { delay: 80 });
+
+        // 6. Click en Sign In
+        await page.click('button[type="submit"]');
+        console.log(`[TV-BOT] Credenciales enviadas, esperando sesión...`);
+
+        // 7. Esperar que cargue la sesión (hasta 20 seg)
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+
+        // Verificar si el login fue exitoso (si redirige a /browse o /tv*)
+        const currentUrl = page.url();
+        console.log(`[TV-BOT] URL tras login: ${currentUrl}`);
+
+        if (currentUrl.includes('/login')) {
+            await browser.close();
+            return res.status(401).json({ success: false, error: 'Credenciales de Netflix incorrectas. Verifica la contraseña en la configuración.' });
+        }
+
+        // 8. Navegar a la página de activación de TV
+        console.log(`[TV-BOT] Navegando a netflix.com/tv8...`);
+        await page.goto('https://www.netflix.com/tv8', { waitUntil: 'networkidle2', timeout: 20000 });
+
+        // 9. Buscar el campo de código y escribirlo
+        // Netflix usa inputs tipo text o number, uno por dígito o un solo campo
+        await page.waitForSelector('input', { timeout: 10000 });
+
+        // Intentar con campo único primero
+        const singleInput = await page.$('input[type="text"], input[type="tel"], input[type="number"], input.code-input');
+        if (singleInput) {
+            await singleInput.click({ clickCount: 3 });
+            await singleInput.type(tvCode.replace(/[^0-9]/g, ''), { delay: 100 });
+        } else {
+            // Múltiples inputs (uno por dígito)
+            const inputs = await page.$$('input');
+            const digits = tvCode.replace(/[^0-9]/g, '').split('');
+            for (let i = 0; i < inputs.length && i < digits.length; i++) {
+                await inputs[i].click();
+                await inputs[i].type(digits[i], { delay: 80 });
+            }
+        }
+
+        console.log(`[TV-BOT] Código ${tvCode} ingresado, buscando botón de confirmar...`);
+
+        // 10. Click en el botón de confirmar / continuar
+        await page.waitForTimeout(1000);
+        const submitBtn = await page.$('button[type="submit"], button.nf-btn-primary, button[data-uia="action-button"]');
+        if (submitBtn) {
+            await submitBtn.click();
+        } else {
+            await page.keyboard.press('Enter');
+        }
+
+        // 11. Esperar resultado (3-5 seg)
+        await page.waitForTimeout(4000);
+        const finalUrl = page.url();
+        const pageText = await page.evaluate(() => document.body.innerText);
+        console.log(`[TV-BOT] URL final: ${finalUrl}`);
+
+        await browser.close();
+        browser = null;
+
+        // Verificar si hubo éxito
+        const successKeywords = ['activado', 'activated', 'connected', 'conectado', 'enjoy', 'listo', 'signed in', 'iniciado sesión'];
+        const errorKeywords = ['invalid', 'inválido', 'incorrect', 'incorrecto', 'expired', 'expirado', 'vuelv', 'try again'];
+
+        const isSuccess = successKeywords.some(kw => pageText.toLowerCase().includes(kw)) || finalUrl.includes('browse');
+        const isError = errorKeywords.some(kw => pageText.toLowerCase().includes(kw));
+
+        if (isError) {
+            return res.json({ success: false, error: 'Código de TV inválido o expirado. Pide un nuevo código en tu TV e intenta de nuevo.' });
+        }
+
+        console.log(`[TV-BOT] ✅ Activación exitosa!`);
+        return res.json({ success: true, message: '¡TV activado exitosamente! Ya puedes disfrutar Netflix en tu Smart TV.' });
+
+    } catch (err) {
+        console.error('[TV-BOT] Error:', err.message);
+        if (browser) { try { await browser.close(); } catch (e) { } }
+
+        // Dar mensaje específico según el error
+        if (err.message.includes('timeout') || err.message.includes('Navigation')) {
+            return res.status(500).json({ success: false, error: 'Netflix tardó demasiado en responder. Intenta de nuevo en un momento.' });
+        }
+        return res.status(500).json({ success: false, error: 'Error al activar la TV. Intenta de nuevo o contacta al administrador.' });
     }
 });
 

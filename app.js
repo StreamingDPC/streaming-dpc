@@ -1744,43 +1744,56 @@ function setupEventListeners() {
 
             // Bloquear botón temporalmente
             const originalBtnText = activateTvBtn.innerHTML;
-            activateTvBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando...';
+            activateTvBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Activando TV...';
             activateTvBtn.disabled = true;
+            document.getElementById('tv-activation-loading').style.display = 'block';
+            document.getElementById('tv-activation-result').style.display = 'none';
+            document.getElementById('tv-activation-error').style.display = 'none';
 
             try {
-                // Registrar intento en Firebase (auditoría)
-                await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({
-                    tvCode, email, timestamp: Date.now()
+                // Llamar al robot invisible de Render
+                const response = await fetch('https://streaming-backend-ce1u.onrender.com/api/activate-tv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
                 });
+                const data = await response.json();
 
-                // Consumir el intento global (1 vez)
-                await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/netflix_tv`).set(true);
-                if (window.clientUsedAttempts) window.clientUsedAttempts['netflix_tv'] = true;
-
-                // Copiar al portapapeles para facilitar el ingreso
-                try {
-                    await navigator.clipboard.writeText(tvCode);
-                } catch (e) {
-                    // ignorar si no permite portapapeles (ej: sin https local)
-                }
-
-                // Mostrar éxito en UI
                 document.getElementById('tv-activation-loading').style.display = 'none';
-                document.getElementById('tv-activation-result').style.display = 'block';
-                document.getElementById('tv-activation-error').style.display = 'none';
 
-                // Mostrar el código visualmente
-                document.getElementById('tv-activation-code-show').innerText = tvCode;
+                if (data.success) {
+                    // Registrar en Firebase y consumir intento
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({ tvCode, email, timestamp: Date.now() });
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/netflix_tv`).set(true);
+                    if (window.clientUsedAttempts) window.clientUsedAttempts['netflix_tv'] = true;
+
+                    // Mostrar éxito real con color verde
+                    const resultDiv = document.getElementById('tv-activation-result');
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = 'rgba(46,204,113,0.1)';
+                    resultDiv.style.borderColor = '#2ecc71';
+                    const icon = document.getElementById('tv-activation-icon');
+                    if (icon) { icon.className = 'fa-solid fa-circle-check'; icon.style.color = '#2ecc71'; }
+                    const msg = document.getElementById('tv-activation-msg');
+                    if (msg) { msg.style.color = '#2ecc71'; msg.innerText = '¡TV Activada Exitosamente!'; }
+                    const codeShow = document.getElementById('tv-activation-code-show');
+                    if (codeShow) codeShow.style.display = 'none';
+                    const linkBtn = document.querySelector('#tv-activation-result a');
+                    if (linkBtn) linkBtn.style.display = 'none';
+                } else {
+                    document.getElementById('tv-activation-error').style.display = 'block';
+                    document.getElementById('tv-error-msg').innerText = data.error || 'Código inválido. Verifica el código en tu TV.';
+                }
 
             } catch (err) {
                 document.getElementById('tv-activation-loading').style.display = 'none';
                 document.getElementById('tv-activation-error').style.display = 'block';
-                document.getElementById('tv-error-msg').innerText = 'Error interno. Intenta de nuevo.';
+                document.getElementById('tv-error-msg').innerText = 'Error de conexión. Intenta de nuevo en un momento.';
             } finally {
                 setTimeout(() => {
                     activateTvBtn.innerHTML = originalBtnText;
                     activateTvBtn.disabled = false;
-                }, 1000);
+                }, 1500);
             }
         });
     }
