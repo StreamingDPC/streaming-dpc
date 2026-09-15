@@ -442,10 +442,13 @@ app.post('/api/activate-tv', async (req, res) => {
                 const errDiv = document.querySelector('.ui-message-contents, header, .error-message, [data-uia="error-message-container"]');
                 return errDiv ? errDiv.innerText : document.body.innerText.substring(0, 300);
             });
+            const screenshotBase64 = await page.screenshot({ encoding: 'base64' });
+
             await browser.close();
             return res.status(401).json({
                 success: false,
-                error: `Netflix rechazó el inicio de sesión. Razón de Netflix: "${errorText.replace(/\n'/g, ' ')}". Verifica la contraseña de Netflix (envió: ${netflixPass}).`
+                error: `Netflix rechazó el inicio de sesión. Razón de Netflix: "${errorText.replace(/\n'/g, ' ')}". Verifica la contraseña de Netflix (envió: ${netflixPass}).`,
+                screenshot: `data:image/png;base64,${screenshotBase64}`
             });
         }
 
