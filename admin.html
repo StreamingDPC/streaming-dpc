@@ -2536,17 +2536,34 @@
                 let html = `<div style="font-size:0.8rem; color:#f39c12; margin-bottom:0.5rem;">✅ Se encontraron <strong>${matches.length}</strong> cliente(s). Selecciona cuál habilitar:</div>`;
                 matches.forEach((m, idx) => {
                     const phoneLabel = m.phone ? m.phone : '<em style="color:#888;">Sin teléfono (vendedor usa el propio)</em>';
+                    // Intentar detectar plataforma por defecto según el producto
+                    const pLower = (m.product || '').toLowerCase();
+                    let defaultPlatform = 'all';
+                    if (pLower.includes('netflix')) defaultPlatform = 'netflix';
+                    else if (pLower.includes('disney')) defaultPlatform = 'disney';
+                    else if (pLower.includes('hbo') || pLower.includes('max')) defaultPlatform = 'hbomax';
+                    else if (pLower.includes('prime')) defaultPlatform = 'prime';
+
                     html += `
                         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(52,152,219,0.08); border:1px solid rgba(52,152,219,0.3); border-radius:8px; padding:10px 14px; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
                             <div>
                                 <div style="font-weight:bold; color:white;">${m.clientName}</div>
                                 <div style="color:#aaa; font-size:0.78rem;">📱 ${phoneLabel} &nbsp;|&nbsp; 🏪 Vendedor: ${m.sellerName} &nbsp;|&nbsp; 🎬 ${m.product}</div>
                             </div>
-                            <button type="button"
-                                onclick="doResetAttemptFromSearch('${m.phone}', '${m.clientName.replace(/'/g, "\\'")}', ${idx})"
-                                style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:8px 14px; border-radius:7px; cursor:pointer; font-size:0.82rem;">
-                                <i class="fa-solid fa-rotate-right"></i> Habilitar
-                            </button>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <select id="inline-platform-reset-${idx}" style="padding: 6px; border-radius: 6px; background: rgba(0,0,0,0.8); color: white; border: 1px solid rgba(52,152,219,0.5); font-size: 0.8rem;">
+                                    <option value="netflix" ${defaultPlatform === 'netflix' ? 'selected' : ''}>Netflix</option>
+                                    <option value="disney" ${defaultPlatform === 'disney' ? 'selected' : ''}>Disney+</option>
+                                    <option value="hbomax" ${defaultPlatform === 'hbomax' ? 'selected' : ''}>HBO Max</option>
+                                    <option value="prime" ${defaultPlatform === 'prime' ? 'selected' : ''}>Prime Video</option>
+                                    <option value="all" ${defaultPlatform === 'all' ? 'selected' : ''}>TODAS LAS PANTALLAS</option>
+                                </select>
+                                <button type="button"
+                                    onclick="doResetAttemptFromSearch('${m.phone}', '${m.clientName.replace(/'/g, "\\'")}', ${idx})"
+                                    style="background:linear-gradient(135deg,#f39c12,#e67e22); border:none; color:white; font-weight:bold; padding:8px 14px; border-radius:7px; cursor:pointer; font-size:0.82rem;">
+                                    <i class="fa-solid fa-rotate-right"></i> Habilitar
+                                </button>
+                            </div>
                         </div>`;
                 });
                 resultDiv.innerHTML = html;
@@ -2558,7 +2575,8 @@
         };
 
         window.doResetAttemptFromSearch = async function (phone, clientName, idx) {
-            const platform = document.getElementById('admin-platform-reset').value;
+            const inlineSelect = document.getElementById(`inline-platform-reset-${idx}`);
+            const platform = inlineSelect ? inlineSelect.value : document.getElementById('admin-platform-reset').value;
             const platLabel = platform === 'all' ? 'TODAS LAS PANTALLAS' : platform.toUpperCase();
 
             if (!phone) {
