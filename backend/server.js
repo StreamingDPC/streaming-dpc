@@ -327,16 +327,21 @@ app.post('/api/activate-tv', async (req, res) => {
                     const sales = salesData[phone];
                     const salesArr = Array.isArray(sales) ? sales : Object.values(sales);
                     for (const sale of salesArr) {
-                        if (!sale || !sale.screens) continue;
-                        const screens = Array.isArray(sale.screens) ? sale.screens : Object.values(sale.screens);
-                        for (const screen of screens) {
-                            if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
-                                && screen.platform && screen.platform.toLowerCase().includes('netflix')
-                                && screen.password) {
-                                netflixPass = screen.password.trim();
-                                console.log(`[TV-BOT] Contraseña Netflix encontrada en clientSales (phone=${phone})`);
-                                break;
+                        if (!sale || !sale.items) continue;
+                        const items = Array.isArray(sale.items) ? sale.items : Object.values(sale.items);
+                        for (const item of items) {
+                            if (!item || !item.specificEmails) continue;
+                            const screens = Array.isArray(item.specificEmails) ? item.specificEmails : Object.values(item.specificEmails);
+                            for (const screen of screens) {
+                                if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
+                                    && screen.platform && screen.platform.toLowerCase().includes('netflix')
+                                    && screen.pass) {
+                                    netflixPass = screen.pass.trim();
+                                    console.log(`[TV-BOT] Contraseña Netflix encontrada en clientSales (phone=${phone})`);
+                                    break;
+                                }
                             }
+                            if (netflixPass) break;
                         }
                         if (netflixPass) break;
                     }
@@ -357,16 +362,21 @@ app.post('/api/activate-tv', async (req, res) => {
                         const sales = sellerData[seller];
                         const salesArr = Array.isArray(sales) ? sales : Object.values(sales);
                         for (const sale of salesArr) {
-                            if (!sale || !sale.screens) continue;
-                            const screens = Array.isArray(sale.screens) ? sale.screens : Object.values(sale.screens);
-                            for (const screen of screens) {
-                                if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
-                                    && screen.platform && screen.platform.toLowerCase().includes('netflix')
-                                    && screen.password) {
-                                    netflixPass = screen.password.trim();
-                                    console.log(`[TV-BOT] Contraseña Netflix encontrada en sellerSales (seller=${seller})`);
-                                    break;
+                            if (!sale || !sale.items) continue;
+                            const items = Array.isArray(sale.items) ? sale.items : Object.values(sale.items);
+                            for (const item of items) {
+                                if (!item || !item.specificEmails) continue;
+                                const screens = Array.isArray(item.specificEmails) ? item.specificEmails : Object.values(item.specificEmails);
+                                for (const screen of screens) {
+                                    if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
+                                        && screen.platform && screen.platform.toLowerCase().includes('netflix')
+                                        && screen.pass) {
+                                        netflixPass = screen.pass.trim();
+                                        console.log(`[TV-BOT] Contraseña Netflix encontrada en sellerSales (seller=${seller})`);
+                                        break;
+                                    }
                                 }
+                                if (netflixPass) break;
                             }
                             if (netflixPass) break;
                         }
