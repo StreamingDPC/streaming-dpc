@@ -426,17 +426,26 @@
                         <!-- Estado de activación TV -->
                         <div id="tv-activation-loading" style="display:none; text-align:center; margin-top:1rem;">
                             <i class="fa-solid fa-spinner fa-spin" style="color:#E50914; font-size:1.5rem;"></i>
-                            <p style="color:#aaa; font-size:0.85rem; margin-top:0.4rem;">Activando tu TV... pode tardar
-                                unos segundos.</p>
+                            <p style="color:#aaa; font-size:0.85rem; margin-top:0.4rem;">Registrando código e iniciando
+                                proceso...</p>
                         </div>
                         <div id="tv-activation-result"
-                            style="display:none; margin-top:1rem; text-align:center; padding:1rem; border-radius:10px; background:rgba(46,204,113,0.1); border:1px solid #2ecc71;">
-                            <i class="fa-solid fa-circle-check"
-                                style="color:#2ecc71; font-size:2rem; margin-bottom:0.5rem;"></i>
-                            <p style="color:#2ecc71; font-weight:bold;"><id="tv-activation-msg">¡TV Activada
-                                    Exitosamente!</p>
-                            <p style="color:#aaa; font-size:0.8rem; margin-top:0.3rem;">Ya puedes ver Netflix en tu
-                                Smart TV sin necesidad de ingresar contraseña.</p>
+                            style="display:none; margin-top:1rem; text-align:center; padding:1.2rem; border-radius:10px; background:rgba(243, 156, 18, 0.1); border:1px solid #f39c12;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"
+                                style="color:#f39c12; font-size:2rem; margin-bottom:0.5rem;"
+                                id="tv-activation-icon"></i>
+                            <p style="color:#f39c12; font-weight:bold; font-size:1.1rem; margin-bottom: 0.3rem;"
+                                id="tv-activation-msg">¡Último Paso!</p>
+                            <p style="color:#eee; font-size:0.9rem; margin-top:0.3rem;">Se va a abrir Netflix en tu
+                                celular. Allí, simplemente dale <strong>Pegar</strong> al código para finalizar la
+                                activación:</p>
+                            <p style="color:white; font-size:1.5rem; letter-spacing:3px; font-weight:bold; margin-top:0.8rem; background:rgba(0,0,0,0.5); padding:8px; border-radius:8px;"
+                                id="tv-activation-code-show">----</p>
+
+                            <a href="https://www.netflix.com/tv8" target="_blank"
+                                style="display:inline-block; margin-top:1rem; background:linear-gradient(135deg, #f39c12, #e67e22); color:white; font-weight:bold; padding:12px 25px; border-radius:8px; text-decoration:none; font-size:1rem; box-shadow:0 4px 15px rgba(243,156,18,0.4);">
+                                <i class="fa-solid fa-play"></i> Continuar en Netflix
+                            </a>
                         </div>
                         <div id="tv-activation-error"
                             style="display:none; margin-top:1rem; text-align:center; padding:0.8rem; border-radius:10px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d;">

@@ -1760,11 +1760,8 @@ function setupEventListeners() {
                 document.getElementById('tv-activation-result').style.display = 'block';
                 document.getElementById('tv-activation-error').style.display = 'none';
 
-                // Redirigir a la TV form de Netflix
-                setTimeout(() => {
-                    alert(`\u2705 Código ${tvCode} copiado (si tu dispositivo lo permite).\n\nSerás redirigido a Netflix. Si te pide el código de TV, pégalo allí para finalizar.`);
-                    window.open('https://www.netflix.com/tv8', '_blank');
-                }, 300);
+                // Mostrar el código visualmente
+                document.getElementById('tv-activation-code-show').innerText = tvCode;
 
             } catch (err) {
                 document.getElementById('tv-activation-loading').style.display = 'none';
