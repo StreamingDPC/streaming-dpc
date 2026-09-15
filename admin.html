@@ -1254,6 +1254,28 @@
                             style="width:100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color:white; font-size:0.95rem;">
                     </div>
 
+                    <!-- Barra de acciones de selección múltiple -->
+                    <div id="email-bulk-toolbar"
+                        style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); margin-bottom:1rem;">
+                        <label
+                            style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.9rem; color:#ccc; white-space:nowrap;">
+                            <input type="checkbox" id="email-select-all"
+                                onchange="toggleAllEmailSelections(this.checked)"
+                                style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent-primary);">
+                            Sel. todas
+                        </label>
+                        <span id="email-selection-count"
+                            style="font-size:0.82rem; color:#aaa; flex:1; white-space:nowrap;">0 seleccionadas</span>
+                        <button onclick="deleteSelectedEmailAccounts()"
+                            style="background:linear-gradient(135deg,#c0392b,#e74c3c); border:none; color:white; font-weight:bold; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <i class="fa-solid fa-trash-can"></i> Eliminar Seleccionadas
+                        </button>
+                        <button onclick="deduplicateEmailAccounts()"
+                            style="background:linear-gradient(135deg,#8e44ad,#9b59b6); border:none; color:white; font-weight:bold; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Eliminar Duplicados
+                        </button>
+                    </div>
+
                     <div id="email-accounts-list" style="display:flex; flex-direction:column; gap:10px;">
                         <!-- Lista de correos -->
                         <p style="color:#777; text-align:center;">Cargando cuentas vinculadas...</p>
@@ -2155,6 +2177,12 @@
                     return;
                 }
 
+                // Reset master checkbox
+                const masterCb = document.getElementById('email-select-all');
+                if (masterCb) masterCb.checked = false;
+                const countEl = document.getElementById('email-selection-count');
+                if (countEl) countEl.textContent = '0 seleccionadas';
+
                 keys.forEach(key => {
                     const acc = accounts[key];
                     const pass = acc.password || "";
@@ -2163,7 +2191,15 @@
 
                     const div = document.createElement('div');
                     div.className = 'admin-item';
+                    div.dataset.emailKey = key;
+                    div.dataset.emailVal = (acc.email || '').toLowerCase().trim();
+                    div.style.transition = 'background 0.2s';
                     div.innerHTML = `
+                        <label style="display:flex; align-items:center; padding-right:8px; cursor:pointer;">
+                            <input type="checkbox" class="email-item-cb" data-key="${key}"
+                                onchange="updateEmailSelectionCount()"
+                                style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent-primary);">
+                        </label>
                         <div style="color:var(--accent-primary); font-size:1.5rem;"><i class="fa-solid fa-envelope"></i></div>
                         <div style="flex:1;">
                             <strong style="color:white; font-size:1rem;">${acc.email}</strong><br>
@@ -2268,6 +2304,89 @@
         window.deleteEmailAccount = function (key) {
             if (confirm('¿Estás seguro de que quieres eliminar esta cuenta de correo? El lector de PIN dejará de funcionar para los clientes asociados a este email.')) {
                 db.ref('emailAccounts/' + key).remove();
+            }
+        }
+
+        // =====================================================
+        // SELECCIÓN MÚLTIPLE: helpers
+        // =====================================================
+        window.updateEmailSelectionCount = function () {
+            const checkboxes = document.querySelectorAll('.email-item-cb');
+            const checked = document.querySelectorAll('.email-item-cb:checked');
+            const countEl = document.getElementById('email-selection-count');
+            const masterCb = document.getElementById('email-select-all');
+            if (countEl) countEl.textContent = `${checked.length} seleccionada${checked.length !== 1 ? 's' : ''}`;
+            if (masterCb) {
+                masterCb.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+                masterCb.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
+            }
+            // Highlight selected rows
+            document.querySelectorAll('.admin-item').forEach(item => {
+                const cb = item.querySelector('.email-item-cb');
+                if (cb) {
+                    item.style.background = cb.checked
+                        ? 'rgba(231,76,60,0.12)'
+                        : '';
+                    item.style.borderColor = cb.checked
+                        ? 'rgba(231,76,60,0.35)'
+                        : '';
+                }
+            });
+        }
+
+        window.toggleAllEmailSelections = function (checked) {
+            document.querySelectorAll('.email-item-cb').forEach(cb => { cb.checked = checked; });
+            updateEmailSelectionCount();
+        }
+
+        window.deleteSelectedEmailAccounts = async function () {
+            const checked = document.querySelectorAll('.email-item-cb:checked');
+            if (checked.length === 0) return alert('No hay cuentas seleccionadas.');
+
+            if (!confirm(`¿Eliminar ${checked.length} cuenta${checked.length !== 1 ? 's' : ''} seleccionada${checked.length !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`)) return;
+
+            const keys = Array.from(checked).map(cb => cb.dataset.key);
+            try {
+                await Promise.all(keys.map(k => db.ref('emailAccounts/' + k).remove()));
+                alert(`✅ ${keys.length} cuenta${keys.length !== 1 ? 's' : ''} eliminada${keys.length !== 1 ? 's' : ''} correctamente.`);
+            } catch (e) {
+                alert('Error al eliminar cuentas: ' + e.message);
+            }
+        }
+
+        // =====================================================
+        // ELIMINAR DUPLICADOS
+        // =====================================================
+        window.deduplicateEmailAccounts = async function () {
+            const snap = await db.ref('emailAccounts').once('value');
+            const accounts = snap.val();
+            if (!accounts) return alert('No hay cuentas de correo registradas.');
+
+            const seen = {};
+            const toDelete = [];
+
+            Object.entries(accounts).forEach(([key, acc]) => {
+                const normalizedEmail = (acc.email || '').toLowerCase().trim();
+                if (!normalizedEmail) return;
+                if (seen[normalizedEmail]) {
+                    toDelete.push({ key, email: acc.email });
+                } else {
+                    seen[normalizedEmail] = key;
+                }
+            });
+
+            if (toDelete.length === 0) {
+                return alert('✅ No se encontraron cuentas duplicadas. ¡Tu lista está limpia!');
+            }
+
+            const list = toDelete.map(d => `• ${d.email}`).join('\n');
+            if (!confirm(`Se encontraron ${toDelete.length} duplicado${toDelete.length !== 1 ? 's' : ''} (se conservará la primera ocurrencia de cada correo):\n\n${list}\n\n¿Deseas eliminarlos?`)) return;
+
+            try {
+                await Promise.all(toDelete.map(d => db.ref('emailAccounts/' + d.key).remove()));
+                alert(`✅ ${toDelete.length} cuenta${toDelete.length !== 1 ? 's' : ''} duplicada${toDelete.length !== 1 ? 's' : ''} eliminada${toDelete.length !== 1 ? 's' : ''} correctamente.`);
+            } catch (e) {
+                alert('Error al eliminar duplicados: ' + e.message);
             }
         }
 
