@@ -431,8 +431,16 @@ app.post('/api/activate-tv', async (req, res) => {
         console.log(`[TV-BOT] URL tras login: ${currentUrl}`);
 
         if (currentUrl.includes('/login')) {
+            // Extraer el texto de error de la página para diagnosticar la causa exacta
+            const errorText = await page.evaluate(() => {
+                const errDiv = document.querySelector('.ui-message-contents, header, .error-message, [data-uia="error-message-container"]');
+                return errDiv ? errDiv.innerText : document.body.innerText.substring(0, 300);
+            });
             await browser.close();
-            return res.status(401).json({ success: false, error: 'Credenciales de Netflix incorrectas. Verifica la contraseña en la configuración.' });
+            return res.status(401).json({
+                success: false,
+                error: `Netflix rechazó el inicio de sesión. Razón de Netflix: "${errorText.replace(/\n'/g, ' ')}". Verifica la contraseña de Netflix (envió: ${netflixPass}).`
+            });
         }
 
         // 8. Navegar a la página de activación de TV
