@@ -1534,11 +1534,24 @@ function setupEventListeners() {
             // Validar si el intento YA fue consumido para esta plataforma en específico
             const fetchBtn = document.getElementById('fetch-code-btn');
             if (fetchBtn) {
-                if (window.clientUsedAttempts && window.clientUsedAttempts[chosen] === true) {
+                let isExhausted = false;
+                if (window.clientUsedAttempts) {
+                    if (chosen === 'netflix_update') {
+                        const updatesUsed = parseInt(window.clientUsedAttempts[chosen]) || 0;
+                        if (updatesUsed >= 2) isExhausted = true;
+                    } else if (window.clientUsedAttempts[chosen] === true) {
+                        isExhausted = true;
+                    }
+                }
+
+                if (isExhausted) {
                     fetchBtn.disabled = true;
-                    fetchBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Intento de esta plataforma agotado';
+                    fetchBtn.innerHTML = chosen === 'netflix_update' ? '<i class="fa-solid fa-lock"></i> Límite de Actualizaciones superado (2/2)' : '<i class="fa-solid fa-lock"></i> Intento de esta plataforma agotado';
                     fetchBtn.style.opacity = '0.5';
                     fetchBtn.style.cursor = 'not-allowed';
+                    if (chosen === 'netflix_update') {
+                        setTimeout(() => alert('Atención: Ya has utilizado tus 2 intentos de actualización de hogar (solo se permite 1 cliente por hogar). Por favor, solicita a tu vendedor un CAMBIO DE CUENTA para evitar que pierdas el acceso.'), 500);
+                    }
                 } else {
                     fetchBtn.disabled = false;
                     fetchBtn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Buscar mi Código';
@@ -1579,11 +1592,17 @@ function setupEventListeners() {
 
                 if (data.success && data.code) {
                     // ✅ ÉXITO: Marcar el intento de ESTA PLATAFORMA como USADO en Firebase
-                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/${platform}`).set(true);
-
-                    // Actualizar estado local preventivamente
                     if (!window.clientUsedAttempts) window.clientUsedAttempts = {};
-                    window.clientUsedAttempts[platform] = true;
+
+                    if (platform === 'netflix_update') {
+                        const currentAttempts = parseInt(window.clientUsedAttempts[platform]) || 0;
+                        const nextCount = currentAttempts + 1;
+                        await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/${platform}`).set(nextCount);
+                        window.clientUsedAttempts[platform] = nextCount;
+                    } else {
+                        await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/${platform}`).set(true);
+                        window.clientUsedAttempts[platform] = true;
+                    }
 
                     await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeHistory`).push({
                         code: data.code,
