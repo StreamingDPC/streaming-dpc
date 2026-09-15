@@ -365,6 +365,17 @@
                                 <span style="font-size:1.1rem;">📦</span> Prime Video (1 vez)
                             </button>
                         </div>
+
+                        <label
+                            style="display: block; margin-top: 1rem; margin-bottom: 0.7rem; font-weight: 600;">Actualizaciones
+                            de Red / Hogar:</label>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 0.6rem;">
+                            <button type="button" class="platform-tab-btn" data-platform="netflix_update"
+                                style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(229,9,20,0.1); color:#aaa; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">
+                                <span style="font-size:1.1rem;">🏠</span> Actualiza tu Hogar con Netflix (1 vez)
+                            </button>
+                        </div>
+
                         <!-- Campo oculto que guarda la plataforma activa -->
                         <input type="hidden" id="code-platform" value="netflix">
                     </div>
@@ -392,11 +403,23 @@
                     <!-- Result Code Box -->
                     <div id="code-result"
                         style="display: none; margin-top: 1.5rem; background: var(--glass); border: 1px solid var(--accent-primary); border-radius: 16px; padding: 1.5rem; text-align: center;">
-                        <h3 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Tu código de
+                        <h3 id="code-result-title"
+                            style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Tu código de
                             acceso es:</h3>
+
+                        <!-- Contenedor númerico -->
                         <div id="the-magic-code"
                             style="font-size: 2.5rem; font-weight: 900; letter-spacing: 5px; color: white;">----</div>
-                        <p style="font-size: 0.8rem; color: #ff4d4d; margin-top: 0.5rem;"><i
+
+                        <!-- Contenedor Enlace -->
+                        <div id="the-magic-link-container" style="display: none; margin-top: 0.5rem;">
+                            <a id="the-magic-link-btn" href="#" target="_blank"
+                                style="display:inline-block; background:linear-gradient(135deg, #E50914, #B81D24); color:white; font-weight:bold; padding:15px 30px; border-radius:10px; text-decoration:none; font-size:1.1rem; box-shadow:0 4px 15px rgba(229,9,20,0.4);">
+                                <i class="fa-solid fa-house-circle-check"></i> Clic aquí para Aceptar Actualización
+                            </a>
+                        </div>
+
+                        <p style="font-size: 0.8rem; color: #ff4d4d; margin-top: 1rem;"><i
                                 class="fa-solid fa-clock"></i> Tienes <strong>15 minutos</strong> para usarlo. Esta fue
                             tu única oportunidad.</p>
                     </div>

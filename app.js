@@ -1393,6 +1393,7 @@ function setupEventListeners() {
                 // Mapear plataformas activas y sus correos
                 window.clientActivePlatforms = {
                     netflix: new Set(),
+                    netflix_update: new Set(),
                     disney: new Set(),
                     hbomax: new Set(),
                     prime: new Set(),
@@ -1419,7 +1420,13 @@ function setupEventListeners() {
                                 item.specificEmails.forEach(se => {
                                     if (se.email) {
                                         const emailL = se.email.toLowerCase().trim();
-                                        if (itemPlatform) window.clientActivePlatforms[itemPlatform].add(emailL);
+                                        if (itemPlatform) {
+                                            window.clientActivePlatforms[itemPlatform].add(emailL);
+                                            // Si tiene Netflix normal, automáticamente habilita poder buscar actualización de hogar:
+                                            if (itemPlatform === 'netflix') {
+                                                window.clientActivePlatforms['netflix_update'].add(emailL);
+                                            }
+                                        }
                                         else window.clientActivePlatforms.global.add(emailL);
                                     }
                                 });
@@ -1478,6 +1485,7 @@ function setupEventListeners() {
     // =============================================
     const PLATFORM_STYLES = {
         netflix: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
+        netflix_update: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
         disney: { border: '#005AD6', bg: 'rgba(0,90,214,0.18)', color: 'white' },
         hbomax: { border: '#8A2BE2', bg: 'rgba(50,0,120,0.25)', color: 'white' },
         prime: { border: '#00A8E1', bg: 'rgba(0,168,225,0.18)', color: 'white' }
@@ -1586,7 +1594,26 @@ function setupEventListeners() {
 
                     document.getElementById('code-loading').style.display = 'none';
                     document.getElementById('code-result').style.display = 'block';
-                    document.getElementById('the-magic-code').innerText = data.code;
+
+                    const codeVal = data.code.toString().trim();
+                    const titleEl = document.getElementById('code-result-title');
+                    const magicCodeEl = document.getElementById('the-magic-code');
+                    const linkContainer = document.getElementById('the-magic-link-container');
+                    const linkBtn = document.getElementById('the-magic-link-btn');
+
+                    // Si el código que trajo es un enlace (empieza con http)
+                    if (codeVal.startsWith('http://') || codeVal.startsWith('https://')) {
+                        titleEl.innerText = "Confirmación requerida:";
+                        magicCodeEl.style.display = 'none';
+                        linkContainer.style.display = 'block';
+                        linkBtn.href = codeVal;
+                    } else {
+                        titleEl.innerText = "Tu código de acceso es:";
+                        linkContainer.style.display = 'none';
+                        magicCodeEl.style.display = 'block';
+                        magicCodeEl.innerText = codeVal;
+                    }
+
                     // No mostrar el botón de nuevo — ya usó su intento
                 } else {
                     // ❌ Código no encontrado: NO consumir el intento
