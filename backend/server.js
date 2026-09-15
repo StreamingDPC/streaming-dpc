@@ -5,7 +5,13 @@ const imaps = require('imap-simple');
 const simpleParser = require('mailparser').simpleParser;
 const axios = require('axios');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer-core');
+
+// Anti-bot
+const puppeteerCore = require('puppeteer-core');
+const { addExtra } = require('puppeteer-extra');
+const puppeteer = addExtra(puppeteerCore);
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const chromium = require('@sparticuz/chromium');
 
 const app = express();
