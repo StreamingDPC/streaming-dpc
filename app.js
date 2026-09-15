@@ -1459,6 +1459,25 @@ function setupEventListeners() {
                     emailSelect.innerHTML = '<option value="">-- No tienes pantallas activas --</option>';
                     platformTabBtns.forEach(btn => btn.style.display = 'none');
                 }
+
+                // Poblar específicamente el selector de correos para Activar TV (Solo Netflix y global)
+                const tvEmailSelect = document.getElementById('tv-email-select');
+                if (tvEmailSelect && window.clientActivePlatforms) {
+                    const netflixEmails = window.clientActivePlatforms.netflix || new Set();
+                    const globEmails = window.clientActivePlatforms.global || new Set();
+                    const combined = new Set([...netflixEmails, ...globEmails]);
+
+                    tvEmailSelect.innerHTML = '';
+                    if (combined.size > 0) {
+                        combined.forEach(em => {
+                            const opt = document.createElement('option');
+                            opt.value = opt.textContent = em;
+                            tvEmailSelect.appendChild(opt);
+                        });
+                    } else {
+                        tvEmailSelect.innerHTML = '<option value="">-- Sin cuentas Netflix --</option>';
+                    }
+                }
             } catch (e) {
                 emailSelect.innerHTML = '<option value="">-- Error al cargar cuentas --</option>';
             }
@@ -1711,11 +1730,11 @@ function setupEventListeners() {
     if (activateTvBtn) {
         activateTvBtn.addEventListener('click', async () => {
             const tvCode = document.getElementById('tv-code-input').value.trim();
-            const emailSelect = document.getElementById('code-email');
+            const emailSelect = document.getElementById('tv-email-select');
             const email = emailSelect ? emailSelect.value.trim() : '';
 
-            if (!tvCode) return alert('\u26a0\ufe0f Ingresa el c\u00f3digo que aparece en tu TV.');
-            if (!clientPhoneLoggedIn) return alert('Debes iniciar sesi\u00f3n primero.');
+            if (!tvCode) return alert('\u26a0\ufe0f Ingresa el código que aparece en tu TV.');
+            if (!clientPhoneLoggedIn) return alert('Debes iniciar sesión primero.');
             if (!email) return alert('Selecciona el correo de tu cuenta Netflix.');
 
             document.getElementById('tv-activation-loading').style.display = 'block';

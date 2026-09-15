@@ -400,8 +400,20 @@
                         <p style="font-size:0.85rem; color:#aaa; margin-bottom:1rem;">
                             <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i>
                             En tu Smart TV selecciona <strong style="color:white;">"Usar correo o teléfono"</strong> y
-                            aparecerá un código. Ingósalo aquí y tu TV quedará activa.
+                            aparecerá un código. Ingrésalo aquí y tu TV quedará activa.
                         </p>
+
+                        <!-- Correo con que se activará -->
+                        <div style="margin-bottom:0.8rem;">
+                            <label style="display:block; font-size:0.82rem; color:#aaa; margin-bottom:0.4rem;"><i
+                                    class="fa-solid fa-envelope" style="color:#E50914;"></i> Cuenta Netflix a
+                                usar:</label>
+                            <select id="tv-email-select" class="input-modern"
+                                style="font-size:0.9rem; padding:10px 12px;">
+                                <option value="">-- Selecciona correo --</option>
+                            </select>
+                        </div>
+
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                             <input type="text" id="tv-code-input" maxlength="9" placeholder="Ej: 2318-4691"
                                 style="flex:1; min-width:140px; padding:12px 15px; border-radius:8px; border:1px solid rgba(229,9,20,0.5); background:rgba(0,0,0,0.5); color:white; font-size:1.1rem; font-weight:700; letter-spacing:3px; text-align:center; text-transform:uppercase;"
