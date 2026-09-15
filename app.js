@@ -1686,6 +1686,73 @@ function setupEventListeners() {
         });
     }
 
+    // ============================================
+    // ACTIVAR TV (netflix.com/tv8)
+    // ============================================
+    const showTvBtn = document.getElementById('show-tv-login-btn');
+    const tvPanel = document.getElementById('tv-login-panel');
+    const activateTvBtn = document.getElementById('activate-tv-btn');
+
+    if (showTvBtn && tvPanel) {
+        showTvBtn.addEventListener('click', () => {
+            const isOpen = tvPanel.style.display !== 'none';
+            tvPanel.style.display = isOpen ? 'none' : 'block';
+            showTvBtn.style.borderColor = isOpen ? 'rgba(255,255,255,0.2)' : '#E50914';
+            showTvBtn.style.color = isOpen ? '#aaa' : 'white';
+            showTvBtn.style.background = isOpen ? 'rgba(60,60,60,0.2)' : 'rgba(229,9,20,0.15)';
+            if (!isOpen) {
+                document.getElementById('tv-activation-loading').style.display = 'none';
+                document.getElementById('tv-activation-result').style.display = 'none';
+                document.getElementById('tv-activation-error').style.display = 'none';
+            }
+        });
+    }
+
+    if (activateTvBtn) {
+        activateTvBtn.addEventListener('click', async () => {
+            const tvCode = document.getElementById('tv-code-input').value.trim();
+            const emailSelect = document.getElementById('code-email');
+            const email = emailSelect ? emailSelect.value.trim() : '';
+
+            if (!tvCode) return alert('\u26a0\ufe0f Ingresa el c\u00f3digo que aparece en tu TV.');
+            if (!clientPhoneLoggedIn) return alert('Debes iniciar sesi\u00f3n primero.');
+            if (!email) return alert('Selecciona el correo de tu cuenta Netflix.');
+
+            document.getElementById('tv-activation-loading').style.display = 'block';
+            document.getElementById('tv-activation-result').style.display = 'none';
+            document.getElementById('tv-activation-error').style.display = 'none';
+            activateTvBtn.disabled = true;
+
+            try {
+                const serverUrl = 'https://streaming-backend-ce1u.onrender.com/api/activate-tv';
+                const response = await fetch(serverUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
+                });
+                const data = await response.json();
+
+                document.getElementById('tv-activation-loading').style.display = 'none';
+                if (data.success) {
+                    document.getElementById('tv-activation-result').style.display = 'block';
+                    // Guardar registro en Firebase
+                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({
+                        tvCode, email, timestamp: Date.now()
+                    });
+                } else {
+                    document.getElementById('tv-activation-error').style.display = 'block';
+                    document.getElementById('tv-error-msg').innerText = data.error || 'C\u00f3digo inv\u00e1lido o expirado. Verifica el c\u00f3digo en tu TV e int\u00e9ntalo de nuevo.';
+                    activateTvBtn.disabled = false;
+                }
+            } catch (err) {
+                document.getElementById('tv-activation-loading').style.display = 'none';
+                document.getElementById('tv-activation-error').style.display = 'block';
+                document.getElementById('tv-error-msg').innerText = 'Error de red. Verifica tu conexi\u00f3n e intenta de nuevo.';
+                activateTvBtn.disabled = false;
+            }
+        });
+    }
+
     // Checkout
     checkoutBtn.addEventListener('click', () => {
         const policyCheck = document.getElementById('accept-billing-policy');

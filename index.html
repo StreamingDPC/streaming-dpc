@@ -383,6 +383,57 @@
                         <input type="hidden" id="code-platform" value="netflix">
                     </div>
 
+                    <!-- SECCIÓN TV -->
+                    <div style="margin-bottom: 1rem;">
+                        <label
+                            style="display: block; margin-top: 1rem; margin-bottom: 0.7rem; font-weight: 600;">Activar
+                            Dispositivo (Smart TV):</label>
+                        <button id="show-tv-login-btn" type="button"
+                            style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(60,60,60,0.2); color:#aaa; font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s; width:100%;">
+                            <span style="font-size:1.1rem;">📺</span> Iniciar sesión en TV
+                        </button>
+                    </div>
+
+                    <!-- Panel TV: aparece al dar clic -->
+                    <div id="tv-login-panel"
+                        style="display:none; margin-bottom:1.2rem; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:1.2rem;">
+                        <p style="font-size:0.85rem; color:#aaa; margin-bottom:1rem;">
+                            <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i>
+                            En tu Smart TV selecciona <strong style="color:white;">"Usar correo o teléfono"</strong> y
+                            aparecerá un código. Ingósalo aquí y tu TV quedará activa.
+                        </p>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <input type="text" id="tv-code-input" maxlength="9" placeholder="Ej: 2318-4691"
+                                style="flex:1; min-width:140px; padding:12px 15px; border-radius:8px; border:1px solid rgba(229,9,20,0.5); background:rgba(0,0,0,0.5); color:white; font-size:1.1rem; font-weight:700; letter-spacing:3px; text-align:center; text-transform:uppercase;"
+                                oninput="this.value = this.value.replace(/[^0-9A-Za-z\-]/g, '')">
+                            <button id="activate-tv-btn" type="button"
+                                style="background:linear-gradient(135deg,#E50914,#B81D24); border:none; color:white; font-weight:bold; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:0.95rem; white-space:nowrap; box-shadow:0 4px 10px rgba(229,9,20,0.3);">
+                                <i class="fa-solid fa-tv"></i> Activar TV
+                            </button>
+                        </div>
+                        <!-- Estado de activación TV -->
+                        <div id="tv-activation-loading" style="display:none; text-align:center; margin-top:1rem;">
+                            <i class="fa-solid fa-spinner fa-spin" style="color:#E50914; font-size:1.5rem;"></i>
+                            <p style="color:#aaa; font-size:0.85rem; margin-top:0.4rem;">Activando tu TV... pode tardar
+                                unos segundos.</p>
+                        </div>
+                        <div id="tv-activation-result"
+                            style="display:none; margin-top:1rem; text-align:center; padding:1rem; border-radius:10px; background:rgba(46,204,113,0.1); border:1px solid #2ecc71;">
+                            <i class="fa-solid fa-circle-check"
+                                style="color:#2ecc71; font-size:2rem; margin-bottom:0.5rem;"></i>
+                            <p style="color:#2ecc71; font-weight:bold;"><id="tv-activation-msg">¡TV Activada
+                                    Exitosamente!</p>
+                            <p style="color:#aaa; font-size:0.8rem; margin-top:0.3rem;">Ya puedes ver Netflix en tu
+                                Smart TV sin necesidad de ingresar contraseña.</p>
+                        </div>
+                        <div id="tv-activation-error"
+                            style="display:none; margin-top:1rem; text-align:center; padding:0.8rem; border-radius:10px; background:rgba(255,77,77,0.1); border:1px solid #ff4d4d;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color:#ff4d4d;"></i>
+                            <p id="tv-error-msg" style="color:#ff4d4d; font-size:0.85rem; margin-top:0.3rem;">No se pudo
+                                activar. Verifica el código e intenta de nuevo.</p>
+                        </div>
+                    </div>
+
                     <div style="margin-bottom: 1.5rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Correo de tu
                             cuenta:</label>
