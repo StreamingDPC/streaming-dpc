@@ -436,7 +436,7 @@ app.post('/api/activate-tv', async (req, res) => {
             await page.click('button[type="submit"]');
 
             // Esperar a que Netflix procese
-            await page.waitForTimeout(3000);
+            await new Promise(r => setTimeout(r, 3000));
 
             // Buscar si pide código por email (PIN) y necesitamos darle a "Usar contraseña"
             console.log(`[TV-BOT] Buscando opcion 'Usar contraseña' u 'Obtener ayuda'...`);
@@ -466,7 +466,7 @@ app.post('/api/activate-tv', async (req, res) => {
             });
 
             // Esperar a que la contraseña esté visible tras los clicks (ignorando catch x si pasa directo)
-            await page.waitForTimeout(1500);
+            await new Promise(r => setTimeout(r, 1500));
             await page.waitForSelector('input[name="password"]', { visible: true, timeout: 10000 }).catch(e => console.log('[TV-BOT] Timeout al esperar input password'));
         }
 
@@ -476,14 +476,14 @@ app.post('/api/activate-tv', async (req, res) => {
 
         // 6. Click en Sign In
         console.log(`[TV-BOT] Clickeando Sign In...`);
-        await page.waitForTimeout(500);
+        await new Promise(r => setTimeout(r, 500));
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => { }), // No fallar si no navega (por ej. si da error)
             page.click('button[type="submit"]')
         ]);
 
         console.log(`[TV-BOT] Credenciales enviadas, esperando sesión...`);
-        await page.waitForTimeout(3000);
+        await new Promise(r => setTimeout(r, 3000));
 
         // Verificar si el login fue exitoso (si redirige a /browse o /tv*)
         const currentUrl = page.url();
@@ -531,7 +531,7 @@ app.post('/api/activate-tv', async (req, res) => {
         console.log(`[TV-BOT] Código ${tvCode} ingresado, buscando botón de confirmar...`);
 
         // 10. Click en el botón de confirmar / continuar
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
         const submitBtn = await page.$('button[type="submit"], button.nf-btn-primary, button[data-uia="action-button"]');
         if (submitBtn) {
             await submitBtn.click();
@@ -540,7 +540,7 @@ app.post('/api/activate-tv', async (req, res) => {
         }
 
         // 11. Esperar resultado (3-5 seg)
-        await page.waitForTimeout(4000);
+        await new Promise(r => setTimeout(r, 4000));
         const finalUrl = page.url();
         const pageText = await page.evaluate(() => document.body.innerText);
         console.log(`[TV-BOT] URL final: ${finalUrl}`);
