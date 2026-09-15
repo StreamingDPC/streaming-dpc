@@ -413,7 +413,7 @@ app.post('/api/activate-tv', async (req, res) => {
 
         // 4. Ingresar email
         await page.waitForSelector('input[name="userLoginId"]', { timeout: 10000 });
-        await page.type('input[name="userLoginId"]', account.email, { delay: 80 });
+        await page.type('input[name="userLoginId"]', targetEmail, { delay: 80 });
 
         // 5. Ingresar contraseña
         await page.waitForSelector('input[name="password"]', { timeout: 10000 });
@@ -498,9 +498,9 @@ app.post('/api/activate-tv', async (req, res) => {
 
         // Dar mensaje específico según el error
         if (err.message.includes('timeout') || err.message.includes('Navigation')) {
-            return res.status(500).json({ success: false, error: 'Netflix tardó demasiado en responder. Intenta de nuevo en un momento.' });
+            return res.status(500).json({ success: false, error: 'Netflix tardó demasiado en responder. Intenta de nuevo en un momento. Detalle: ' + err.message });
         }
-        return res.status(500).json({ success: false, error: 'Error al activar la TV. Intenta de nuevo o contacta al administrador.' });
+        return res.status(500).json({ success: false, error: 'Error interno: ' + err.message });
     }
 });
 
