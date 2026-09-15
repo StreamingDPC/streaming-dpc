@@ -410,16 +410,23 @@ app.post('/api/activate-tv', async (req, res) => {
 
         const page = await browser.newPage();
 
-        // User-Agent real para no ser detectado como bot
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        // User-Agent real de iPhone para evadir ReCaptcha de escritorio
+        await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1');
+        await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
 
-        // 3. Ir a la página de login de Netflix
-        console.log(`[TV-BOT] Navegando a Netflix login...`);
-        await page.goto('https://www.netflix.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
+        // 3. Ir a la página de activación directamente (forzará redirección a login legado)
+        console.log(`[TV-BOT] Navegando a Netflix tv8 para redireccion...`);
+        await page.goto('https://www.netflix.com/tv8', { waitUntil: 'networkidle2', timeout: 30000 });
+
+        // Esperar a que cargue algo el DOM
+        await new Promise(r => setTimeout(r, 2000));
+        const redirectedUrl = page.url();
+        console.log(`[TV-BOT] URL actual tras intentar tv8: ${redirectedUrl}`);
 
         // 4. Ingresar email
         await page.waitForSelector('input[name="userLoginId"]', { visible: true, timeout: 10000 });
-        await page.type('input[name="userLoginId"]', targetEmail, { delay: 85 });
+        await new Promise(r => setTimeout(r, 1000)); // pausa humana
+        await page.type('input[name="userLoginId"]', targetEmail, { delay: 95 });
 
         // Verificar flujo de 2 pasos (si la contraseña no está visible)
         let passVisible = false;
