@@ -571,13 +571,32 @@ app.post('/api/activate-tv', async (req, res) => {
 
     } catch (err) {
         console.error('[TV-BOT] Error:', err.message);
-        if (browser) { try { await browser.close(); } catch (e) { } }
+
+        let customScreenshot = null;
+        if (browser && !err.message.includes('browser has disconnected')) {
+            try {
+                const pages = await browser.pages();
+                if (pages.length > 0) {
+                    customScreenshot = await pages[0].screenshot({ encoding: 'base64' });
+                }
+                await browser.close();
+            } catch (e) { }
+        }
+
+        const errorPayload = {
+            success: false,
+            error: 'Error interno: ' + err.message
+        };
+        if (customScreenshot) {
+            errorPayload.screenshot = `data:image/png;base64,${customScreenshot}`;
+        }
 
         // Dar mensaje específico según el error
         if (err.message.includes('timeout') || err.message.includes('Navigation')) {
-            return res.status(500).json({ success: false, error: 'Netflix tardó demasiado en responder. Intenta de nuevo en un momento. Detalle: ' + err.message });
+            errorPayload.error = 'Netflix tardó demasiado. Detalle: ' + err.message;
+            return res.status(500).json(errorPayload);
         }
-        return res.status(500).json({ success: false, error: 'Error interno: ' + err.message });
+        return res.status(500).json(errorPayload);
     }
 });
 
