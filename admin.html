@@ -4645,6 +4645,18 @@
                                     <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
                                 </button>
                                 ` : ''}
+                                ${(() => {
+                                // Botón Activar TV: solo si hay pantalla Netflix en la venta
+                                const saleItems = Array.isArray(sale.items) ? sale.items : Object.values(sale.items || {});
+                                const nfEmails = [];
+                                saleItems.forEach(it => {
+                                    const screens = Array.isArray(it && it.specificEmails) ? it.specificEmails : Object.values((it && it.specificEmails) || {});
+                                    screens.forEach(sc => { if (sc && sc.platform && sc.platform.toLowerCase().includes('netflix') && sc.email) nfEmails.push(sc.email); });
+                                });
+                                if (!nfEmails.length) return '';
+                                const emailEncoded = encodeURIComponent(nfEmails[0]);
+                                return `<button onclick="openAdminActivateTvModal('${emailEncoded}')" style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #e50914; background:rgba(229,9,20,0.1); color:#e50914; font-size:0.8rem;" title="Activar Netflix TV para este cliente"><i class='fa-solid fa-tv'></i> Activar TV</button>`;
+                            })()}
                                 <button onclick="deleteSellerSale('${safeSeller}', '${sale.id}')" 
                                     style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;" title="Eliminar Registro (Prueba/Error)">
                                     <i class="fa-solid fa-trash"></i>
@@ -6968,6 +6980,89 @@
 
             } catch (e) {
                 alert('Error al crear el cliente: ' + e.message);
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // MODAL: Activar TV Netflix — para Admin y Vendedores
+        // ═══════════════════════════════════════════════════════════════
+        window.openAdminActivateTvModal = function (encodedEmail) {
+            const email = decodeURIComponent(encodedEmail);
+            let modal = document.getElementById('admin-tv-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'admin-tv-modal';
+                modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;';
+                modal.innerHTML = `
+                    <div style="background:#1a1a2e;border:1px solid rgba(229,9,20,0.5);border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.8);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                            <h3 style="color:#e50914;margin:0;font-size:1.3rem;"><i class="fa-solid fa-tv"></i> Activar Netflix TV</h3>
+                            <button onclick="document.getElementById('admin-tv-modal').remove()" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&#x2715;</button>
+                        </div>
+                        <p style="color:#ccc;font-size:0.85rem;margin-bottom:1rem;">&#128231; Cuenta: <strong id="admin-tv-email-label" style="color:white;"></strong></p>
+                        <p style="color:#aaa;font-size:0.8rem;margin-bottom:1.2rem;line-height:1.5;">Ingresa el c&#243;digo de 8 d&#237;gitos que aparece en la pantalla del TV del cliente.</p>
+                        <input id="admin-tv-code" type="number" placeholder="Ej: 12345678"
+                            style="width:100%;padding:1rem;font-size:1.4rem;letter-spacing:6px;text-align:center;background:rgba(255,255,255,0.05);border:2px solid rgba(229,9,20,0.4);border-radius:12px;color:white;margin-bottom:1rem;box-sizing:border-box;">
+                        <div id="admin-tv-status" style="display:none;text-align:center;padding:0.8rem;border-radius:8px;margin-bottom:1rem;font-size:0.85rem;"></div>
+                        <button id="admin-tv-submit-btn" onclick="executeAdminTvActivation()"
+                            style="width:100%;padding:1rem;background:#e50914;border:none;border-radius:12px;color:white;font-size:1rem;font-weight:bold;cursor:pointer;">
+                            <i class="fa-solid fa-play"></i> Activar TV
+                        </button>
+                        <p style="color:#555;font-size:0.7rem;text-align:center;margin-top:1rem;">&#128274; La contrase&ntilde;a de Netflix es le&#237;da autom&aacute;ticamente &mdash; nunca se muestra en pantalla.</p>
+                    </div>`;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('admin-tv-email-label').innerText = email;
+            document.getElementById('admin-tv-code').value = '';
+            document.getElementById('admin-tv-status').style.display = 'none';
+            const btn = document.getElementById('admin-tv-submit-btn');
+            btn.disabled = false; btn.style.background = '#e50914';
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> Activar TV';
+            btn.dataset.email = email;
+        };
+
+        window.executeAdminTvActivation = async function () {
+            const btn = document.getElementById('admin-tv-submit-btn');
+            const email = btn.dataset.email;
+            const tvCode = (document.getElementById('admin-tv-code').value || '').replace(/\D/g, '');
+            const statusDiv = document.getElementById('admin-tv-status');
+
+            if (!tvCode || tvCode.length < 6) {
+                statusDiv.style.display = 'block'; statusDiv.style.background = 'rgba(229,9,20,0.15)'; statusDiv.style.color = '#e50914';
+                statusDiv.innerText = '\u26a0\ufe0f Ingresa el c\u00f3digo completo de 6-8 d\u00edgitos del TV.';
+                return;
+            }
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Activando...';
+            statusDiv.style.display = 'block'; statusDiv.style.background = 'rgba(255,255,255,0.05)'; statusDiv.style.color = '#aaa';
+
+            const LOCAL = 'http://localhost:3099', RENDER = 'https://streaming-backend-ce1u.onrender.com';
+            let botUrl = RENDER;
+            try {
+                const chk = await Promise.race([fetch(`${LOCAL}/status`), new Promise((_, r) => setTimeout(() => r(new Error()), 4000))]);
+                if (chk.ok) { botUrl = LOCAL; statusDiv.innerText = '\u2705 Bot local (IP residencial) conectado. Iniciando...'; }
+                else statusDiv.innerText = '\uD83C\uDF10 Usando servidor Render...';
+            } catch (e) { statusDiv.innerText = '\uD83C\uDF10 Usando servidor Render...'; }
+
+            try {
+                const resp = await fetch(`${botUrl}/api/activate-tv`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, tvCode })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    statusDiv.style.background = 'rgba(46,204,113,0.15)'; statusDiv.style.color = '#2ecc71';
+                    statusDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i> \u00a1TV Activada exitosamente!';
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> \u00a1Activado!'; btn.style.background = '#2ecc71';
+                } else {
+                    statusDiv.style.background = 'rgba(229,9,20,0.15)'; statusDiv.style.color = '#e50914';
+                    statusDiv.innerHTML = '\u26a0\ufe0f ' + (data.error || 'Error desconocido');
+                    if (data.screenshot) statusDiv.innerHTML += '<br><br><img src="' + data.screenshot + '" style="max-width:100%;margin-top:6px;border-radius:8px;">';
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Reintentar';
+                }
+            } catch (err) {
+                statusDiv.style.background = 'rgba(229,9,20,0.15)'; statusDiv.style.color = '#e50914';
+                statusDiv.innerText = 'Error de conexi\u00f3n: ' + err.message;
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Activar TV';
             }
         };
     </script>

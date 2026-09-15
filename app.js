@@ -1751,8 +1751,32 @@ function setupEventListeners() {
             document.getElementById('tv-activation-error').style.display = 'none';
 
             try {
-                // Llamar al robot invisible de Render
-                const response = await fetch('https://streaming-backend-ce1u.onrender.com/api/activate-tv', {
+                // ── Seleccionar backend: Bot Local (IP Residencial) → Render (fallback) ──
+                const LOCAL_BOT_URL = 'http://localhost:3099';
+                const RENDER_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+                let botUrl = RENDER_URL;
+                let usingLocal = false;
+
+                // Verificar si el bot local está corriendo (5 seg máximo)
+                try {
+                    const localCheck = await Promise.race([
+                        fetch(`${LOCAL_BOT_URL}/status`),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+                    ]);
+                    if (localCheck.ok) {
+                        botUrl = LOCAL_BOT_URL;
+                        usingLocal = true;
+                        document.getElementById('tv-activation-loading').querySelector('p').innerText =
+                            '✅ Bot local conectado. Iniciando proceso...';
+                        console.log('[TV] Usando bot local (IP residencial)');
+                    }
+                } catch (e) {
+                    console.log('[TV] Bot local no disponible, usando Render...');
+                }
+
+                // Llamar al robot seleccionado
+                const response = await fetch(`${botUrl}/api/activate-tv`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
