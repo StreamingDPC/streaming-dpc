@@ -312,25 +312,77 @@ app.post('/api/activate-tv', async (req, res) => {
     try {
         console.log(`[TV-BOT] Iniciando activación TV: email=${email}, code=${tvCode}`);
 
-        // 1. Buscar las credenciales del email en Firebase
-        const dbResponse = await axios.get(`${FIREBASE_DB_URL}/emailAccounts.json`);
-        const accountsData = dbResponse.data;
-
-        if (!accountsData) {
-            return res.status(404).json({ success: false, error: 'No hay cuentas configuradas en Firebase.' });
-        }
-
+        // 1. Buscar la contraseña de Netflix en las ventas (clientSales y sellerSales)
+        // La contraseña está en cada venta bajo sale.screens[n].password donde platform=Netflix
+        let netflixPass = null;
         const targetEmail = email.toLowerCase().trim();
-        const account = Object.values(accountsData).find(a =>
-            a && a.email && a.password && a.email.toLowerCase().trim() === targetEmail
-        );
 
-        if (!account) {
-            return res.status(404).json({ success: false, error: `La cuenta ${email} no está vinculada. Contacta al administrador.` });
+        // Buscar en clientSales
+        try {
+            const salesResp = await axios.get(`${FIREBASE_DB_URL}/clientSales.json`);
+            const salesData = salesResp.data;
+            if (salesData) {
+                // clientSales es un objeto donde cada clave es teléfono y el valor es array de ventas
+                for (const phone of Object.keys(salesData)) {
+                    const sales = salesData[phone];
+                    const salesArr = Array.isArray(sales) ? sales : Object.values(sales);
+                    for (const sale of salesArr) {
+                        if (!sale || !sale.screens) continue;
+                        const screens = Array.isArray(sale.screens) ? sale.screens : Object.values(sale.screens);
+                        for (const screen of screens) {
+                            if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
+                                && screen.platform && screen.platform.toLowerCase().includes('netflix')
+                                && screen.password) {
+                                netflixPass = screen.password.trim();
+                                console.log(`[TV-BOT] Contraseña Netflix encontrada en clientSales (phone=${phone})`);
+                                break;
+                            }
+                        }
+                        if (netflixPass) break;
+                    }
+                    if (netflixPass) break;
+                }
+            }
+        } catch (e) {
+            console.warn('[TV-BOT] Error buscando en clientSales:', e.message);
         }
 
-        const netflixPass = account.netflixPassword || account.password;
-        console.log(`[TV-BOT] Cuenta encontrada, iniciando navegador invisible...`);
+        // Si no encontró en clientSales, buscar en sellerSales
+        if (!netflixPass) {
+            try {
+                const sellerResp = await axios.get(`${FIREBASE_DB_URL}/sellerSales.json`);
+                const sellerData = sellerResp.data;
+                if (sellerData) {
+                    for (const seller of Object.keys(sellerData)) {
+                        const sales = sellerData[seller];
+                        const salesArr = Array.isArray(sales) ? sales : Object.values(sales);
+                        for (const sale of salesArr) {
+                            if (!sale || !sale.screens) continue;
+                            const screens = Array.isArray(sale.screens) ? sale.screens : Object.values(sale.screens);
+                            for (const screen of screens) {
+                                if (screen && screen.email && screen.email.toLowerCase().trim() === targetEmail
+                                    && screen.platform && screen.platform.toLowerCase().includes('netflix')
+                                    && screen.password) {
+                                    netflixPass = screen.password.trim();
+                                    console.log(`[TV-BOT] Contraseña Netflix encontrada en sellerSales (seller=${seller})`);
+                                    break;
+                                }
+                            }
+                            if (netflixPass) break;
+                        }
+                        if (netflixPass) break;
+                    }
+                }
+            } catch (e) {
+                console.warn('[TV-BOT] Error buscando en sellerSales:', e.message);
+            }
+        }
+
+        if (!netflixPass) {
+            return res.status(404).json({ success: false, error: `No se encontró la contraseña de Netflix para ${email}. Verifica que esté registrada en la configuración de pantallas de la venta.` });
+        }
+
+        console.log(`[TV-BOT] Contraseña encontrada, iniciando navegador invisible...`);
 
         // 2. Lanzar Puppeteer con Chromium (compatible con Render)
         browser = await puppeteer.launch({
