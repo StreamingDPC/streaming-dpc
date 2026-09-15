@@ -1737,37 +1737,44 @@ function setupEventListeners() {
             if (!clientPhoneLoggedIn) return alert('Debes iniciar sesión primero.');
             if (!email) return alert('Selecciona el correo de tu cuenta Netflix.');
 
-            document.getElementById('tv-activation-loading').style.display = 'block';
-            document.getElementById('tv-activation-result').style.display = 'none';
-            document.getElementById('tv-activation-error').style.display = 'none';
+            // Bloquear botón temporalmente
+            const originalBtnText = activateTvBtn.innerHTML;
+            activateTvBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando...';
             activateTvBtn.disabled = true;
 
             try {
-                const serverUrl = 'https://streaming-backend-ce1u.onrender.com/api/activate-tv';
-                const response = await fetch(serverUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
+                // Registrar intento en Firebase (auditoría)
+                await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({
+                    tvCode, email, timestamp: Date.now()
                 });
-                const data = await response.json();
 
-                document.getElementById('tv-activation-loading').style.display = 'none';
-                if (data.success) {
-                    document.getElementById('tv-activation-result').style.display = 'block';
-                    // Guardar registro en Firebase
-                    await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({
-                        tvCode, email, timestamp: Date.now()
-                    });
-                } else {
-                    document.getElementById('tv-activation-error').style.display = 'block';
-                    document.getElementById('tv-error-msg').innerText = data.error || 'C\u00f3digo inv\u00e1lido o expirado. Verifica el c\u00f3digo en tu TV e int\u00e9ntalo de nuevo.';
-                    activateTvBtn.disabled = false;
+                // Copiar al portapapeles para facilitar el ingreso
+                try {
+                    await navigator.clipboard.writeText(tvCode);
+                } catch (e) {
+                    // ignorar si no permite portapapeles (ej: sin https local)
                 }
+
+                // Mostrar éxito en UI
+                document.getElementById('tv-activation-loading').style.display = 'none';
+                document.getElementById('tv-activation-result').style.display = 'block';
+                document.getElementById('tv-activation-error').style.display = 'none';
+
+                // Redirigir a la TV form de Netflix
+                setTimeout(() => {
+                    alert(`\u2705 Código ${tvCode} copiado (si tu dispositivo lo permite).\n\nSerás redirigido a Netflix. Si te pide el código de TV, pégalo allí para finalizar.`);
+                    window.open('https://www.netflix.com/tv8', '_blank');
+                }, 300);
+
             } catch (err) {
                 document.getElementById('tv-activation-loading').style.display = 'none';
                 document.getElementById('tv-activation-error').style.display = 'block';
-                document.getElementById('tv-error-msg').innerText = 'Error de red. Verifica tu conexi\u00f3n e intenta de nuevo.';
-                activateTvBtn.disabled = false;
+                document.getElementById('tv-error-msg').innerText = 'Error interno. Intenta de nuevo.';
+            } finally {
+                setTimeout(() => {
+                    activateTvBtn.innerHTML = originalBtnText;
+                    activateTvBtn.disabled = false;
+                }, 1000);
             }
         });
     }
