@@ -418,19 +418,42 @@ app.post('/api/activate-tv', async (req, res) => {
         await page.goto('https://www.netflix.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
 
         // 4. Ingresar email
-        await page.waitForSelector('input[name="userLoginId"]', { timeout: 10000 });
-        await page.type('input[name="userLoginId"]', targetEmail, { delay: 80 });
+        await page.waitForSelector('input[name="userLoginId"]', { visible: true, timeout: 10000 });
+        await page.type('input[name="userLoginId"]', targetEmail, { delay: 85 });
+
+        // Verificar flujo de 2 pasos (si la contraseña no está visible)
+        let passVisible = false;
+        try {
+            const passEl = await page.$('input[name="password"]');
+            if (passEl) {
+                const box = await passEl.boundingBox();
+                if (box) passVisible = true;
+            }
+        } catch (e) { }
+
+        if (!passVisible) {
+            console.log(`[TV-BOT] Flujo de 2 pasos detectado. Haciendo click en Continue...`);
+            await page.click('button[type="submit"]');
+
+            // Esperar a que Netflix procese y muestre la contraseña
+            await page.waitForTimeout(2000);
+            await page.waitForSelector('input[name="password"]', { visible: true, timeout: 10000 });
+        }
 
         // 5. Ingresar contraseña
-        await page.waitForSelector('input[name="password"]', { timeout: 10000 });
-        await page.type('input[name="password"]', netflixPass.replace(/\s+/g, ''), { delay: 80 });
+        console.log(`[TV-BOT] Escribiendo contraseña...`);
+        await page.type('input[name="password"]', netflixPass.replace(/\s+/g, ''), { delay: 75 });
 
         // 6. Click en Sign In
-        await page.click('button[type="submit"]');
-        console.log(`[TV-BOT] Credenciales enviadas, esperando sesión...`);
+        console.log(`[TV-BOT] Clickeando Sign In...`);
+        await page.waitForTimeout(500);
+        await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => { }), // No fallar si no navega (por ej. si da error)
+            page.click('button[type="submit"]')
+        ]);
 
-        // 7. Esperar que cargue la sesión (hasta 20 seg)
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+        console.log(`[TV-BOT] Credenciales enviadas, esperando sesión...`);
+        await page.waitForTimeout(3000);
 
         // Verificar si el login fue exitoso (si redirige a /browse o /tv*)
         const currentUrl = page.url();
