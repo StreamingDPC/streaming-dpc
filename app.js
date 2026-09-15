@@ -1782,7 +1782,11 @@ function setupEventListeners() {
                     if (linkBtn) linkBtn.style.display = 'none';
                 } else {
                     document.getElementById('tv-activation-error').style.display = 'block';
-                    document.getElementById('tv-error-msg').innerText = data.error || 'Código inválido. Verifica el código en tu TV.';
+                    let errorHtml = data.error || 'Código inválido. Verifica el código en tu TV.';
+                    if (data.screenshot) {
+                        errorHtml += `<br><br><span style="font-size:0.75rem; color:#aaa;">Captura de lo que ve el bot:</span><br><img src="${data.screenshot}" style="max-width:100%; border-radius:8px; margin-top:8px; border:1px solid rgba(255,255,255,0.2);">`;
+                    }
+                    document.getElementById('tv-error-msg').innerHTML = errorHtml;
                 }
 
             } catch (err) {
