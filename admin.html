@@ -2455,11 +2455,43 @@
             const platform = document.getElementById('admin-platform-reset').value;
             const platLabel = platform === 'all' ? 'TODAS LAS PANTALLAS' : platform.toUpperCase();
 
-            // Consultar historial previo
-            const histSnap = await db.ref(`clientProfiles/${clientPhone}/codeHistory`).once('value');
-            const history = histSnap.val();
+            // Consultar historial previo y estado de intentos
+            const profileSnap = await db.ref(`clientProfiles/${clientPhone}`).once('value');
+            const profileData = profileSnap.val() || {};
+            const history = profileData.codeHistory;
+            const usedData = profileData.codeAttemptUsed;
 
-            let msg = `¿Deseas habilitar UN NUEVO INTENTO de código en [${platLabel}] para el cliente ${clientPhone}?\n\n`;
+            let msg = `¿Deseas habilitar un NUEVO INTENTO en [${platLabel}] para el cliente ${clientPhone}?\n\n`;
+
+            if (Object.keys(profileData).length === 0) {
+                alert(`❌ No existe ningún perfil con el número ${clientPhone}. El cliente aún no ha iniciado sesión ni una vez.`);
+                return;
+            }
+
+            // Reporte Visual de Intentos en Texto para el Admin
+            if (platform === 'netflix_update') {
+                const netflixUpdates = (usedData && typeof usedData === 'object') ? (usedData['netflix_update'] || 0) : 0;
+                if (netflixUpdates >= 2) {
+                    msg += `🚨 ALERTA ROJA: Este cliente YA AGOTÓ su límite (2/2) actualizaciones de hogar.\n👉 RECOMENDACIÓN: Aplicar CAMBIO DE CUENTA para evitar que el sistema los bloquee.\n\n`;
+                } else {
+                    msg += `✅ Estado de Actualizaciones Netflix: ${netflixUpdates} consumidas de 2 posibles.\n\n`;
+                }
+            } else if (usedData) {
+                msg += `ℹ️ ESTADO ACTUAL: `;
+                if (usedData === true) msg += `Agotado globalmente.\n\n`;
+                else {
+                    let uds = [];
+                    if (usedData['netflix']) uds.push('Netflix');
+                    if (usedData['disney']) uds.push('Disney');
+                    if (usedData['hbomax']) uds.push('HBO Max');
+                    if (usedData['prime']) uds.push('Prime Video');
+                    if (uds.length > 0) msg += `Consumió código en: ${uds.join(', ')}\n\n`;
+                    else msg += `No tiene plataformas limitadas.\n\n`;
+                }
+            } else {
+                msg += `✅ El cliente tiene sus intentos iniciales libres.\n\n`;
+            }
+
             if (history) {
                 const entries = Object.values(history);
                 const last = entries[entries.length - 1];
