@@ -156,12 +156,13 @@ app.post('/api/activate-tv', async (req, res) => {
 
         browser = await puppeteer.launch({
             executablePath: chromePath,
-            headless: 'new',  // Chrome moderno headless
+            headless: false,  // VISIBLE — Netflix no puede detectarlo como bot
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-dev-shm-usage',
+                '--start-maximized',
                 '--window-size=1280,800'
             ]
         });
