@@ -435,9 +435,39 @@ app.post('/api/activate-tv', async (req, res) => {
             console.log(`[TV-BOT] Flujo de 2 pasos detectado. Haciendo click en Continue...`);
             await page.click('button[type="submit"]');
 
-            // Esperar a que Netflix procese y muestre la contraseña
-            await page.waitForTimeout(2000);
-            await page.waitForSelector('input[name="password"]', { visible: true, timeout: 10000 });
+            // Esperar a que Netflix procese
+            await page.waitForTimeout(3000);
+
+            // Buscar si pide código por email (PIN) y necesitamos darle a "Usar contraseña"
+            console.log(`[TV-BOT] Buscando opcion 'Usar contraseña' u 'Obtener ayuda'...`);
+            await page.evaluate(async () => {
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
+                const findAndClickBtn = (keywords) => {
+                    const elements = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
+                    const el = elements.find(b => {
+                        const txt = b.innerText ? b.innerText.toLowerCase().trim() : '';
+                        return keywords.some(kw => txt === kw || txt.includes(kw));
+                    });
+                    if (el) { el.click(); return true; }
+                    return false;
+                };
+
+                // Si de una vez vemos "Usar contraseña"
+                let clickedPass = findAndClickBtn(['usar contraseña', 'use password']);
+
+                if (!clickedPass) {
+                    // Quizas está oculto bajo "Obtener ayuda" / "Need help"
+                    const clickedHelp = findAndClickBtn(['obtener ayuda', 'need help?', 'need help']);
+                    if (clickedHelp) {
+                        await sleep(800); // esperar que se deslice el menu
+                        findAndClickBtn(['usar contraseña', 'use password']);
+                    }
+                }
+            });
+
+            // Esperar a que la contraseña esté visible tras los clicks (ignorando catch x si pasa directo)
+            await page.waitForTimeout(1500);
+            await page.waitForSelector('input[name="password"]', { visible: true, timeout: 10000 }).catch(e => console.log('[TV-BOT] Timeout al esperar input password'));
         }
 
         // 5. Ingresar contraseña
