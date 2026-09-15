@@ -1394,6 +1394,7 @@ function setupEventListeners() {
                 window.clientActivePlatforms = {
                     netflix: new Set(),
                     netflix_update: new Set(),
+                    netflix_temp: new Set(),
                     disney: new Set(),
                     hbomax: new Set(),
                     prime: new Set(),
@@ -1422,9 +1423,10 @@ function setupEventListeners() {
                                         const emailL = se.email.toLowerCase().trim();
                                         if (itemPlatform) {
                                             window.clientActivePlatforms[itemPlatform].add(emailL);
-                                            // Si tiene Netflix normal, automáticamente habilita poder buscar actualización de hogar:
+                                            // Si tiene Netflix normal, automáticamente habilita actualizar hogar Y acceso temporal:
                                             if (itemPlatform === 'netflix') {
                                                 window.clientActivePlatforms['netflix_update'].add(emailL);
+                                                window.clientActivePlatforms['netflix_temp'].add(emailL);
                                             }
                                         }
                                         else window.clientActivePlatforms.global.add(emailL);
@@ -1486,6 +1488,7 @@ function setupEventListeners() {
     const PLATFORM_STYLES = {
         netflix: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
         netflix_update: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
+        netflix_temp: { border: '#E50914', bg: 'rgba(229,9,20,0.18)', color: 'white' },
         disney: { border: '#005AD6', bg: 'rgba(0,90,214,0.18)', color: 'white' },
         hbomax: { border: '#8A2BE2', bg: 'rgba(50,0,120,0.25)', color: 'white' },
         prime: { border: '#00A8E1', bg: 'rgba(0,168,225,0.18)', color: 'white' }
@@ -1622,12 +1625,27 @@ function setupEventListeners() {
 
                     // Si el código que trajo es un enlace (empieza con http)
                     if (codeVal.startsWith('http://') || codeVal.startsWith('https://')) {
-                        titleEl.innerText = "Confirmación requerida:";
                         magicCodeEl.style.display = 'none';
                         linkContainer.style.display = 'block';
                         linkBtn.href = codeVal;
+                        linkBtn.target = '_blank';
+                        if (platform === 'netflix_temp') {
+                            titleEl.innerText = 'Tu enlace de código temporal:';
+                            linkBtn.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> Clic aquí → Ver mi Código en Netflix';
+                            const existingNote = document.getElementById('temp-access-note');
+                            if (!existingNote) {
+                                const note = document.createElement('p');
+                                note.id = 'temp-access-note';
+                                note.style.cssText = 'font-size:0.78rem; color:#aaa; margin-top:0.8rem; background:rgba(229,9,20,0.08); border:1px solid rgba(229,9,20,0.3); border-radius:8px; padding:8px 12px; text-align:left;';
+                                note.innerHTML = '<i class="fa-solid fa-circle-info" style="color:#E50914;"></i> <strong style="color:white;">¿Cómo funciona?</strong> Al dar clic se abrirá la página de Netflix. Allí verás un código de 4 dígitos en pantalla. Úsalo para acceder desde tu dispositivo. El enlace vence en <strong style="color:#f39c12;">15 minutos</strong>.';
+                                document.getElementById('code-result').appendChild(note);
+                            }
+                        } else {
+                            titleEl.innerText = 'Confirmación requerida:';
+                            linkBtn.innerHTML = '<i class="fa-solid fa-house-circle-check"></i> Clic aquí para Aceptar Actualización';
+                        }
                     } else {
-                        titleEl.innerText = "Tu código de acceso es:";
+                        titleEl.innerText = 'Tu código de acceso es:';
                         linkContainer.style.display = 'none';
                         magicCodeEl.style.display = 'block';
                         magicCodeEl.innerText = codeVal;
