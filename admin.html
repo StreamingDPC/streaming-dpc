@@ -1197,6 +1197,7 @@
                                 <option value="netflix">Netflix</option>
                                 <option value="netflix_update">Actualiza tu Hogar</option>
                                 <option value="netflix_temp">Acceso temporal Netflix</option>
+                                <option value="netflix_tv">Activar TV (Netflix)</option>
                                 <option value="disney">Disney+</option>
                                 <option value="hbomax">HBO Max</option>
                                 <option value="prime">Prime Video</option>
@@ -2598,6 +2599,7 @@
                             let badges = [];
                             if (netflixUpdates > 0) badges.push(`<span style="color:${netflixUpdates >= 2 ? '#ff4d4d' : '#f39c12'}; font-weight:bold;">🏠 Act. Hogar: ${netflixUpdates}/2</span>`);
                             if (usedData['netflix_temp'] === true) badges.push(`<span style="color:#e74c3c;">✈️ Acc. Temporal</span>`);
+                            if (usedData['netflix_tv'] === true) badges.push(`<span style="color:#2ecc71;">📺 TV Act.</span>`);
                             if (usedData['netflix'] === true) badges.push(`<span style="color:#e74c3c;">🎬 Nflx</span>`);
                             if (usedData['disney'] === true) badges.push(`<span style="color:#3498db;">🏰 Disn</span>`);
                             if (usedData['hbomax'] === true) badges.push(`<span style="color:#9b59b6;">📺 Max</span>`);
@@ -2625,6 +2627,7 @@
                                     <option value="netflix" ${defaultPlatform === 'netflix' ? 'selected' : ''}>Netflix</option>
                                     <option value="netflix_update">Actualiza tu Hogar</option>
                                     <option value="netflix_temp">Acceso temporal Netflix</option>
+                                    <option value="netflix_tv">Activar TV (Netflix)</option>
                                     <option value="disney" ${defaultPlatform === 'disney' ? 'selected' : ''}>Disney+</option>
                                     <option value="hbomax" ${defaultPlatform === 'hbomax' ? 'selected' : ''}>HBO Max</option>
                                     <option value="prime" ${defaultPlatform === 'prime' ? 'selected' : ''}>Prime Video</option>

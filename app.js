@@ -1714,6 +1714,11 @@ function setupEventListeners() {
 
     if (showTvBtn && tvPanel) {
         showTvBtn.addEventListener('click', () => {
+            if (window.clientUsedAttempts && window.clientUsedAttempts['netflix_tv'] === true) {
+                alert('⚠️ Ya usaste tu intento (1 vez) para activar Smart TV.');
+                return;
+            }
+
             const isOpen = tvPanel.style.display !== 'none';
             tvPanel.style.display = isOpen ? 'none' : 'block';
             showTvBtn.style.borderColor = isOpen ? 'rgba(255,255,255,0.2)' : '#E50914';
@@ -1747,6 +1752,10 @@ function setupEventListeners() {
                 await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({
                     tvCode, email, timestamp: Date.now()
                 });
+
+                // Consumir el intento global (1 vez)
+                await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/netflix_tv`).set(true);
+                if (window.clientUsedAttempts) window.clientUsedAttempts['netflix_tv'] = true;
 
                 // Copiar al portapapeles para facilitar el ingreso
                 try {
