@@ -1356,6 +1356,44 @@ function setupEventListeners() {
     // SISTEMA SEGURO DE CÓDIGOS DE ACCESO
     // ==========================================
 
+    window.updateCodeCountersUI = function () {
+        if (!window.clientUsedAttempts) return;
+
+        function updateBtn(plat, icon, name, maxUses) {
+            const btn = document.querySelector(`.platform-tab-btn[data-platform="${plat}"]`);
+            if (btn) {
+                let used = window.clientUsedAttempts[plat];
+                let numUsed = 0;
+                if (used === true) numUsed = 1;
+                else if (typeof used === 'number') numUsed = used;
+
+                let rem = maxUses - numUsed;
+                if (rem < 0) rem = 0;
+
+                btn.innerHTML = `<span style="font-size:1.1rem;">${icon}</span> ${name} (${rem} ${rem === 1 ? 'vez' : 'veces'})`;
+            }
+        }
+
+        updateBtn('netflix', '🎬', 'Netflix', 1);
+        updateBtn('disney', '🏰', 'Disney+', 1);
+        updateBtn('hbomax', '📺', 'HBO Max', 1);
+        updateBtn('prime', '📦', 'Prime Video', 1);
+        updateBtn('netflix_update', '🏠', 'Actualiza tu Hogar con Netflix', 2);
+        updateBtn('netflix_temp', '✈️', 'Acceso temporal con Netflix CEL O PC', 1);
+
+        const tvBtn = document.getElementById('show-tv-login-btn');
+        if (tvBtn) {
+            let tvUsed = window.clientUsedAttempts['netflix_tv'];
+            let numTv = 0;
+            if (tvUsed === true) numTv = 1;
+            else if (typeof tvUsed === 'number') numTv = tvUsed;
+
+            let rem = 1 - numTv;
+            if (rem < 0) rem = 0;
+            tvBtn.innerHTML = `<span style="font-size:1.1rem;">📺</span> Iniciar sesión en TV (${rem} ${rem === 1 ? 'vez' : 'veces'})`;
+        }
+    };
+
     // Función para inicializar el modal de código con las restricciones correctas
     window.initCodeModal = async function () {
         const noSession = document.getElementById('code-no-session');
@@ -1376,12 +1414,14 @@ function setupEventListeners() {
         }
 
         // 2. RECUPERAR INTENTOS USADOS EN FIREBASE (AHORA POR PLATAFORMA)
-        const attemptSnap = await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed`).once('value');
+        const attemptSnap = await db.ref(`clientProfiles / ${clientPhoneLoggedIn}/codeAttemptUsed`).once('value');
         window.clientUsedAttempts = attemptSnap.val() || {};
         // Si era true (sistema viejo), lo convertimos a objeto preventivo.
         if (window.clientUsedAttempts === true) {
             window.clientUsedAttempts = { netflix: true, disney: true, hbomax: true, prime: true };
         }
+
+        if (window.updateCodeCountersUI) window.updateCodeCountersUI();
 
         // 3. CARGAR CORREOS DESDE SUS COMPRAS EN FIREBASE
         const emailSelect = document.getElementById('code-email');
@@ -1626,6 +1666,8 @@ function setupEventListeners() {
                         window.clientUsedAttempts[platform] = true;
                     }
 
+                    if (window.updateCodeCountersUI) window.updateCodeCountersUI();
+
                     await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeHistory`).push({
                         code: data.code,
                         email: email,
@@ -1789,7 +1831,10 @@ function setupEventListeners() {
                     // Registrar en Firebase y consumir intento
                     await db.ref(`clientProfiles/${clientPhoneLoggedIn}/tvActivations`).push({ tvCode, email, timestamp: Date.now() });
                     await db.ref(`clientProfiles/${clientPhoneLoggedIn}/codeAttemptUsed/netflix_tv`).set(true);
-                    if (window.clientUsedAttempts) window.clientUsedAttempts['netflix_tv'] = true;
+                    if (window.clientUsedAttempts) {
+                        window.clientUsedAttempts['netflix_tv'] = true;
+                        if (window.updateCodeCountersUI) window.updateCodeCountersUI();
+                    }
 
                     // Mostrar éxito real con color verde
                     const resultDiv = document.getElementById('tv-activation-result');
