@@ -189,77 +189,57 @@ app.post('/api/activate-tv', async (req, res) => {
         await page.type('input[name="userLoginId"]', email, { delay: 95 });
         console.log('[BOT] ✉️  Email escrito');
 
-        // 5. Detectar si es flujo de 1 o 2 pasos
+        // 5. Siempre hay flujo de 2 pasos en Netflix moderno. Presionar Enter para avanzar.
+        console.log('[BOT] 🔄 Presionando Enter para continuar al paso de contraseña...');
+        await sleep(800);
+        await page.keyboard.press('Enter');
+        console.log('[BOT] ⏳ Esperando 5 segundos a que Netflix cargue la siguiente pantalla...');
+        await sleep(5000);
+
+        // Verificar si ya apareció el campo de contraseña directamente
         let passVisible = await page.evaluate(() => {
             const p = document.querySelector('input[name="password"]');
-            return p !== null && p.offsetWidth > 0 && p.offsetHeight > 0;
+            if (!p) return false;
+            const rect = p.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && rect.top >= 0;
         });
 
         if (!passVisible) {
-            console.log('[BOT] 🔄 Flujo 2 pasos. Buscando botón directo de contraseña...');
-
-            // Intento 1: A veces el botón de "Usar contraseña" está directo en la primera pantalla
-            let clickedPass = await page.evaluate(() => {
-                const btns = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
-                const passBtn = btns.find(b => b.innerText && (
-                    b.innerText.toLowerCase().includes('usar contraseña') ||
-                    b.innerText.toLowerCase().includes('iniciar sesión con contraseña') ||
-                    b.innerText.toLowerCase().includes('use password') ||
-                    b.innerText.toLowerCase().includes('sign in with password')
-                ));
-                if (passBtn) { passBtn.click(); return true; }
+            console.log('[BOT] 📧 Pantalla de código detectada. Buscando "Get Help / Obtener ayuda"...');
+            // Expandir el menú de ayuda
+            const helpClicked = await page.evaluate(() => {
+                const all = Array.from(document.querySelectorAll('*'));
+                for (let el of all) {
+                    const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                    if ((txt === 'get help' || txt === 'obtener ayuda' || txt.startsWith('get help') || txt.startsWith('obtener ayuda')) && el.offsetWidth > 0) {
+                        el.click();
+                        return true;
+                    }
+                }
                 return false;
             });
+            console.log(`[BOT] ${helpClicked ? '✅ Clic en Get Help exitoso.' : '⚠️  No encontró Get Help, intentando directamente...'}`);
+            await sleep(2000); // Esperar a que se despliegue el acordeón de ayuda
 
-            if (!clickedPass) {
-                console.log('[BOT] Click en Continuar (Siguiente paso)...');
-                await Promise.all([
-                    sleep(1500), // pequeña pausa humana
-                    page.keyboard.press('Enter')
-                ]);
-                console.log('[BOT] ⏳ Esperando 4 segundos a que Netflix procese/cargue...');
-                await sleep(4000); // Dar suficiente tiempo a la animación / red de Netflix
-
-                console.log('[BOT] 📧 Buscando opciones de ayuda o contraseña en esta nueva pantalla...');
-                // Expandir "Obtener ayuda" si existe
-                await page.evaluate(() => {
-                    const tags = ['button', 'a', 'span', 'p', 'div'];
-                    for (let tag of tags) {
-                        const els = Array.from(document.querySelectorAll(tag));
-                        for (let el of els) {
-                            const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
-                            if (txt === 'obtener ayuda' || txt === 'get help' || txt.includes('need help')) {
-                                el.click();
-                                return;
-                            }
-                        }
+            // Hacer clic en "Usar contraseña" / "Use password"
+            const passLinkClicked = await page.evaluate(() => {
+                const all = Array.from(document.querySelectorAll('a, button, span, div'));
+                for (let el of all) {
+                    const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                    if ((txt.includes('usar contraseña') || txt.includes('use password') || txt === 'sign in with password') && el.offsetWidth > 0) {
+                        el.click();
+                        return true;
                     }
-                });
-
-                await sleep(1500); // Esperar a que el acordeón de ayuda se abra
-
-                // Intentar hacer click en "Usar contraseña"
-                await page.evaluate(() => {
-                    const tags = ['button', 'a', 'span', 'p', 'div'];
-                    for (let tag of tags) {
-                        const els = Array.from(document.querySelectorAll(tag));
-                        for (let el of els) {
-                            const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
-                            if (txt === 'usar contraseña' || txt === 'use password' || txt === 'sign in with password' || txt.includes('iniciar sesión con contraseña') || txt.includes('contrase') || txt.includes('password')) {
-                                el.click();
-                                return;
-                            }
-                        }
-                    }
-                });
-
-                await sleep(2000); // Esperar transición hacia la pantalla de contraseña
-            }
-
-            console.log('[BOT] ⏳ Esperando que aparezca el campo de contraseña...');
-            // Aumentado el timeout porque a veces Netflix es lento
-            await page.waitForSelector('input[name="password"]', { visible: true, timeout: 20000 });
+                }
+                return false;
+            });
+            console.log(`[BOT] ${passLinkClicked ? '✅ Clic en "Usar contraseña" exitoso.' : '⚠️  No encontró el link de contraseña.'}`);
+            await sleep(2500); // Esperar que se abra la pantalla de contraseña
         }
+
+        console.log('[BOT] ⏳ Esperando campo de contraseña...');
+        await page.waitForSelector('input[name="password"]', { visible: true, timeout: 20000 });
+
 
         // 6. Escribir contraseña
         console.log('[BOT] 🔒 Escribiendo contraseña...');
