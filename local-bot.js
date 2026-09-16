@@ -189,70 +189,75 @@ app.post('/api/activate-tv', async (req, res) => {
         await page.type('input[name="userLoginId"]', email, { delay: 95 });
         console.log('[BOT] ✉️  Email escrito');
 
-        // 5. Siempre hay flujo de 2 pasos en Netflix moderno. Presionar Enter para avanzar.
-        console.log('[BOT] 🔄 Presionando Enter para continuar al paso de contraseña...');
+        // 5. Presionar Enter para avanzar al paso siguiente
+        console.log('[BOT] 🔄 Presionando Enter para continuar...');
         await sleep(800);
         await page.keyboard.press('Enter');
-        console.log('[BOT] ⏳ Esperando 5 segundos a que Netflix cargue la siguiente pantalla...');
+        console.log('[BOT] ⏳ Esperando 5 segundos a que Netflix cargue la pantalla de código...');
         await sleep(5000);
 
-        // Verificar si ya apareció el campo de contraseña directamente
-        let passVisible = await page.evaluate(() => {
-            const p = document.querySelector('input[name="password"]');
-            if (!p) return false;
-            const rect = p.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0 && rect.top >= 0;
-        });
+        // 6. Netflix muestra pantalla de código (OTP de 4 dígitos enviado al correo)
+        //    Llamamos al backend para que lo lea desde Gmail vía IMAP
+        console.log('[BOT] 📨 Solicitando al backend que lea el código de inicio de sesión del correo...');
+        let loginCode = null;
+        const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
 
-        if (!passVisible) {
-            console.log('[BOT] 📧 Pantalla de código detectada. Buscando "Get Help / Obtener ayuda"...');
-            // Expandir el menú de ayuda
-            const helpClicked = await page.evaluate(() => {
-                const all = Array.from(document.querySelectorAll('*'));
-                for (let el of all) {
-                    const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
-                    if ((txt === 'get help' || txt === 'obtener ayuda' || txt.startsWith('get help') || txt.startsWith('obtener ayuda')) && el.offsetWidth > 0) {
-                        el.click();
-                        return true;
-                    }
-                }
-                return false;
-            });
-            console.log(`[BOT] ${helpClicked ? '✅ Clic en Get Help exitoso.' : '⚠️  No encontró Get Help, intentando directamente...'}`);
-            await sleep(2000); // Esperar a que se despliegue el acordeón de ayuda
+        // Reintentar hasta 6 veces (30 segundos máx) para darle tiempo al correo de llegar
+        for (let attempt = 1; attempt <= 6; attempt++) {
+            try {
+                console.log(`[BOT] � Intento ${attempt}/6 de lectura del correo...`);
+                const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                    email: email,
+                    platform: 'logincode'
+                }, { timeout: 15000 });
 
-            // Hacer clic en "Usar contraseña" / "Use password"
-            const passLinkClicked = await page.evaluate(() => {
-                const all = Array.from(document.querySelectorAll('a, button, span, div'));
-                for (let el of all) {
-                    const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
-                    if ((txt.includes('usar contraseña') || txt.includes('use password') || txt === 'sign in with password') && el.offsetWidth > 0) {
-                        el.click();
-                        return true;
-                    }
+                if (codeResp.data && codeResp.data.code) {
+                    loginCode = codeResp.data.code.toString().replace(/\D/g, '').substring(0, 4);
+                    console.log(`[BOT] ✅ Código de inicio de sesión recibido: ${loginCode}`);
+                    break;
                 }
-                return false;
-            });
-            console.log(`[BOT] ${passLinkClicked ? '✅ Clic en "Usar contraseña" exitoso.' : '⚠️  No encontró el link de contraseña.'}`);
-            await sleep(2500); // Esperar que se abra la pantalla de contraseña
+            } catch (e) {
+                console.log(`[BOT] ⚠️  Intento ${attempt} falló: ${e.message}`);
+            }
+            if (attempt < 6) {
+                console.log('[BOT] ⏳ Esperando 5 segundos antes del próximo intento...');
+                await sleep(5000);
+            }
         }
 
-        console.log('[BOT] ⏳ Esperando campo de contraseña...');
-        await page.waitForSelector('input[name="password"]', { visible: true, timeout: 20000 });
+        if (!loginCode) {
+            const ss = await page.screenshot({ encoding: 'base64' });
+            await browser.close();
+            return res.status(408).json({
+                success: false,
+                error: 'No se pudo leer el código de inicio de sesión del correo. Inténtalo de nuevo en 1 minuto.',
+                screenshot: `data:image/png;base64,${ss}`
+            });
+        }
 
+        // 7. Escribir el código en los cajoncitos de Netflix
+        console.log(`[BOT] ⌨️  Escribiendo código de acceso: ${loginCode}`);
+        // Esperar a que aparezcan los inputs de código (pueden ser 4 cajones separados o un input único)
+        await sleep(1000);
 
-        // 6. Escribir contraseña
-        console.log('[BOT] 🔒 Escribiendo contraseña...');
-        await page.click('input[name="password"]');
-        await page.type('input[name="password"]', netflixPass.replace(/\s+/g, ''), { delay: 75 });
+        // Intentar con inputs individuales primero (4 cajas separadas)
+        const codeInputs = await page.$$('input[type="text"], input[type="tel"], input[aria-label], input[autocomplete="one-time-code"], input:not([name])');
+        if (codeInputs.length >= 4) {
+            console.log(`[BOT] � Encontrados ${codeInputs.length} cajoncitos de código.`);
+            for (let i = 0; i < Math.min(4, loginCode.length); i++) {
+                await codeInputs[i].click();
+                await sleep(200);
+                await codeInputs[i].type(loginCode[i], { delay: 150 });
+            }
+        } else {
+            // Escribir el código completo directamente con teclado
+            console.log('[BOT] ⌨️  Escribiendo código completo con teclado...');
+            await page.keyboard.type(loginCode, { delay: 200 });
+        }
 
-        // 7. Submit
-        await sleep(400);
-        await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 25000 }).catch(() => { }),
-            page.keyboard.press('Enter')
-        ]);
-        await sleep(3000);
+        console.log('[BOT] ⏳ Esperando que Netflix valide el código y redirija...');
+        await sleep(4000);
+
 
         const afterLoginUrl = page.url();
         console.log(`[BOT] 🔗 URL tras login: ${afterLoginUrl}`);
