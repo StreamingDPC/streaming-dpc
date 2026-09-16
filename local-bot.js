@@ -408,7 +408,7 @@ app.post('/api/activate-tv', async (req, res) => {
 });
 
 // ── Iniciar servidor ───────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, '127.0.0.1', async () => {
     const chromePath = getChromePath();
     console.log('\n╔════════════════════════════════════════════════╗');
     console.log('║   🤖  StreamingDPC — Bot Local de TV  ✅       ║');
