@@ -223,25 +223,34 @@ app.post('/api/activate-tv', async (req, res) => {
                 console.log('[BOT] 📧 Buscando opciones de ayuda o contraseña en esta nueva pantalla...');
                 // Expandir "Obtener ayuda" si existe
                 await page.evaluate(() => {
-                    const helpBtns = Array.from(document.querySelectorAll('button, a, span'));
-                    const helpBtn = helpBtns.find(b => b.innerText && (
-                        b.innerText.toLowerCase().includes('obtener ayuda') ||
-                        b.innerText.toLowerCase().includes('need help') ||
-                        b.innerText.toLowerCase().includes('get help')
-                    ));
-                    if (helpBtn) helpBtn.click();
+                    const tags = ['button', 'a', 'span', 'p', 'div'];
+                    for (let tag of tags) {
+                        const els = Array.from(document.querySelectorAll(tag));
+                        for (let el of els) {
+                            const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                            if (txt === 'obtener ayuda' || txt === 'get help' || txt.includes('need help')) {
+                                el.click();
+                                return;
+                            }
+                        }
+                    }
                 });
 
                 await sleep(1500); // Esperar a que el acordeón de ayuda se abra
 
                 // Intentar hacer click en "Usar contraseña"
                 await page.evaluate(() => {
-                    const allLinks = Array.from(document.querySelectorAll('button, a, span, div[role="button"]'));
-                    const passBtn = allLinks.find(b => b.innerText && (
-                        b.innerText.toLowerCase().includes('contrase') ||
-                        b.innerText.toLowerCase().includes('password')
-                    ));
-                    if (passBtn) passBtn.click();
+                    const tags = ['button', 'a', 'span', 'p', 'div'];
+                    for (let tag of tags) {
+                        const els = Array.from(document.querySelectorAll(tag));
+                        for (let el of els) {
+                            const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                            if (txt === 'usar contraseña' || txt === 'use password' || txt === 'sign in with password' || txt.includes('iniciar sesión con contraseña') || txt.includes('contrase') || txt.includes('password')) {
+                                el.click();
+                                return;
+                            }
+                        }
+                    }
                 });
 
                 await sleep(2000); // Esperar transición hacia la pantalla de contraseña
