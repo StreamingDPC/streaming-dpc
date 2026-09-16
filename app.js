@@ -1821,49 +1821,36 @@ function setupEventListeners() {
                 } catch (e) { /* Firebase no accesible */ }
 
                 if (ngrokUrl) {
-                    // Verificar que el bot ngrok esté activo
-                    try {
-                        const chk = await Promise.race([
-                            fetch(`${ngrokUrl}/status`, {
-                                headers: { 'ngrok-skip-browser-warning': 'true' }
-                            }),
-                            new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 6000))
-                        ]);
-                        if (chk.ok) {
-                            botUrl = ngrokUrl;
-                            usingLocal = true;
-                            document.getElementById('tv-activation-loading').querySelector('p').innerText =
-                                '✅ Bot local conectado (red pública). Iniciando proceso...';
-                            console.log('[TV] Usando bot via ngrok:', ngrokUrl);
-                        }
-                    } catch (e) { console.log('[TV] ngrok URL en Firebase pero no responde.'); }
-                }
-
-                // 2) Intentar bot local (mismo PC) como fallback
-                if (!usingLocal) {
+                    // Si existe URL en Firebase, asumimos que el bot local está vivo
+                    botUrl = ngrokUrl;
+                    usingLocal = true;
+                    document.getElementById('tv-activation-loading').querySelector('p').innerText =
+                        '✅ Conectando al Bot de Activación (Vía nube)...';
+                    console.log('[TV] Fuerza uso de ngrok:', ngrokUrl);
+                } else {
+                    // Fallback a localhost
                     try {
                         const localCheck = await Promise.race([
                             fetch('http://localhost:3099/status'),
-                            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+                            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))
                         ]);
                         if (localCheck.ok) {
                             botUrl = 'http://localhost:3099';
                             usingLocal = true;
                             document.getElementById('tv-activation-loading').querySelector('p').innerText =
-                                '✅ Bot local conectado. Iniciando proceso...';
-                            console.log('[TV] Usando bot local (localhost)');
+                                '✅ Bot local conectado (Red Local). Iniciando...';
                         }
                     } catch (e) {
-                        console.log('[TV] Bot local no disponible, usando Render...');
+                        console.log('[TV] Bot local no disponible, usando Render como último recurso...');
                     }
                 }
 
-                // Llamar al robot seleccionado
+                // Llamar al robot
                 const response = await fetch(`${botUrl}/api/activate-tv`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': 'true'
+                        'ngrok-skip-browser-warning': 'true' // Vital para que ngrok gratuito deje pasar el CORS
                     },
                     body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
                 });
