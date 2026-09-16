@@ -345,6 +345,36 @@ app.post('/api/activate-tv', async (req, res) => {
         const pageText = await page.evaluate(() => document.body.innerText);
         console.log(`[BOT] 🔗 URL final: ${finalUrl}`);
 
+        // 13. Cierre de sesión automático (Para no consumir límite de pantallas/dispositivos)
+        console.log('[BOT] 🧹 Procediendo a cerrar sesión para mantener el sistema limpio...');
+        try {
+            // Ir directamente a la URL global de desvinculación
+            await page.goto('https://www.netflix.com/SignOut', { waitUntil: 'networkidle2', timeout: 15000 });
+            await sleep(2000);
+
+            // Buscar y hacer clic en el botón de confirmación de Cerrar Sesión ("Leaving so soon?")
+            const clickedLogout = await page.evaluate(() => {
+                const elements = Array.from(document.querySelectorAll('button, a'));
+                for (let el of elements) {
+                    const txt = (el.innerText || el.textContent || '').toLowerCase().trim();
+                    if (txt === 'cerrar sesión' || txt === 'sign out' || txt.includes('cerrar sesion')) {
+                        el.click();
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if (clickedLogout) {
+                console.log('[BOT] 👋 Botón de Cerrar Sesión presionado.');
+                await sleep(4000); // Dar tiempo a Netflix para matar el token de sesión en la nube
+            } else {
+                console.log('[BOT] ⚠️ No se encontró el botón de confirmación, cerrando pestaña por fuerza.');
+            }
+        } catch (e) {
+            console.log('[BOT] ⚠️ Error leve al intentar cerrar sesión:', e.message);
+        }
+
         await browser.close();
         browser = null;
 
