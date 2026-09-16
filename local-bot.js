@@ -217,7 +217,7 @@ app.post('/api/activate-tv', async (req, res) => {
                 console.log('[BOT] Click en Continuar (Siguiente paso)...');
                 await Promise.all([
                     sleep(1500), // pequeña pausa humana
-                    page.click('button[type="submit"]')
+                    page.keyboard.press('Enter')
                 ]);
                 console.log('[BOT] ⏳ Esperando 4 segundos a que Netflix procese/cargue...');
                 await sleep(4000); // Dar suficiente tiempo a la animación / red de Netflix
@@ -263,7 +263,7 @@ app.post('/api/activate-tv', async (req, res) => {
         await sleep(400);
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 25000 }).catch(() => { }),
-            page.click('button[type="submit"]')
+            page.keyboard.press('Enter')
         ]);
         await sleep(3000);
 
