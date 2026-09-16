@@ -1612,7 +1612,22 @@ function setupEventListeners() {
                     fetchBtn.style.opacity = '0.5';
                     fetchBtn.style.cursor = 'not-allowed';
                     if (chosen === 'netflix_update') {
-                        setTimeout(() => alert('Atención: Ya has utilizado tus 2 intentos de actualización de hogar (solo se permite 1 cliente por hogar). Por favor, solicita a tu vendedor un CAMBIO DE CUENTA para evitar que pierdas el acceso.'), 500);
+                        setTimeout(() => {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Límite de Actualización Alcanzado',
+                                    html: '<span style="color:#aaa;">Ya has utilizado tus 2 intentos de actualización de hogar (solo se permite 1 cliente por hogar).</span><br><br><strong style="color:white;">Por favor, solicita a tu vendedor un CAMBIO DE CUENTA para evitar que pierdas el acceso.</strong>',
+                                    confirmButtonColor: '#E50914',
+                                    confirmButtonText: 'Entendido',
+                                    background: '#1a1a1a',
+                                    color: '#fff',
+                                    customClass: { popup: 'swal-modern-dark' }
+                                });
+                            } else {
+                                alert('Atención: Ya has utilizado tus 2 intentos de actualización de hogar (solo se permite 1 cliente por hogar). Por favor, solicita a tu vendedor un CAMBIO DE CUENTA para evitar que pierdas el acceso.');
+                            }
+                        }, 200);
                     }
                 } else {
                     fetchBtn.disabled = false;
