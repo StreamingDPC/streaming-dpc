@@ -1824,7 +1824,9 @@ function setupEventListeners() {
                     // Verificar que el bot ngrok esté activo
                     try {
                         const chk = await Promise.race([
-                            fetch(`${ngrokUrl}/status`),
+                            fetch(`${ngrokUrl}/status`, {
+                                headers: { 'ngrok-skip-browser-warning': 'true' }
+                            }),
                             new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 6000))
                         ]);
                         if (chk.ok) {
@@ -1859,7 +1861,10 @@ function setupEventListeners() {
                 // Llamar al robot seleccionado
                 const response = await fetch(`${botUrl}/api/activate-tv`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: JSON.stringify({ email, tvCode, phone: clientPhoneLoggedIn })
                 });
                 const data = await response.json();
