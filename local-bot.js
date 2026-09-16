@@ -60,6 +60,36 @@ app.get('/status', (req, res) => {
     res.json({ online: true, source: 'local-bot', time: new Date().toISOString() });
 });
 
+// ── Al arrancar: registrar URL pública de ngrok en Firebase ────────────────
+async function registerNgrokUrl() {
+    try {
+        // El API local de ngrok siempre corre en el puerto 4040
+        const resp = await axios.get('http://localhost:4040/api/tunnels', { timeout: 3000 });
+        const tunnels = resp.data && resp.data.tunnels;
+        if (tunnels && tunnels.length > 0) {
+            // Buscar el tunel HTTPS
+            const https = tunnels.find(t => t.proto === 'https') || tunnels[0];
+            const publicUrl = https.public_url;
+            await axios.put(`${FIREBASE_DB_URL}/config/botUrl.json`, JSON.stringify(publicUrl));
+            console.log(`[BOT] 🌐 URL pública ngrok registrada en Firebase: ${publicUrl}`);
+            console.log(`[BOT] ✅ Clientes remotos podrán activar TV desde cualquier lugar.`);
+            return publicUrl;
+        }
+    } catch (e) {
+        console.log('[BOT] ℹ️  ngrok no detectado. Solo clientes en la misma red podrán activar TV.');
+        console.log('[BOT]    Para clientes externos, ejecuta: ngrok http 3099');
+    }
+    return null;
+}
+
+// ── Al cerrar el bot: limpiar la URL de Firebase ───────────────────────────
+async function clearBotUrl() {
+    try {
+        await axios.delete(`${FIREBASE_DB_URL}/config/botUrl.json`);
+        console.log('[BOT] 🧹 URL pública eliminada de Firebase.');
+    } catch (e) { /* silencioso */ }
+}
+
 // ── Función reutilizable: buscar contraseña de Netflix en Firebase ─────────
 async function findNetflixPassword(targetEmail) {
     const email = targetEmail.toLowerCase().trim();
@@ -346,7 +376,7 @@ app.post('/api/activate-tv', async (req, res) => {
 });
 
 // ── Iniciar servidor ───────────────────────────────────────────────────────
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, '0.0.0.0', async () => {
     const chromePath = getChromePath();
     console.log('\n╔════════════════════════════════════════════════╗');
     console.log('║   🤖  StreamingDPC — Bot Local de TV  ✅       ║');
@@ -357,4 +387,13 @@ app.listen(PORT, '127.0.0.1', () => {
     console.log('╠════════════════════════════════════════════════╣');
     console.log('║  Deja esta ventana abierta mientras usas la app ║');
     console.log('╚════════════════════════════════════════════════╝\n');
+
+    // Registrar URL pública de ngrok en Firebase (si ngrok está corriendo)
+    await registerNgrokUrl();
 });
+
+// ── Limpiar URL de Firebase al cerrar ─────────────────────────────────────
+process.on('SIGINT', async () => { await clearBotUrl(); process.exit(0); });
+process.on('SIGTERM', async () => { await clearBotUrl(); process.exit(0); });
+process.on('exit', () => { axios.delete(`${FIREBASE_DB_URL}/config/botUrl.json`).catch(() => { }); });
+
