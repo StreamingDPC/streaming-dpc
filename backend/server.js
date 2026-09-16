@@ -163,23 +163,43 @@ app.post('/api/get-code', async (req, res) => {
                     if (isFromPlatform || mentionsEmail) {
                         console.log(`[DEBUG] ¡MATCH ENCONTRADO en ${account.email}!`);
                         if (platformLower.includes('netflix')) {
-                            const codeMatch = textContent.match(/\b\d{4}\b/);
-                            if (codeMatch && (textContent.includes('código') || textContent.includes('access') || subject.includes('netflix'))) {
-                                accountLogs.found = true;
-                                return codeMatch[0];
-                            } else {
+                            const isUpdateOrTemp = platformLower === 'netflix_update' || platformLower === 'netflix_temp';
+
+                            if (isUpdateOrTemp) {
+                                // Para actualizaciones de hogar o acceso temporal, devolvemos el enlace directamente
                                 const $ = cheerio.load(htmlContent);
                                 const links = [];
                                 $('a').each((j, el) => {
                                     const href = $(el).attr('href');
-                                    if (href && href.includes('netflix.com')) links.push(href);
+                                    if (href && (href.includes('netflix.com') || href.includes('nflx.it'))) links.push(href);
                                 });
                                 for (const link of links) {
-                                    if (link.includes('verify') || link.includes('token') || link.includes('travel') || link.includes('update-primary-location')) {
-                                        const code = await getCodeFromNetflixUrl(link);
-                                        if (code) {
-                                            accountLogs.found = true;
-                                            return code;
+                                    if (link.includes('verify') || link.includes('token') || link.includes('travel') || link.includes('update-primary-location') || link.includes('account/update-primary-location')) {
+                                        accountLogs.found = true;
+                                        return link; // Retorna el link para que el frontend lo abra
+                                    }
+                                }
+                            } else {
+                                // Para código normal de TV de 4 dígitos
+                                const codeMatch = textContent.match(/\b\d{4}\b/);
+                                // Netflix envia códigos de activación en el asunto o cuerpo. Nos aseguramos que no sea un Update.
+                                if (codeMatch && !subject.toLowerCase().includes('hogar') && (textContent.includes('código') || textContent.includes('access') || subject.includes('netflix'))) {
+                                    accountLogs.found = true;
+                                    return codeMatch[0];
+                                } else {
+                                    const $ = cheerio.load(htmlContent);
+                                    const links = [];
+                                    $('a').each((j, el) => {
+                                        const href = $(el).attr('href');
+                                        if (href && href.includes('netflix.com')) links.push(href);
+                                    });
+                                    for (const link of links) {
+                                        if (link.includes('verify') || link.includes('token') || link.includes('travel') || link.includes('update-primary-location')) {
+                                            const code = await getCodeFromNetflixUrl(link);
+                                            if (code) {
+                                                accountLogs.found = true;
+                                                return code;
+                                            }
                                         }
                                     }
                                 }
