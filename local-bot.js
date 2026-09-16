@@ -190,12 +190,10 @@ app.post('/api/activate-tv', async (req, res) => {
         console.log('[BOT] ✉️  Email escrito');
 
         // 5. Detectar si es flujo de 1 o 2 pasos
-        let passVisible = false;
-        const passEl = await page.$('input[name="password"]');
-        if (passEl) {
-            const box = await passEl.boundingBox();
-            if (box) passVisible = true;
-        }
+        let passVisible = await page.evaluate(() => {
+            const p = document.querySelector('input[name="password"]');
+            return p !== null && p.offsetWidth > 0 && p.offsetHeight > 0;
+        });
 
         if (!passVisible) {
             console.log('[BOT] 🔄 Flujo 2 pasos. Buscando botón directo de contraseña...');
