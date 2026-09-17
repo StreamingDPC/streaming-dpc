@@ -334,9 +334,35 @@ app.post('/api/activate-tv', async (req, res) => {
         return res.status(400).json({ success: false, error: 'Email y código de TV son requeridos.' });
     }
 
+    // ── PROXY: Si hay un bot local registrado en Firebase, reenviarle la petición ──
+    try {
+        const botUrlResp = await axios.get(`${FIREBASE_DB_URL}/config/botUrl.json`, { timeout: 3000 });
+        const botUrl = botUrlResp.data;
+        if (botUrl && botUrl.startsWith('http')) {
+            console.log(`[TV-BOT] 🔀 Bot local detectado en Firebase: ${botUrl}. Reenviando petición...`);
+            try {
+                const proxyResp = await axios.post(`${botUrl}/api/activate-tv`, req.body, {
+                    timeout: 120000,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+                console.log(`[TV-BOT] ✅ Respuesta del bot local recibida.`);
+                return res.status(proxyResp.status).json(proxyResp.data);
+            } catch (proxyErr) {
+                console.warn(`[TV-BOT] ⚠️ Bot local no respondió (${proxyErr.message}). Usando Render como respaldo...`);
+                // Limpiar URL inválida de Firebase para no volver a intentar
+                await axios.delete(`${FIREBASE_DB_URL}/config/botUrl.json`).catch(() => { });
+            }
+        }
+    } catch (e) {
+        // Firebase no accesible o sin botUrl — continuar con flujo normal de Render
+    }
+
     let browser = null;
     try {
-        console.log(`[TV-BOT] Iniciando activación TV: email=${email}, code=${tvCode}`);
+        console.log(`[TV-BOT] Iniciando activación TV en Render: email=${email}, code=${tvCode}`);
 
         // 1. Buscar la contraseña de Netflix en las ventas (clientSales y sellerSales)
         // La contraseña está en cada venta bajo sale.screens[n].password donde platform=Netflix
