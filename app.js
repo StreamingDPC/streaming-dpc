@@ -53,13 +53,18 @@ if (!firebase.apps.length) {
 const db = firebase.database();
 
 // Live Sync Engine
-const APP_VERSION = '3.8.8';
-db.ref('config/app_version').on('value', snap => {
+const APP_VERSION = '3.8.12';
+db.ref('config/app_version').once('value', snap => {
     const remote = snap.val();
     if (remote && remote !== APP_VERSION) {
         console.log('🔄 Sincronizando nueva versión...');
-        const s = window.location.href.includes('?') ? '&' : '?';
-        window.location.href = window.location.href.split('#')[0] + s + 'v=' + remote;
+        // Limpiar URL de parámetros de versión anteriores para evitar bucles
+        const baseUrl = window.location.origin + window.location.pathname;
+        const params = new URLSearchParams(window.location.search);
+        params.delete('v');
+        params.delete('sync');
+        params.set('v', remote);
+        window.location.href = baseUrl + '?' + params.toString();
     }
 });
 
