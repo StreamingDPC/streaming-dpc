@@ -53,7 +53,7 @@ if (!firebase.apps.length) {
 const db = firebase.database();
 
 // Live Sync Engine
-const APP_VERSION = '3.8.13';
+const APP_VERSION = '3.8.15';
 // NOTA: El Live Sync por versión fue desactivado para evitar bucles de redirección.
 // Render sirve archivos estáticos con caché propia y no puede sincronizar en tiempo real con Firebase.
 
