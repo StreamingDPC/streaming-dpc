@@ -53,7 +53,7 @@ if (!firebase.apps.length) {
 const db = firebase.database();
 
 // Live Sync Engine
-const APP_VERSION = '3.8.7';
+const APP_VERSION = '3.8.8';
 db.ref('config/app_version').on('value', snap => {
     const remote = snap.val();
     if (remote && remote !== APP_VERSION) {
