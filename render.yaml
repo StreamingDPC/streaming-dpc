@@ -11,3 +11,7 @@ services:
         sync: false
       - key: EMAIL_PASSWORD
         sync: false
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "true"
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"
