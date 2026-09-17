@@ -1395,7 +1395,7 @@ function setupEventListeners() {
 
             let rem = 1 - numTv;
             if (rem < 0) rem = 0;
-            tvBtn.innerHTML = `<span style="font-size:1.1rem;">📺</span> Iniciar sesión en TV (${rem} ${rem === 1 ? 'vez' : 'veces'})`;
+            tvBtn.innerHTML = `<span style="font-size:1.1rem;">📺</span> Iniciar sesión Netflix en TV`;
         }
     };
 
