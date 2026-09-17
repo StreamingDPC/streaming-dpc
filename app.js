@@ -54,19 +54,9 @@ const db = firebase.database();
 
 // Live Sync Engine
 const APP_VERSION = '3.8.13';
-db.ref('config/app_version').once('value', snap => {
-    const remote = snap.val();
-    if (remote && remote !== APP_VERSION) {
-        console.log('🔄 Sincronizando nueva versión...');
-        // Limpiar URL de parámetros de versión anteriores para evitar bucles
-        const baseUrl = window.location.origin + window.location.pathname;
-        const params = new URLSearchParams(window.location.search);
-        params.delete('v');
-        params.delete('sync');
-        params.set('v', remote);
-        window.location.href = baseUrl + '?' + params.toString();
-    }
-});
+// NOTA: El Live Sync por versión fue desactivado para evitar bucles de redirección.
+// Render sirve archivos estáticos con caché propia y no puede sincronizar en tiempo real con Firebase.
+
 
 window.sanitizePhone = function (val) {
     if (!val) return "";
