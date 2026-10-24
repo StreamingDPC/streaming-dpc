@@ -2002,6 +2002,15 @@ async function doActivateDisneyTv(email, tvCode) {
         const cdpPort = 9344;
         const profileDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Default', '.gemini', 'disney_bot_profile');
 
+        // Cerrar cualquier instancia residual previa en el puerto 9344 para evitar conflictos
+        try {
+            const stale = await axios.get(`http://127.0.0.1:${cdpPort}/json/version`, { timeout: 800 }).catch(() => null);
+            if (stale && stale.data && stale.data.webSocketDebuggerUrl) {
+                const b = await puppeteer.connect({ browserWSEndpoint: stale.data.webSocketDebuggerUrl }).catch(() => null);
+                if (b) { await b.close().catch(() => {}); }
+            }
+        } catch (e) { }
+
         console.log(`[BOT-DISNEY] 🚀 Iniciando Chrome genuino (CDP port ${cdpPort})...`);
         chromeProc = spawn(chromePath, [
             `--remote-debugging-port=${cdpPort}`,
@@ -2026,7 +2035,12 @@ async function doActivateDisneyTv(email, tvCode) {
         }
 
         if (!endpoint) {
-            if (chromeProc) { try { chromeProc.kill(); } catch (e) { } }
+            if (chromeProc) {
+                try {
+                    const { execSync } = require('child_process');
+                    execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+                } catch (e) { try { chromeProc.kill(); } catch (e2) { } }
+            }
             return { success: false, error: 'No se pudo iniciar Chrome para Disney+.' };
         }
 
@@ -2035,52 +2049,67 @@ async function doActivateDisneyTv(email, tvCode) {
         const page = pages[0] || await browser.newPage();
         await page.setViewport({ width: 1280, height: 800 });
 
-        // Limpiar únicamente cookies al inicio para empezar sin sesión previa,
-        // pero PRESERVAR la caché de scripts para que Disney+ cargue rápido y no se quede en negro.
+        // Limpiar completamente cookies y almacenamiento previo (LocalStorage, IndexedDB)
+        // para que Disney+ NUNCA quede en pantalla negra ni con sesiones previas a medias,
+        // pero preservando el caché de bundles en disco para arranque veloz (3-5 segundos).
+        const disneyOrigins = [
+            'https://www.disneyplus.com',
+            'https://disneyplus.com',
+            'https://identity.disney.com',
+            'https://my.disney.com',
+            'https://disney.com',
+            'https://www.disney.com'
+        ];
         try {
             const client = await page.target().createCDPSession();
+            for (const origin of disneyOrigins) {
+                try {
+                    await client.send('Storage.clearDataForOrigin', {
+                        origin,
+                        storageTypes: 'cookies,local_storage,indexeddb,websql,service_workers'
+                    });
+                } catch (e) { }
+            }
             await client.send('Network.clearBrowserCookies');
-            console.log('[BOT-DISNEY] 🧹 Sesión anterior limpiada (cookies borradas, caché preservada).');
+            console.log('[BOT-DISNEY] 🧹 Sesión anterior limpiada (cookies y storage purgados, caché preservada).');
         } catch (e) { }
 
         // 1. Navegar a https://www.disneyplus.com/es-419/begin?cid=DSS-OFFDEVICE-LP
         console.log('[BOT-DISNEY] 🌐 Navegando a https://www.disneyplus.com/es-419/begin?cid=DSS-OFFDEVICE-LP...');
-        await page.goto('https://www.disneyplus.com/es-419/begin?cid=DSS-OFFDEVICE-LP', { waitUntil: 'networkidle2', timeout: 40000 });
-        await sleep(2500);
+        await page.goto('https://www.disneyplus.com/es-419/begin?cid=DSS-OFFDEVICE-LP', { waitUntil: 'domcontentloaded', timeout: 35000 }).catch(() => {});
+        await sleep(2000);
 
         // Aceptar banner de cookies si aparece
         try {
             const cookieBtn = await page.$('#onetrust-accept-btn-handler');
             if (cookieBtn) await cookieBtn.click();
         } catch (e) { }
-        await sleep(1000);
+        await sleep(800);
 
         // 2. Ingresar el código del televisor (8 dígitos)
         const cleanTvCode = tvCode.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
         console.log(`[BOT-DISNEY] 🔢 Ingresando código de TV (8 dígitos): ${cleanTvCode}`);
 
         let codeInputFound = false;
-        for (let wait = 0; wait < 30; wait++) {
+        for (let wait = 0; wait < 25; wait++) {
             const inp = await page.$('input[name="otp"], input[name="passcode"], input[data-testid*="code"], input[type="text"], input[type="tel"]');
             if (inp) {
                 codeInputFound = true;
                 await inp.click();
                 break;
             }
-
-            // Si Disney sigue con el spinner negro después de 10s, forzar recarga
-            if (wait === 10) {
-                console.log('[BOT-DISNEY] 🔄 Disney tardó en cargar bundles, recargando página...');
-                await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-            }
-
             await sleep(1000);
         }
 
         if (!codeInputFound) {
             const ss = await page.screenshot({ encoding: 'base64' });
-            await browser.disconnect();
-            if (chromeProc) { try { chromeProc.kill(); } catch (e) { } }
+            await browser.close().catch(() => {});
+            if (chromeProc) {
+                try {
+                    const { execSync } = require('child_process');
+                    execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+                } catch (e) { try { chromeProc.kill(); } catch (e2) { } }
+            }
             return {
                 success: false,
                 error: 'Disney+ no cargó la casilla para ingresar el código del televisor.',
@@ -2110,6 +2139,16 @@ async function doActivateDisneyTv(email, tvCode) {
         }
         await sleep(4000);
 
+        // Verificar si la TV quedó activada inmediatamente (pantalla de perfiles o mensaje de éxito)
+        let isDirectSuccess = await page.evaluate(() => {
+            const u = window.location.href.toLowerCase();
+            const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return u.includes('select-profile') || u.includes('/home') || 
+                   txt.includes('quien anda ahi') || txt.includes('todo listo') || 
+                   txt.includes('dispositivo activado') || txt.includes('comenzar a ver') || 
+                   txt.includes('ya puedes disfrutar');
+        });
+
         // Verificar si el código de TV fue inválido
         const isCodeError = await page.evaluate(() => {
             const txt = (document.body.innerText || '').toLowerCase();
@@ -2117,8 +2156,13 @@ async function doActivateDisneyTv(email, tvCode) {
         });
         if (isCodeError) {
             const ss = await page.screenshot({ encoding: 'base64' });
-            await browser.disconnect();
-            if (chromeProc) { try { chromeProc.kill(); } catch (e) { } }
+            await browser.close().catch(() => {});
+            if (chromeProc) {
+                try {
+                    const { execSync } = require('child_process');
+                    execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+                } catch (e) { try { chromeProc.kill(); } catch (e2) { } }
+            }
             return {
                 success: false,
                 error: 'El código ingresado no coincide o expiró en tu TV. Genera un nuevo código en tu televisor.',
@@ -2126,279 +2170,40 @@ async function doActivateDisneyTv(email, tvCode) {
             };
         }
 
-        // 3. Identificar pantalla siguiente tras código de TV: Correo, Contraseña o OTP
-        console.log('[BOT-DISNEY] ⏳ Verificando pantalla de autenticación...');
-        let emailInput = null;
-        for (let wait = 0; wait < 12; wait++) {
-            emailInput = await page.$('input[name="email"], input[type="email"], input[data-testid="email-input"]');
-            if (emailInput) break;
-
-            const hasPass = await page.$('input[type="password"]');
-            if (hasPass) {
-                console.log('[BOT-DISNEY] ℹ️ Disney+ mostró directamente la pantalla de contraseña.');
-                break;
-            }
-
-            const hasOtp = await page.$('input[name="otp"], input[name="passcode"]');
-            if (hasOtp) {
-                console.log('[BOT-DISNEY] ℹ️ Disney+ mostró directamente la casilla de código OTP.');
-                break;
-            }
-            await sleep(1000);
-        }
-
-        // Si hay campo de correo, ingresarlo
-        if (emailInput) {
-            console.log(`[BOT-DISNEY] ✉️ Ingresando correo electrónico: ${email}`);
-            await emailInput.click({ clickCount: 3 });
-            await page.keyboard.press('Backspace');
-            await emailInput.type(email, { delay: 40 });
-            await sleep(600);
-
-            console.log('[BOT-DISNEY] ➡️ Clic en Continuar tras ingresar correo...');
-            const clickedContinue2 = await page.evaluate(() => {
-                const btn = document.querySelector('button[data-testid="continue-btn"], button[type="submit"]') ||
-                    Array.from(document.querySelectorAll('button')).find(b => (b.innerText || '').toLowerCase().includes('continu'));
-                if (btn) {
-                    btn.click();
-                    return true;
-                }
-                return false;
-            });
-            if (!clickedContinue2) {
-                await page.keyboard.press('Enter');
-            }
-            await sleep(4000);
-        }
-
-        // 4. Determinar pantalla de autenticación y solicitar código o contraseña
-        console.log('[BOT-DISNEY] 🔐 Verificando método de acceso...');
-        let needsOtpFlow = false;
-
-        let screenType = 'unknown'; // 'identity_confirm' | 'password' | 'otp_ready'
-        for (let wait = 0; wait < 10; wait++) {
-            const detection = await page.evaluate(() => {
-                const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (txt.includes('confirmar tu identidad') || txt.includes('enviar correo')) {
-                    return 'identity_confirm';
-                }
-                if (document.querySelector('input[type="password"]')) {
-                    return 'password';
-                }
-                if (document.querySelector('input[name="otp"], input[name="passcode"]') || txt.includes('codigo de acceso unico')) {
-                    return 'otp_ready';
-                }
-                return null;
-            });
-
-            if (detection) {
-                screenType = detection;
-                break;
-            }
-            await sleep(1000);
-        }
-
-        console.log(`[BOT-DISNEY] ℹ️ Tipo de pantalla detectada: ${screenType}`);
-
-        if (screenType === 'identity_confirm') {
-            console.log('[BOT-DISNEY] 🔘 Pantalla "Confirmar tu identidad" detectada. Haciendo clic en "Enviar correo"...');
-            const clickedSend = await page.evaluate(() => {
-                const elements = Array.from(document.querySelectorAll('button, a, [role="button"]'));
-                for (const el of elements) {
-                    const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    if (txt.includes('enviar correo') || txt.includes('send email')) {
-                        el.click();
-                        return true;
-                    }
-                }
-                // Si no se encontró por texto, hacer clic en el botón primario
-                const primaryBtn = document.querySelector('button[type="submit"]') || document.querySelector('button');
-                if (primaryBtn) {
-                    primaryBtn.click();
-                    return true;
-                }
-                return false;
-            });
-            console.log(`[BOT-DISNEY] ✅ Clic en "Enviar correo": ${clickedSend}`);
-            needsOtpFlow = true;
-            await sleep(4000);
-
-        } else if (screenType === 'password') {
-            console.log(`[BOT-DISNEY] 🔑 Pantalla de contraseña detectada. Buscando contraseña para ${email}...`);
-            const foundPassword = await findPlatformPassword(email, ['disney', 'dixney', 'star', 'mydisney'], 'DO', 'BOT-DISNEY');
-            let passwordWorked = false;
-
-            if (foundPassword) {
-                console.log(`[BOT-DISNEY] ⌨️ Ingresando contraseña registrada (${foundPassword.substring(0, 3)}***)...`);
-                const passInp = await page.$('input[type="password"]');
-                await passInp.click({ clickCount: 3 });
-                await passInp.type(foundPassword, { delay: 40 });
-                await sleep(600);
-
-                console.log('[BOT-DISNEY] ➡️ Clic en Continuar (iniciar sesión con contraseña)...');
-                await page.evaluate(() => {
-                    const btn = document.querySelector('button[type="submit"], button[data-testid="continue-btn"]') ||
-                        Array.from(document.querySelectorAll('button')).find(b => {
-                            const t = (b.innerText || '').toLowerCase();
-                            return t.includes('continu') || t.includes('iniciar');
-                        });
-                    if (btn) btn.click();
-                });
-                await sleep(5000);
-
-                // Verificar si la activación ya se completó exitosamente con la contraseña
-                const isActivatedDirectly = await page.evaluate(() => {
-                    const txt = (document.body.innerText || '').toLowerCase();
-                    return txt.includes('todo listo') || txt.includes('dispositivo está activado') ||
-                        txt.includes('dispositivo activado') || txt.includes('comenzar a ver') ||
-                        txt.includes('ya puedes disfrutar') || txt.includes('disfruta del contenido');
-                });
-
-                if (isActivatedDirectly) {
-                    console.log('[BOT-DISNEY] ✨ ¡TV activado directamente con contraseña exitosamente!');
-                    passwordWorked = true;
-                }
-            }
-
-            if (!passwordWorked) {
-                console.log('[BOT-DISNEY] 🔘 Buscando opción "Continuar con código de acceso único"...');
-                const clickedOtp = await page.evaluate(() => {
-                    const elements = Array.from(document.querySelectorAll('a, button, [role="button"], span'));
-                    for (const el of elements) {
-                        const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        if (txt.includes('codigo de acceso unico') || txt.includes('acceso unico') || txt.includes('enviar correo') || txt.includes('usar codigo')) {
-                            el.click();
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-                console.log(`[BOT-DISNEY] Click en código de acceso único: ${clickedOtp}`);
-                needsOtpFlow = true;
-                await sleep(4000);
-            }
+        if (isDirectSuccess) {
+            console.log('[BOT-DISNEY] 🎉 ¡Activación completada directamente con el código de TV (pantalla de perfiles detectada)!');
         } else {
-            // screenType === 'otp_ready' o cualquier otro estado
-            needsOtpFlow = true;
-            // Intentar hacer clic en Enviar correo si aún estuviera en pantalla
-            await page.evaluate(() => {
-                const elements = Array.from(document.querySelectorAll('button, a, [role="button"]'));
-                for (const el of elements) {
-                    const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    if (txt.includes('enviar correo') || txt.includes('send email')) {
-                        el.click();
-                        return;
-                    }
-                }
-            });
-            await sleep(3000);
-        }
+            // 3. Identificar pantalla siguiente tras código de TV: Correo, Contraseña o OTP
+            console.log('[BOT-DISNEY] ⏳ Verificando pantalla de autenticación...');
+            let emailInput = null;
+            for (let wait = 0; wait < 12; wait++) {
+                emailInput = await page.$('input[name="email"], input[type="email"], input[data-testid="email-input"]');
+                if (emailInput) break;
 
-        // 5. Flujo de lectura e ingreso de código OTP (si se requirió)
-        let alreadyLoggedIn = await page.evaluate(() => {
-            const u = window.location.href.toLowerCase();
-            const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return u.includes('select-profile') || u.includes('/home') || txt.includes('quien anda ahi') || txt.includes('todo listo') || txt.includes('dispositivo activado');
-        });
-
-        if (alreadyLoggedIn) {
-            console.log('[BOT-DISNEY] 🎉 ¡Disney+ ya está en la pantalla de perfiles (select-profile)! TV activada.');
-            needsOtpFlow = false;
-        }
-
-        if (needsOtpFlow) {
-            console.log('[BOT-DISNEY] 📨 Solicitando al backend el código de acceso Disney (6 dígitos)...');
-            let loginCode = null;
-            const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
-
-            for (let attempt = 1; attempt <= 12; attempt++) {
-                // Verificar en cada iteración si Disney ya ingresó directamente a perfiles o activó la TV
-                const autoDone = await page.evaluate(() => {
-                    const u = window.location.href.toLowerCase();
-                    const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return u.includes('select-profile') || u.includes('/home') || txt.includes('quien anda ahi') || txt.includes('todo listo') || txt.includes('dispositivo activado');
-                });
-                if (autoDone) {
-                    console.log('[BOT-DISNEY] 🎉 ¡Activación detectada en pantalla (select-profile / éxito)! TV vinculada.');
-                    alreadyLoggedIn = true;
+                const hasPass = await page.$('input[type="password"]');
+                if (hasPass) {
+                    console.log('[BOT-DISNEY] ℹ️ Disney+ mostró directamente la pantalla de contraseña.');
                     break;
                 }
 
-                try {
-                    console.log(`[BOT-DISNEY] 🔍 Intento ${attempt}/12 de lectura del correo (${email})...`);
-                    const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
-                        email: email,
-                        platform: 'disney_tv'
-                    }, { timeout: 15000 });
-
-                    if (codeResp.data && codeResp.data.code) {
-                        const raw = codeResp.data.code.toString().replace(/\D/g, '');
-                        if (raw.length >= 6) {
-                            loginCode = raw.substring(0, 6);
-                            console.log(`[BOT-DISNEY] ✅ Código OTP Disney recibido: ${loginCode}`);
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    console.log(`[BOT-DISNEY] ⚠️ Intento ${attempt} falló: ${e.message}`);
+                const hasOtp = await page.$('input[name="otp"], input[name="passcode"]');
+                if (hasOtp) {
+                    console.log('[BOT-DISNEY] ℹ️ Disney+ mostró directamente la casilla de código OTP.');
+                    break;
                 }
-                if (attempt < 12) {
-                    await sleep(5000);
-                }
+                await sleep(1000);
             }
 
-            if (!loginCode && !alreadyLoggedIn) {
-                const ss = await page.screenshot({ encoding: 'base64' });
-                await browser.disconnect();
-                if (chromeProc) { try { chromeProc.kill(); } catch (e) { } }
-                return {
-                    success: false,
-                    error: 'No se pudo leer el código de acceso de Disney+ del correo. Inténtalo de nuevo en 1 minuto.',
-                    screenshot: `data:image/png;base64,${ss}`
-                };
-            }
+            // Si hay campo de correo, ingresarlo
+            if (emailInput) {
+                console.log(`[BOT-DISNEY] ✉️ Ingresando correo electrónico: ${email}`);
+                await emailInput.click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await emailInput.type(email, { delay: 40 });
+                await sleep(600);
 
-            if (!alreadyLoggedIn) {
-                // 6. Pantalla "Escribe tu código de acceso único": Ingresar código OTP de 6 dígitos
-                console.log(`[BOT-DISNEY] ⌨️ Ingresando código OTP en las casillas: ${loginCode}`);
-                let otpInputReady = false;
-                for (let wait = 0; wait < 12; wait++) {
-                    otpInputReady = await page.evaluate(() => {
-                        const inp = document.querySelector('input[name="otp"], input[name="passcode"], input[type="text"], input[type="tel"]');
-                        if (inp) {
-                            inp.focus();
-                            return true;
-                        }
-                        return false;
-                    });
-                    if (otpInputReady) break;
-                    await sleep(1000);
-                }
-
-                // Escribir en inputs individuales si existen (por ejemplo 6 casillas), o en input general
-                await page.evaluate((code) => {
-                    const inputs = Array.from(document.querySelectorAll('input')).filter(i => {
-                        const t = (i.type || '').toLowerCase();
-                        return (t === 'text' || t === 'tel' || t === 'number') && !i.disabled && i.offsetParent !== null;
-                    });
-                    if (inputs.length >= 6) {
-                        for (let i = 0; i < 6; i++) {
-                            inputs[i].focus();
-                            inputs[i].value = code[i] || '';
-                            inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-                            inputs[i].dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    }
-                }, loginCode);
-
-                try {
-                    await page.keyboard.type(loginCode, { delay: 90 });
-                } catch (e) { }
-                await sleep(800);
-
-                // Clic en Continuar final tras ingresar OTP
-                console.log('[BOT-DISNEY] 🚀 Clic en Continuar final...');
-                const clickedContinue3 = await page.evaluate(() => {
+                console.log('[BOT-DISNEY] ➡️ Clic en Continuar tras ingresar correo...');
+                const clickedContinue2 = await page.evaluate(() => {
                     const btn = document.querySelector('button[data-testid="continue-btn"], button[type="submit"]') ||
                         Array.from(document.querySelectorAll('button')).find(b => (b.innerText || '').toLowerCase().includes('continu'));
                     if (btn) {
@@ -2407,30 +2212,297 @@ async function doActivateDisneyTv(email, tvCode) {
                     }
                     return false;
                 });
-                if (!clickedContinue3) {
+                if (!clickedContinue2) {
                     await page.keyboard.press('Enter');
                 }
-                await sleep(5000);
+                await sleep(4000);
+            }
+
+            // 4. Determinar pantalla de autenticación y solicitar código o contraseña
+            console.log('[BOT-DISNEY] 🔐 Verificando método de acceso...');
+            let needsOtpFlow = false;
+
+            let screenType = 'unknown'; // 'identity_confirm' | 'password' | 'otp_ready'
+            for (let wait = 0; wait < 10; wait++) {
+                const detection = await page.evaluate(() => {
+                    const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (txt.includes('confirmar tu identidad') || txt.includes('enviar correo')) {
+                        return 'identity_confirm';
+                    }
+                    if (document.querySelector('input[type="password"]')) {
+                        return 'password';
+                    }
+                    if (document.querySelector('input[name="otp"], input[name="passcode"]') || txt.includes('codigo de acceso unico')) {
+                        return 'otp_ready';
+                    }
+                    return null;
+                });
+
+                if (detection) {
+                    screenType = detection;
+                    break;
+                }
+                await sleep(1000);
+            }
+
+            console.log(`[BOT-DISNEY] ℹ️ Tipo de pantalla detectada: ${screenType}`);
+
+            if (screenType === 'identity_confirm') {
+                console.log('[BOT-DISNEY] 🔘 Pantalla "Confirmar tu identidad" detectada. Haciendo clic en "Enviar correo"...');
+                const clickedSend = await page.evaluate(() => {
+                    const elements = Array.from(document.querySelectorAll('button, a, [role="button"]'));
+                    for (const el of elements) {
+                        const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        if (txt.includes('enviar correo') || txt.includes('send email')) {
+                            el.click();
+                            return true;
+                        }
+                    }
+                    const primaryBtn = document.querySelector('button[type="submit"]') || document.querySelector('button');
+                    if (primaryBtn) {
+                        primaryBtn.click();
+                        return true;
+                    }
+                    return false;
+                });
+                console.log(`[BOT-DISNEY] ✅ Clic en "Enviar correo": ${clickedSend}`);
+                needsOtpFlow = true;
+                await sleep(4000);
+
+            } else if (screenType === 'password') {
+                console.log(`[BOT-DISNEY] 🔑 Pantalla de contraseña detectada. Buscando contraseña para ${email}...`);
+                const foundPassword = await findPlatformPassword(email, ['disney', 'dixney', 'star', 'mydisney'], 'DO', 'BOT-DISNEY');
+                let passwordWorked = false;
+
+                if (foundPassword) {
+                    console.log(`[BOT-DISNEY] ⌨️ Ingresando contraseña registrada (${foundPassword.substring(0, 3)}***)...`);
+                    const passInp = await page.$('input[type="password"]');
+                    await passInp.click({ clickCount: 3 });
+                    await passInp.type(foundPassword, { delay: 40 });
+                    await sleep(600);
+
+                    console.log('[BOT-DISNEY] ➡️ Clic en Continuar (iniciar sesión con contraseña)...');
+                    await page.evaluate(() => {
+                        const btn = document.querySelector('button[type="submit"], button[data-testid="continue-btn"]') ||
+                            Array.from(document.querySelectorAll('button')).find(b => {
+                                const t = (b.innerText || '').toLowerCase();
+                                return t.includes('continu') || t.includes('iniciar');
+                            });
+                        if (btn) btn.click();
+                    });
+                    await sleep(5000);
+
+                    const isActivatedDirectly = await page.evaluate(() => {
+                        const txt = (document.body.innerText || '').toLowerCase();
+                        return txt.includes('todo listo') || txt.includes('dispositivo está activado') ||
+                            txt.includes('dispositivo activado') || txt.includes('comenzar a ver') ||
+                            txt.includes('ya puedes disfrutar') || txt.includes('disfruta del contenido');
+                    });
+
+                    if (isActivatedDirectly) {
+                        console.log('[BOT-DISNEY] ✨ ¡TV activado directamente con contraseña exitosamente!');
+                        passwordWorked = true;
+                    }
+                }
+
+                if (!passwordWorked) {
+                    console.log('[BOT-DISNEY] 🔘 Buscando opción "Continuar con código de acceso único"...');
+                    const clickedOtp = await page.evaluate(() => {
+                        const elements = Array.from(document.querySelectorAll('a, button, [role="button"], span'));
+                        for (const el of elements) {
+                            const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            if (txt.includes('codigo de acceso unico') || txt.includes('acceso unico') || txt.includes('enviar correo') || txt.includes('usar codigo')) {
+                                el.click();
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+                    console.log(`[BOT-DISNEY] Click en código de acceso único: ${clickedOtp}`);
+                    needsOtpFlow = true;
+                    await sleep(4000);
+                }
+            } else {
+                needsOtpFlow = true;
+                await page.evaluate(() => {
+                    const elements = Array.from(document.querySelectorAll('button, a, [role="button"]'));
+                    for (const el of elements) {
+                        const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        if (txt.includes('enviar correo') || txt.includes('send email')) {
+                            el.click();
+                            return;
+                        }
+                    }
+                });
+                await sleep(3000);
+            }
+
+            // 5. Flujo de lectura e ingreso de código OTP (si se requirió)
+            let alreadyLoggedIn = await page.evaluate(() => {
+                const u = window.location.href.toLowerCase();
+                const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return u.includes('select-profile') || u.includes('/home') || txt.includes('quien anda ahi') || txt.includes('todo listo') || txt.includes('dispositivo activado');
+            });
+
+            if (alreadyLoggedIn) {
+                console.log('[BOT-DISNEY] 🎉 ¡Disney+ ya está en la pantalla de perfiles (select-profile)! TV activada.');
+                needsOtpFlow = false;
+            }
+
+            if (needsOtpFlow) {
+                console.log('[BOT-DISNEY] 📨 Solicitando al backend el código de acceso Disney (6 dígitos)...');
+                let loginCode = null;
+                const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+                for (let attempt = 1; attempt <= 12; attempt++) {
+                    const autoDone = await page.evaluate(() => {
+                        const u = window.location.href.toLowerCase();
+                        const txt = (document.body.innerText || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        return u.includes('select-profile') || u.includes('/home') || txt.includes('quien anda ahi') || txt.includes('todo listo') || txt.includes('dispositivo activado');
+                    });
+                    if (autoDone) {
+                        console.log('[BOT-DISNEY] 🎉 ¡Activación detectada en pantalla (select-profile / éxito)! TV vinculada.');
+                        alreadyLoggedIn = true;
+                        break;
+                    }
+
+                    try {
+                        console.log(`[BOT-DISNEY] 🔍 Intento ${attempt}/12 de lectura del correo (${email})...`);
+                        const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                            email: email,
+                            platform: 'disney_tv'
+                        }, { timeout: 15000 });
+
+                        if (codeResp.data && codeResp.data.code) {
+                            const raw = codeResp.data.code.toString().replace(/\D/g, '');
+                            if (raw.length >= 6) {
+                                loginCode = raw.substring(0, 6);
+                                console.log(`[BOT-DISNEY] ✅ Código OTP Disney recibido: ${loginCode}`);
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`[BOT-DISNEY] ⚠️ Intento ${attempt} falló: ${e.message}`);
+                    }
+                    if (attempt < 12) {
+                        await sleep(5000);
+                    }
+                }
+
+                if (!loginCode && !alreadyLoggedIn) {
+                    const ss = await page.screenshot({ encoding: 'base64' });
+                    await browser.close().catch(() => {});
+                    if (chromeProc) {
+                        try {
+                            const { execSync } = require('child_process');
+                            execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+                        } catch (e) { try { chromeProc.kill(); } catch (e2) { } }
+                    }
+                    return {
+                        success: false,
+                        error: 'No se pudo leer el código de acceso de Disney+ del correo. Inténtalo de nuevo en 1 minuto.',
+                        screenshot: `data:image/png;base64,${ss}`
+                    };
+                }
+
+                if (!alreadyLoggedIn) {
+                    // 6. Pantalla "Escribe tu código de acceso único": Ingresar código OTP de 6 dígitos
+                    console.log(`[BOT-DISNEY] ⌨️ Ingresando código OTP en las casillas: ${loginCode}`);
+                    let otpInputReady = false;
+                    for (let wait = 0; wait < 12; wait++) {
+                        otpInputReady = await page.evaluate(() => {
+                            const inp = document.querySelector('input[name="otp"], input[name="passcode"], input[type="text"], input[type="tel"]');
+                            if (inp) {
+                                inp.focus();
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (otpInputReady) break;
+                        await sleep(1000);
+                    }
+
+                    await page.evaluate((code) => {
+                        const inputs = Array.from(document.querySelectorAll('input')).filter(i => {
+                            const t = (i.type || '').toLowerCase();
+                            return (t === 'text' || t === 'tel' || t === 'number') && !i.disabled && i.offsetParent !== null;
+                        });
+                        if (inputs.length >= 6) {
+                            for (let i = 0; i < 6; i++) {
+                                inputs[i].focus();
+                                inputs[i].value = code[i] || '';
+                                inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+                                inputs[i].dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    }, loginCode);
+
+                    try {
+                        await page.keyboard.type(loginCode, { delay: 90 });
+                    } catch (e) { }
+                    await sleep(800);
+
+                    // Clic en Continuar final tras ingresar OTP
+                    console.log('[BOT-DISNEY] 🚀 Clic en Continuar final...');
+                    const clickedContinue3 = await page.evaluate(() => {
+                        const btn = document.querySelector('button[data-testid="continue-btn"], button[type="submit"]') ||
+                            Array.from(document.querySelectorAll('button')).find(b => (b.innerText || '').toLowerCase().includes('continu'));
+                        if (btn) {
+                            btn.click();
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (!clickedContinue3) {
+                        await page.keyboard.press('Enter');
+                    }
+                    await sleep(5000);
+                }
             }
         }
 
-        // 7. Cerrar sesión y limpiar cookies (como solicitado: "listo queda activado y cerrar sesion")
+        // 7. Cerrar sesión completa y purgar almacenamiento de Disney para no dejar perfiles abiertos
         console.log('[BOT-DISNEY] 🧹 Limpiando y cerrando sesión de Disney+ en el navegador...');
         try {
             const client = await page.target().createCDPSession();
+            for (const origin of disneyOrigins) {
+                try {
+                    await client.send('Storage.clearDataForOrigin', {
+                        origin,
+                        storageTypes: 'cookies,local_storage,indexeddb,websql,service_workers'
+                    });
+                } catch (e) { }
+            }
             await client.send('Network.clearBrowserCookies');
-            console.log('[BOT-DISNEY] 🧼 Cookies limpiadas vía CDP.');
+            console.log('[BOT-DISNEY] 🧼 Cookies y Storage de Disney purgados vía CDP.');
         } catch (e) { }
 
         try {
-            await page.goto('https://www.disneyplus.com/es-419/logout', { waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => { });
-            console.log('[BOT-DISNEY] 🚪 Sesión cerrada correctamente en Disney+.');
+            await page.evaluate(() => {
+                try { localStorage.clear(); } catch (e) { }
+                try { sessionStorage.clear(); } catch (e) { }
+            });
         } catch (e) { }
 
-        await browser.disconnect();
+        try {
+            await page.goto('about:blank', { timeout: 5000 }).catch(() => { });
+        } catch (e) { }
+
+        try {
+            await browser.close();
+            console.log('[BOT-DISNEY] 🚪 Navegador cerrado limpiamente.');
+        } catch (e) {
+            await browser.disconnect().catch(() => { });
+        }
         browser = null;
+
         if (chromeProc) {
-            try { chromeProc.kill(); } catch (e) { }
+            try {
+                const { execSync } = require('child_process');
+                execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+            } catch (e) {
+                try { chromeProc.kill(); } catch (e2) { }
+            }
             chromeProc = null;
         }
 
@@ -2448,11 +2520,16 @@ async function doActivateDisneyTv(email, tvCode) {
             try {
                 const pages = await browser.pages();
                 if (pages.length > 0) screenshot = await pages[0].screenshot({ encoding: 'base64' });
-                await browser.disconnect();
+                await browser.close().catch(() => {});
             } catch (e) { }
         }
         if (chromeProc) {
-            try { chromeProc.kill(); } catch (e) { }
+            try {
+                const { execSync } = require('child_process');
+                execSync(`taskkill /F /PID ${chromeProc.pid} /T`, { stdio: 'ignore' });
+            } catch (e) {
+                try { chromeProc.kill(); } catch (e2) { }
+            }
         }
 
         const payload = { success: false, error: 'Error del bot de Disney+ TV: ' + err.message };
