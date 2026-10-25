@@ -602,15 +602,30 @@ async function doActivateTv(email, tvCode) {
             await page.keyboard.press('Enter');
             console.log('[BOT] ⏳ Esperando validación de contraseña...');
             await sleep(4000);
-        } else {
+        }
+
+        // Comprobar si Netflix requiere código OTP de correo (PIN / 2FA), ya sea antes o después de la contraseña
+        const checkNeedsEmailOtp = async () => {
+            return await page.evaluate(() => {
+                const text = (document.body ? document.body.innerText : '') || '';
+                const hasCodeText = /(?:enter the code|c[oó]digo que enviamos|enter a pin code|introduce un c[oó]digo|security code|c[oó]digo de seguridad|c[oó]digo de acceso|c[oó]digo de inicio)/i.test(text);
+                const hasCodeInputs = document.querySelectorAll('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="code" i], input[aria-label*="código" i]').length >= 4 ||
+                    document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"])').length >= 4;
+                return hasCodeText || hasCodeInputs;
+            });
+        };
+
+        const needsEmailOtp = await checkNeedsEmailOtp();
+
+        if (needsEmailOtp || !askedForPassword) {
             // 6. Leer código de inicio de sesión OTP (PIN) enviado al correo
-            console.log('[BOT] 📨 Solicitando al backend el código de acceso (PIN)...');
+            console.log('[BOT] 📨 Netflix solicitó código de acceso (PIN / 2FA) enviado al correo. Solicitando al backend...');
             let loginCode = null;
             const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
 
-            for (let attempt = 1; attempt <= 8; attempt++) {
+            for (let attempt = 1; attempt <= 12; attempt++) {
                 try {
-                    console.log(`[BOT] 🔍 Intento ${attempt}/8 de lectura del correo...`);
+                    console.log(`[BOT] 🔍 Intento ${attempt}/12 de lectura del correo (${email})...`);
                     const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
                         email: email,
                         platform: 'logincode'
@@ -624,7 +639,7 @@ async function doActivateTv(email, tvCode) {
                 } catch (e) {
                     console.log(`[BOT] ⚠️  Intento ${attempt} falló: ${e.message}`);
                 }
-                if (attempt < 8) {
+                if (attempt < 12) {
                     await sleep(5000);
                 }
             }
@@ -634,7 +649,7 @@ async function doActivateTv(email, tvCode) {
                 await browser.close();
                 return {
                     success: false,
-                    error: 'No se pudo leer el código de inicio de sesión del correo. Inténtalo de nuevo en 1 minuto.',
+                    error: 'Netflix solicitó código de verificación (PIN) enviado al correo, pero no se pudo leer del correo en 60 segundos. Verifica si llegó el código o intenta nuevamente.',
                     screenshot: `data:image/png;base64,${ss}`
                 };
             }
@@ -643,7 +658,7 @@ async function doActivateTv(email, tvCode) {
             console.log(`[BOT] ⌨️  Escribiendo código de acceso (PIN): ${loginCode}`);
             await sleep(1000);
 
-            const codeInputs = await page.$$('input[type="text"], input[type="tel"], input[aria-label], input[autocomplete="one-time-code"], input:not([name])');
+            const codeInputs = await page.$$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label], input[type="text"], input:not([name]):not([type="hidden"])');
             if (codeInputs.length >= 4) {
                 for (let i = 0; i < Math.min(4, loginCode.length); i++) {
                     await codeInputs[i].click();
@@ -654,8 +669,10 @@ async function doActivateTv(email, tvCode) {
                 await page.keyboard.type(loginCode, { delay: 200 });
             }
 
+            await sleep(1000);
+            await page.keyboard.press('Enter');
             console.log('[BOT] ⏳ Esperando validación del código...');
-            await sleep(4000);
+            await sleep(5000);
         }
 
         const afterLoginUrl = page.url();
