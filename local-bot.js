@@ -519,7 +519,8 @@ async function doActivateTv(email, tvCode) {
             ]
         });
 
-        const page = await browser.newPage();
+        const pages = await browser.pages();
+        const page = pages.length > 0 ? pages[0] : await browser.newPage();
 
         // Simular navegador real
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
@@ -532,7 +533,11 @@ async function doActivateTv(email, tvCode) {
 
         // 3. Iniciar sesión en Netflix (SIEMPRE primero ingresar con la cuenta requerida)
         console.log(`[BOT] 🌐 Navegando a netflix.com/login para iniciar sesión (${email})...`);
-        await page.goto('https://www.netflix.com/login', { waitUntil: 'networkidle2', timeout: 30000 });
+        try {
+            await page.goto('https://www.netflix.com/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (navErr) {
+            console.warn(`[BOT] ⚠️ Advertencia en navegación: ${navErr.message}. Continuando...`);
+        }
         await sleep(1500);
 
         let currentUrl = page.url();
@@ -691,7 +696,11 @@ async function doActivateTv(email, tvCode) {
 
         // 8. Navegar a netflix.com/tv8 con sesión activa
         console.log('[BOT] 📺 Navegando a netflix.com/tv8 con sesión activa...');
-        await page.goto('https://www.netflix.com/tv8', { waitUntil: 'networkidle2', timeout: 25000 });
+        try {
+            await page.goto('https://www.netflix.com/tv8', { waitUntil: 'domcontentloaded', timeout: 40000 });
+        } catch (navErr) {
+            console.warn(`[BOT] ⚠️ Advertencia en navegación tv8: ${navErr.message}. Continuando...`);
+        }
         await sleep(2000);
 
         // 10. Ingresar el código de activación de TV (8 dígitos)
