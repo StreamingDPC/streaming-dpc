@@ -1785,6 +1785,7 @@ async function doNetflixAccountLogin(email, zoomLevel = 80) {
 // ── FUNCIÓN: Ingreso de Cuentas Disney+ (Login + Código 6 Dígitos - Dejar Abierta) ──
 async function doDisneyAccountLogin(email, zoomLevel = 80) {
     let browser = null;
+    let finalCode = '';
     try {
         console.log(`\n[BOT-ADMIN-DISNEY] ════════════════════════════════════`);
         console.log(`[BOT-ADMIN-DISNEY] 🚀 Iniciando ingreso de cuenta Disney+ para: ${email}`);
@@ -1955,45 +1956,62 @@ async function doDisneyAccountLogin(email, zoomLevel = 80) {
                 };
             }
 
+            finalCode = disneyCode;
+
             // Ingresar código de 6 dígitos en las casillas
             console.log(`[BOT-ADMIN-DISNEY] ⌨️ Ingresando código de 6 dígitos: ${disneyCode}`);
             await sleep(1000);
 
             // Esperar que estén disponibles las casillas
-            for (let wait = 0; wait < 8; wait++) {
-                const hasInp = await page.$('input[name="otp"], input[name="passcode"], input[type="text"], input[type="tel"]');
+            for (let wait = 0; wait < 10; wait++) {
+                const hasInp = await page.$('input[name*="code"], input[name*="passcode"], input[name*="otp"], input[type="text"], input[type="tel"]');
                 if (hasInp) break;
                 await sleep(800);
             }
 
-            await page.evaluate((code) => {
-                const inputs = Array.from(document.querySelectorAll('input')).filter(i => {
-                    const t = (i.type || '').toLowerCase();
-                    return (t === 'text' || t === 'tel' || t === 'number') && !i.disabled && i.offsetParent !== null;
-                });
-                if (inputs.length >= 6) {
-                    for (let i = 0; i < 6; i++) {
-                        inputs[i].focus();
-                        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                        if (setter) setter.call(inputs[i], code[i]);
-                        else inputs[i].value = code[i];
-                        inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-                        inputs[i].dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                } else if (inputs.length === 1) {
-                    inputs[0].focus();
-                    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                    if (setter) setter.call(inputs[0], code);
-                    else inputs[0].value = code;
-                    inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
-                    inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            }, disneyCode);
+            let sixInputs = await page.$('input[name*="code"], input[name*="passcode"], input[name*="otp"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"]), input:not([type="hidden"]):not([type="checkbox"])');
 
-            await sleep(600);
-            await page.keyboard.press('Enter');
+            if (sixInputs.length >= 6) {
+                console.log('[BOT-ADMIN-DISNEY] 🎯 Detectadas 6 casillas individuales. Escribiendo dígito por dígito...');
+                for (let i = 0; i < 6; i++) {
+                    await sixInputs[i].click();
+                    await sleep(120);
+                    await page.keyboard.press('Backspace');
+                    await sixInputs[i].type(disneyCode[i], { delay: 90 });
+                    await sleep(120);
+                }
+            } else if (sixInputs.length === 1) {
+                console.log('[BOT-ADMIN-DISNEY] 🎯 Detectada 1 casilla. Escribiendo código completo...');
+                await sixInputs[0].click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await sixInputs[0].type(disneyCode, { delay: 90 });
+            } else {
+                console.log('[BOT-ADMIN-DISNEY] 🎯 Escribiendo con teclado general...');
+                await page.keyboard.type(disneyCode, { delay: 100 });
+            }
+
+            await sleep(800);
+
+            // Clic en botón Continuar / Submit
+            console.log('[BOT-ADMIN-DISNEY] 🔘 Presionando botón Continuar...');
+            const submitClicked = await page.evaluate(() => {
+                const btns = Array.from(document.querySelectorAll('button, input[type="submit"]'));
+                const btn = btns.find(b => {
+                    const t = (b.innerText || b.value || '').trim().toLowerCase();
+                    return t.includes('continu') || t.includes('submit') || t.includes('enviar') || t.includes('verify');
+                });
+                if (btn) {
+                    btn.click();
+                    return true;
+                }
+                return false;
+            });
+
+            if (!submitClicked) {
+                await page.keyboard.press('Enter');
+            }
             console.log('[BOT-ADMIN-DISNEY] ⏳ Esperando validación del código Disney+...');
-            await sleep(4500);
+            await sleep(5000);
         }
 
         // 4. Paso 4: Navegar a https://www.disneyplus.com/identity/manage-devices y dejar abierta
@@ -2128,8 +2146,8 @@ async function doDisneyAccountLogin(email, zoomLevel = 80) {
 
         return {
             success: true,
-            code: disneyCode,
-            message: `¡Sesión iniciada en Disney+! Código de 6 dígitos (${disneyCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administración de Dispositivos para tu gestión manual.`
+            code: finalCode,
+            message: `¡Sesión iniciada en Disney+! Código de 6 dígitos (${finalCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administración de Dispositivos para tu gestión manual.`
         };
 
     } catch (err) {
