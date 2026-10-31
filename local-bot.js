@@ -281,7 +281,7 @@ async function processQueue() {
                 item.resolve(result);
             } else if (item.platform === 'netflix_account_login') {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta Netflix (MFA + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
-                const result = await doNetflixAccountLogin(item.email);
+                const result = await doNetflixAccountLogin(item.email, item.zoom);
                 item.resolve(result);
             } else {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando turno Netflix TV: ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
@@ -333,14 +333,14 @@ app.post('/api/activate-netflix-tv', (req, res) => {
 
 // ── ENDPOINT: Ingreso de Cuentas Netflix (Login + MFA 6 Dígitos - Dejar Abierta) ──────
 app.post('/api/netflix-account-login', async (req, res) => {
-    const { email } = req.body;
+    const { email, zoom } = req.body;
 
     if (!email) {
         return res.status(400).json({ success: false, error: 'Email de la cuenta es requerido.' });
     }
 
     const queuePromise = new Promise((resolve, reject) => {
-        activationQueue.push({ platform: 'netflix_account_login', email, resolve, reject, time: Date.now() });
+        activationQueue.push({ platform: 'netflix_account_login', email, zoom, resolve, reject, time: Date.now() });
     });
 
     processQueue();
@@ -1089,7 +1089,7 @@ async function fetchLocalImapCode(email, platform, minTimestamp = 0) {
 }
 
 // ── FUNCIÓN: Ingreso de Cuentas Netflix (Login + MFA 6 Dígitos - Dejar Abierta) ──
-async function doNetflixAccountLogin(email) {
+async function doNetflixAccountLogin(email, zoomLevel = 80) {
     let browser = null;
     try {
         console.log(`\n[BOT-ADMIN-LOGIN] ════════════════════════════════════`);
@@ -1604,33 +1604,90 @@ async function doNetflixAccountLogin(email) {
         }
         await sleep(5000);
 
-        // 7. Establecer el zoom al 67% solicitado por el usuario
-        console.log('[BOT-ADMIN-LOGIN] 🔍 Estableciendo zoom del navegador al 67%...');
+        // 7. Establecer el zoom solicitado por el usuario y barra interactiva de pruebas
+        let targetZoom = parseInt(zoomLevel, 10);
+        if (isNaN(targetZoom) || targetZoom < 30 || targetZoom > 200) targetZoom = 80;
+        console.log(`[BOT-ADMIN-LOGIN] 🔍 Estableciendo zoom del navegador al ${targetZoom}%...`);
+
         try {
-            await page.evaluate(() => {
-                document.documentElement.style.zoom = '67%';
-                if (document.body) document.body.style.zoom = '67%';
-                const style = document.createElement('style');
-                style.id = 'custom-zoom-67';
-                style.textContent = 'html, body { zoom: 67% !important; }';
-                (document.head || document.documentElement).appendChild(style);
-            });
+            await page.evaluate((initialZoom) => {
+                let currentZoom = initialZoom;
+                const applyZoom = (z) => {
+                    currentZoom = z;
+                    document.documentElement.style.zoom = z + '%';
+                    if (document.body) document.body.style.zoom = z + '%';
+                    const display = document.getElementById('admin-floating-zoom-text');
+                    if (display) display.innerText = z + '%';
+                };
+
+                applyZoom(initialZoom);
+
+                if (document.getElementById('admin-floating-zoom-bar')) return;
+
+                const bar = document.createElement('div');
+                bar.id = 'admin-floating-zoom-bar';
+                bar.style.cssText = `
+                    position: fixed;
+                    top: 15px;
+                    right: 25px;
+                    z-index: 999999999;
+                    background: rgba(15, 23, 42, 0.94);
+                    color: #fff;
+                    padding: 8px 16px;
+                    border-radius: 30px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+                    border: 1px solid rgba(255,255,255,0.25);
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    font-size: 13px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    backdrop-filter: blur(8px);
+                    user-select: none;
+                `;
+
+                bar.innerHTML = `
+                    <span style="font-weight: bold; color: #f39c12; margin-right: 2px;">🔍 Zoom:</span>
+                    <button id="btn-zoom-minus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">-</button>
+                    <span id="admin-floating-zoom-text" style="font-weight: bold; min-width: 46px; text-align: center; color:#38bdf8; font-size:14px;">${initialZoom}%</span>
+                    <button id="btn-zoom-plus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">+</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button class="quick-zoom-btn" data-z="67" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">67%</button>
+                    <button class="quick-zoom-btn" data-z="75" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">75%</button>
+                    <button class="quick-zoom-btn" data-z="80" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">80%</button>
+                    <button class="quick-zoom-btn" data-z="85" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">85%</button>
+                    <button class="quick-zoom-btn" data-z="90" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">90%</button>
+                    <button class="quick-zoom-btn" data-z="100" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">100%</button>
+                `;
+
+                document.body.appendChild(bar);
+
+                document.getElementById('btn-zoom-minus').onclick = () => {
+                    applyZoom(Math.max(30, currentZoom - 5));
+                };
+                document.getElementById('btn-zoom-plus').onclick = () => {
+                    applyZoom(Math.min(150, currentZoom + 5));
+                };
+                bar.querySelectorAll('.quick-zoom-btn').forEach(btn => {
+                    btn.onclick = () => applyZoom(parseInt(btn.getAttribute('data-z'), 10));
+                });
+            }, targetZoom);
 
             const client = await page.target().createCDPSession();
-            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 0.67 });
-            console.log('[BOT-ADMIN-LOGIN] ✅ Zoom al 67% aplicado correctamente.');
+            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: parseFloat((targetZoom / 100).toFixed(2)) });
+            console.log(`[BOT-ADMIN-LOGIN] ✅ Zoom al ${targetZoom}% aplicado correctamente.`);
         } catch (e) {
             console.log('[BOT-ADMIN-LOGIN] Nota aplicación zoom:', e.message);
         }
 
         console.log('[BOT-ADMIN-LOGIN] 🎉 ¡Éxito! Cuenta de Netflix ingresada y verificada.');
-        console.log('[BOT-ADMIN-LOGIN] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al 67%) para el administrador...');
+        console.log(`[BOT-ADMIN-LOGIN] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al ${targetZoom}%) para el administrador...`);
 
         // ¡NO CERRAR EL NAVEGADOR! Se mantiene abierto para uso manual del administrador
         return {
             success: true,
             code: mfaCode,
-            message: `¡Sesión iniciada y verificada! Código MFA de 6 dígitos (${mfaCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al 67%) para tu uso manual.`
+            message: `¡Sesión iniciada y verificada! Código MFA de 6 dígitos (${mfaCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) con barra de ajuste rápido para tus pruebas.`
         };
 
     } catch (err) {
