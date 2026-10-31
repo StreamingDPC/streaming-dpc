@@ -8637,46 +8637,108 @@
         }
 
         function createSpecificScreenButton(scr, idx) {
-            const btn = document.createElement('button');
-            btn.className = 'save-btn';
-            btn.style = 'margin:0; background:rgba(155, 89, 182, 0.15); border: 1.5px solid #9b59b6; font-size:0.9rem; padding:12px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; height:auto; transition: all 0.2s; min-height:105px; justify-content:center; position:relative; overflow:hidden; border-radius:10px; cursor:pointer;';
-            btn.id = 'btn-crm-screen-' + idx;
+            const card = document.createElement('div');
+            card.className = 'crm-screen-card';
+            card.style = 'margin:0; background:rgba(155, 89, 182, 0.15); border: 1.5px solid #9b59b6; font-size:0.9rem; padding:12px 10px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:5px; height:auto; transition: all 0.2s; min-height:115px; justify-content:center; position:relative; overflow:hidden; border-radius:10px; cursor:pointer; box-sizing:border-box;';
+            card.id = 'btn-crm-screen-' + idx;
 
             const profLabel = scr.profile ? scr.profile : _crmTargetClient.name;
             const emailLabel = scr.email ? scr.email : 'Sin correo';
 
-            btn.innerHTML = `
+            const dict = storeConfig.crmGalleryDict || {};
+            const platClean = (scr.platform || '').toLowerCase().trim();
+            const matchingKeys = Object.keys(dict).filter(k => {
+                const base = k.split(' | ')[0].trim().toLowerCase();
+                return base === platClean || k.toLowerCase().startsWith(platClean);
+            });
+
+            // Detectar variante preferida según la venta (si dice TV o CEL/PC)
+            const contextText = `${scr.itemName || ''} ${scr.itemDetails || ''} ${_crmTargetClient.itemsRaw || ''}`.toLowerCase();
+            let preferredKey = matchingKeys[0] || scr.platform;
+            if (contextText.includes('tv') && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
+                preferredKey = matchingKeys.find(k => k.toLowerCase().includes('tv'));
+            } else if ((contextText.includes('cel') || contextText.includes('pc') || contextText.includes('movil') || contextText.includes('móvil')) && matchingKeys.some(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'))) {
+                preferredKey = matchingKeys.find(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'));
+            }
+
+            let variantButtonsHtml = '';
+            if (matchingKeys.length > 1) {
+                variantButtonsHtml = `
+                    <div style="display:flex; gap:6px; margin-top:8px; width:100%; justify-content:center; flex-wrap:wrap;">
+                        ${matchingKeys.map(k => {
+                            const varName = k.includes(' | ') ? k.split(' | ')[1].trim() : k;
+                            const isTv = varName.toLowerCase().includes('tv');
+                            const icon = isTv ? '<i class="fa-solid fa-tv"></i>' : '<i class="fa-solid fa-mobile-screen"></i>';
+                            const isPref = (k === preferredKey);
+                            const bg = isPref ? '#9b59b6' : 'rgba(255,255,255,0.08)';
+                            const border = isPref ? '1px solid #c39bd3' : '1px solid rgba(255,255,255,0.2)';
+                            return `
+                                <button type="button" class="crm-var-btn" data-key="${k.replace(/"/g, '&quot;')}" style="padding:4px 9px; font-size:0.75rem; font-weight:bold; border-radius:6px; background:${bg}; color:white; border:${border}; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;">
+                                    ${icon} ${varName}
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
                 <i class="fa-solid fa-tv" style="color:#9b59b6; font-size:1.3rem;"></i> 
                 <span style="font-weight:bold; font-size:0.95rem; color:white;">${scr.platform}</span>
                 <span style="font-size:0.78rem; color:#2ecc71; font-weight:bold; background:rgba(46,204,113,0.12); border:1px solid rgba(46,204,113,0.3); padding:2px 8px; border-radius:6px;">👤 ${profLabel}</span>
                 <small style="font-size:0.7rem; color:#aaa; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📧 ${emailLabel}</small>
+                ${variantButtonsHtml}
             `;
 
-            btn.onclick = () => {
-                sendCRMStep1Message(scr.platform, scr);
-                btn.style.opacity = '0.5';
-                btn.style.filter = 'grayscale(1)';
-                btn.innerHTML += '<small style="color:#2ecc71; font-size:0.75rem; font-weight:bold; margin-top:2px;">¡Enviado!</small>';
-                btn.disabled = true;
+            // Marcar como enviado visualmente
+            const markAsSent = () => {
+                card.style.opacity = '0.5';
+                card.style.filter = 'grayscale(1)';
+                if (!card.querySelector('.crm-sent-badge')) {
+                    const b = document.createElement('small');
+                    b.className = 'crm-sent-badge';
+                    b.style = 'color:#2ecc71; font-size:0.75rem; font-weight:bold; margin-top:3px; display:block;';
+                    b.innerText = '¡Enviado!';
+                    card.appendChild(b);
+                }
+                card.querySelectorAll('button').forEach(btn => btn.disabled = true);
             };
 
-            btn.onmouseover = () => {
-                if (!btn.disabled) {
-                    btn.style.background = 'var(--accent-primary)';
-                    btn.style.color = 'black';
-                    btn.querySelectorAll('i, span, small').forEach(el => el.style.color = 'black');
+            // Eventos para botones de variantes individuales
+            const varBtns = card.querySelectorAll('.crm-var-btn');
+            if (varBtns.length > 0) {
+                varBtns.forEach(btn => {
+                    btn.onmouseover = () => { btn.style.background = 'var(--accent-primary)'; btn.style.color = 'black'; };
+                    btn.onmouseout = () => {
+                        const isPref = btn.getAttribute('data-key') === preferredKey;
+                        btn.style.background = isPref ? '#9b59b6' : 'rgba(255,255,255,0.08)';
+                        btn.style.color = 'white';
+                    };
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const keyToSend = btn.getAttribute('data-key');
+                        sendCRMStep1Message(keyToSend, scr);
+                        markAsSent();
+                    };
+                });
+            }
+
+            // Clic en la tarjeta completa (envía la variante detectada o primera)
+            card.onclick = () => {
+                sendCRMStep1Message(preferredKey, scr);
+                markAsSent();
+            };
+
+            card.onmouseover = () => {
+                if (!card.querySelector('.crm-sent-badge')) {
+                    card.style.borderColor = 'var(--accent-primary)';
                 }
             };
-            btn.onmouseout = () => {
-                if (!btn.disabled) {
-                    btn.style.background = 'rgba(155, 89, 182, 0.15)';
-                    btn.style.color = 'white';
-                    btn.querySelector('i').style.color = '#9b59b6';
-                    btn.querySelector('span:first-of-type').style.color = 'white';
-                    btn.querySelector('small').style.color = '#aaa';
-                }
+            card.onmouseout = () => {
+                card.style.borderColor = '#9b59b6';
             };
-            return btn;
+
+            return card;
         }
 
         window.renderCRMPlatformsList = function (filter) {
@@ -8704,7 +8766,9 @@
                             email: sp.email || '',
                             pass: sp.pass || '',
                             profile: sp.profile || '',
-                            pin: sp.pin || ''
+                            pin: sp.pin || '',
+                            itemName: it.name || '',
+                            itemDetails: it.details || ''
                         });
                     }
                 });
@@ -8818,7 +8882,31 @@
             const { name, phone, start, end, pin, sellerName } = _crmTargetClient;
             let targetClientName = (optScreen && optScreen.profile) ? optScreen.profile : name;
             const dict = storeConfig.crmGalleryDict || {};
-            const items = dict[platformName] || [];
+
+            // 1. Resolver clave exacta en el diccionario crmGalleryDict (soporta "Netflix", "Netflix | TV", etc.)
+            let resolvedKey = platformName;
+            let items = dict[resolvedKey] || [];
+
+            if (!items || items.length === 0) {
+                const pClean = (platformName || '').toLowerCase().trim();
+                const allKeys = Object.keys(dict);
+                const matchingKeys = allKeys.filter(k => {
+                    const base = k.split(' | ')[0].trim().toLowerCase();
+                    return base === pClean || k.toLowerCase().startsWith(pClean);
+                });
+
+                if (matchingKeys.length > 0) {
+                    const contextStr = `${optScreen?.itemName || ''} ${optScreen?.itemDetails || ''} ${_crmTargetClient?.itemsRaw || ''}`.toLowerCase();
+                    if (contextStr.includes('tv') && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('tv'));
+                    } else if ((contextStr.includes('cel') || contextStr.includes('pc') || contextStr.includes('movil') || contextStr.includes('móvil')) && matchingKeys.some(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'));
+                    } else {
+                        resolvedKey = matchingKeys[0];
+                    }
+                    items = dict[resolvedKey] || [];
+                }
+            }
 
             // ── Leer useLocalRobotCRM SIEMPRE desde storeConfig (fuente de verdad = Firebase)
             // También sincronizar desde el DOM si el elemento existe
@@ -8844,8 +8932,10 @@
                 if (fullItems.length > 0) {
                     fullItems.forEach(it => {
                         if (it.specificEmails && Array.isArray(it.specificEmails)) {
+                            const basePlat = platformName.split(' | ')[0].trim().toLowerCase();
                             const match = it.specificEmails.find(se =>
                                 se.platform && (
+                                    se.platform.toLowerCase() === basePlat ||
                                     se.platform.toLowerCase() === platformName.toLowerCase() ||
                                     platformName.toLowerCase().includes(se.platform.toLowerCase()) ||
                                     se.platform.toLowerCase().includes(platformName.toLowerCase())
@@ -8865,8 +8955,13 @@
                 }
             }
 
+            const cleanPlatformName = platformName.includes(' | ') ? platformName.split(' | ')[0].trim() : platformName;
             const dataVars = {
-                name: targetClientName, platformName, start, end, pin: targetPin,
+                name: targetClientName,
+                platformName: cleanPlatformName,
+                start,
+                end,
+                pin: targetPin,
                 email: targetEmail,
                 pass: targetPass,
                 profile: targetProfile
@@ -8879,14 +8974,17 @@
             let extraText = "";
 
             // Añadir fotos y sus textos
-            if (items.length > 0) {
+            if (items && items.length > 0) {
                 extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
                 items.forEach((item, index) => {
                     let itemText = replaceCRMVars(item.text, dataVars);
                     if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
 
                     if (item.photo) {
-                        const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
+                        const urls = item.photo.split(/[\r\n,;]+/)
+                            .map(u => u.trim().replace(/^["']+|["']+$/g, '').trim())
+                            .filter(u => u && u.length > 3);
+
                         if (useRobot) {
                             urls.forEach(url => allLocalPhotos.push(url));
                         } else {
