@@ -1628,7 +1628,7 @@ async function doNetflixAccountLogin(email, zoomLevel = 80) {
                 bar.id = 'admin-floating-zoom-bar';
                 bar.style.cssText = `
                     position: fixed;
-                    top: 15px;
+                    bottom: 25px;
                     right: 25px;
                     z-index: 999999999;
                     background: rgba(15, 23, 42, 0.94);
@@ -1644,9 +1644,12 @@ async function doNetflixAccountLogin(email, zoomLevel = 80) {
                     gap: 8px;
                     backdrop-filter: blur(8px);
                     user-select: none;
+                    cursor: grab;
+                    touch-action: none;
                 `;
 
                 bar.innerHTML = `
+                    <span id="drag-handle" style="cursor:grab; font-size:16px; color:#94a3b8; margin-right:2px; padding:0 3px;" title="Arrastrar barra">⠿</span>
                     <span style="font-weight: bold; color: #f39c12; margin-right: 2px;">🔍 Zoom:</span>
                     <button id="btn-zoom-minus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">-</button>
                     <span id="admin-floating-zoom-text" style="font-weight: bold; min-width: 46px; text-align: center; color:#38bdf8; font-size:14px;">${initialZoom}%</span>
@@ -1658,15 +1661,55 @@ async function doNetflixAccountLogin(email, zoomLevel = 80) {
                     <button class="quick-zoom-btn" data-z="85" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">85%</button>
                     <button class="quick-zoom-btn" data-z="90" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">90%</button>
                     <button class="quick-zoom-btn" data-z="100" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">100%</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button id="btn-zoom-close" style="background:transparent; color:#94a3b8; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center;" title="Cerrar barra">✕</button>
                 `;
 
                 document.body.appendChild(bar);
+
+                // Funcionalidad de arrastre (Drag & Drop suave a cualquier parte)
+                let isDragging = false;
+                let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+                bar.onmousedown = (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = bar.getBoundingClientRect();
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
+                    bar.style.bottom = 'auto';
+                    bar.style.right = 'auto';
+                    bar.style.left = initialLeft + 'px';
+                    bar.style.top = initialTop + 'px';
+                    bar.style.cursor = 'grabbing';
+                    e.preventDefault();
+                };
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    bar.style.left = (initialLeft + dx) + 'px';
+                    bar.style.top = (initialTop + dy) + 'px';
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        bar.style.cursor = 'grab';
+                    }
+                });
 
                 document.getElementById('btn-zoom-minus').onclick = () => {
                     applyZoom(Math.max(30, currentZoom - 5));
                 };
                 document.getElementById('btn-zoom-plus').onclick = () => {
                     applyZoom(Math.min(150, currentZoom + 5));
+                };
+                document.getElementById('btn-zoom-close').onclick = () => {
+                    bar.style.display = 'none';
                 };
                 bar.querySelectorAll('.quick-zoom-btn').forEach(btn => {
                     btn.onclick = () => applyZoom(parseInt(btn.getAttribute('data-z'), 10));
