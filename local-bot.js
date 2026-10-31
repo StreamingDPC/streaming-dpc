@@ -2813,90 +2813,98 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
             });
         } catch (e) { }
 
-        // Si ya está logueado, pasar directo a devices
-        if (page.url().includes('primevideo.com') && !page.url().includes('/ap/signin')) {
-            console.log('[BOT-ADMIN-PRIME] Sesión ya iniciada, pasando directo a configuración de dispositivos...');
-        } else {
-            // Paso 1: Ingresar Correo
-            let emailInput = null;
-            for (let wait = 0; wait < 15; wait++) {
-                emailInput = await page.$('#ap_email, #ap_email_login, input[type="email"], input[name="email"]');
-                if (emailInput) break;
-                await sleep(1000);
+        // Función modular para ingresar email y contraseña en Amazon
+        async function performAmazonLogin(isSecondPass = false) {
+            console.log(`[BOT-ADMIN-PRIME] 🔐 Ejecutando login en Amazon (${isSecondPass ? 'Segunda confirmación' : 'Paso inicial'})...`);
+
+            // Aceptar cookies si aparecen
+            try {
+                await page.evaluate(() => {
+                    const btns = Array.from(document.querySelectorAll('button, input[type="submit"], [role="button"]'));
+                    const cBtn = btns.find(b => {
+                        const t = (b.innerText || b.value || '').toLowerCase();
+                        return t.includes('aceptar cookies') || t.includes('accept cookies') || t.includes('agree') || t.includes('accept all');
+                    });
+                    if (cBtn) cBtn.click();
+                });
+            } catch (e) { }
+
+            // 1. Verificar si pide Correo
+            const emailInput = await page.$('#ap_email, #ap_email_login, input[type="email"], input[name="email"]');
+            if (emailInput) {
+                const currentVal = await page.evaluate(el => el.value, emailInput);
+                if (!currentVal || !currentVal.includes('@')) {
+                    console.log(`[BOT-ADMIN-PRIME] ✉️ Ingresando correo electrónico: ${email}`);
+                    await page.evaluate((el, targetEmail) => {
+                        el.focus();
+                        el.value = '';
+                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                        if (nativeSetter) nativeSetter.call(el, targetEmail);
+                        else el.value = targetEmail;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }, emailInput, email);
+                    await sleep(300);
+                } else {
+                    console.log(`[BOT-ADMIN-PRIME] ✉️ Correo verificado en pantalla: "${currentVal}"`);
+                }
+
+                // Si contraseña no está visible en la misma página, pulsar Continuar
+                const passVisible = await page.evaluate(() => {
+                    const p = document.querySelector('#ap_password, input[type="password"]');
+                    return Boolean(p && p.offsetParent !== null);
+                });
+
+                if (!passVisible) {
+                    console.log('[BOT-ADMIN-PRIME] ➡️ Clic en Continuar...');
+                    const contBtn = await page.$('input#continue, button#continue, #continue, input[type="submit"]');
+                    if (contBtn) {
+                        await contBtn.click();
+                    } else {
+                        await page.keyboard.press('Enter');
+                    }
+                    await sleep(2500);
+                }
             }
 
-            if (!emailInput) {
-                return {
-                    success: false,
-                    error: `No se encontró el campo de correo en ${page.url()}.`
-                };
+            // 2. Ingresar Contraseña
+            let passInput = null;
+            for (let wait = 0; wait < 12; wait++) {
+                passInput = await page.$('#ap_password, input[type="password"]');
+                if (passInput) break;
+                await sleep(800);
             }
 
-            console.log(`[BOT-ADMIN-PRIME] ✉️ Ingresando correo electrónico: ${email}`);
-            await page.evaluate((el, targetEmail) => {
-                el.focus();
-                el.value = '';
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                if (nativeSetter) nativeSetter.call(el, targetEmail);
-                else el.value = targetEmail;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-            }, emailInput, email);
-            await sleep(400);
+            if (passInput) {
+                console.log('[BOT-ADMIN-PRIME] 🔑 Ingresando contraseña...');
+                await page.evaluate((el, targetPass) => {
+                    el.focus();
+                    el.value = '';
+                    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                    if (nativeSetter) nativeSetter.call(el, targetPass);
+                    else el.value = targetPass;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }, passInput, primePass);
+                await sleep(400);
 
-            // Verificar si el campo de contraseña ya está visible en la misma pantalla (1 paso)
-            const passVisibleAlready = await page.evaluate(() => {
-                const p = document.querySelector('#ap_password, input[type="password"]');
-                return Boolean(p && p.offsetParent !== null);
-            });
-
-            if (!passVisibleAlready) {
-                console.log('[BOT-ADMIN-PRIME] ➡️ Clic en Continuar...');
-                const contBtn = await page.$('input#continue, button#continue, #continue, input[type="submit"]');
-                if (contBtn) {
-                    await contBtn.click();
+                console.log('[BOT-ADMIN-PRIME] 🚀 Clic en Iniciar sesión...');
+                const signBtn = await page.$('#signInSubmit, input#signInSubmit, button#signInSubmit, input[type="submit"]');
+                if (signBtn) {
+                    await signBtn.click();
                 } else {
                     await page.keyboard.press('Enter');
                 }
-                await sleep(2500);
+                await sleep(3500);
             }
+        }
 
-            // Paso 2: Ingresar Contraseña
-            let passInput = null;
-            for (let wait = 0; wait < 15; wait++) {
-                passInput = await page.$('#ap_password, input[type="password"]');
-                if (passInput) break;
-                await sleep(1000);
-            }
-
-            if (!passInput) {
-                return {
-                    success: false,
-                    error: 'Amazon no cargó el campo de contraseña.'
-                };
-            }
-
-            console.log('[BOT-ADMIN-PRIME] 🔑 Ingresando contraseña...');
-            await page.evaluate((el, targetPass) => {
-                el.focus();
-                el.value = '';
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                if (nativeSetter) nativeSetter.call(el, targetPass);
-                else el.value = targetPass;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-            }, passInput, primePass);
-            await sleep(400);
-
-            // Clic en Iniciar sesión
-            console.log('[BOT-ADMIN-PRIME] 🚀 Clic en Iniciar sesión...');
-            const signBtn = await page.$('#signInSubmit, input#signInSubmit, button#signInSubmit, input[type="submit"]');
-            if (signBtn) {
-                await signBtn.click();
-            } else {
-                await page.keyboard.press('Enter');
-            }
-            await sleep(4000);
+        // Si ya está logueado en primevideo y no en signin, saltar al final
+        if (page.url().includes('primevideo.com') && !page.url().includes('/ap/signin')) {
+            console.log('[BOT-ADMIN-PRIME] Sesión ya iniciada, pasando directo a configuración de dispositivos...');
+        } else {
+            // Realizar primer intento de login
+            await performAmazonLogin(false);
         }
 
         // Paso 2: Navegar a perfiles (https://www.primevideo.com/profiles?switchRurl=%2Fstorefront&ref_=atv_profile_redirect_pid_locked)
@@ -2906,7 +2914,29 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
         } catch (e) {
             console.warn(`[BOT-ADMIN-PRIME] ⚠️ Advertencia navegación profiles: ${e.message}`);
         }
-        await sleep(3000);
+        await sleep(3500);
+
+        console.log(`[BOT-ADMIN-PRIME] 🔗 URL actual tras navegar a perfiles: ${page.url()}`);
+
+        // Verificar si Amazon redirigió a la segunda pantalla de login
+        const needsSecondLogin = await page.evaluate(() => {
+            const hasPass = Boolean(document.querySelector('#ap_password, input[type="password"]'));
+            const hasEmail = Boolean(document.querySelector('#ap_email, #ap_email_login, input[type="email"]'));
+            const isSignin = window.location.href.includes('/ap/signin');
+            return isSignin || hasPass || hasEmail;
+        });
+
+        if (needsSecondLogin) {
+            console.log('[BOT-ADMIN-PRIME] 🔄 Detectada pantalla de inicio de sesión de Amazon tras perfiles. Reingresando credenciales automáticamente...');
+            await performAmazonLogin(true);
+            await sleep(3500);
+
+            // Reintentar navegar a perfiles
+            try {
+                await page.goto('https://www.primevideo.com/profiles?switchRurl=%2Fstorefront&ref_=atv_profile_redirect_pid_locked', { waitUntil: 'domcontentloaded', timeout: 45000 });
+            } catch (e) { }
+            await sleep(3000);
+        }
 
         // Si se muestra selección de perfil ("¿Quién está viendo?"), seleccionar el primer perfil disponible
         try {
@@ -2929,6 +2959,18 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
             console.warn(`[BOT-ADMIN-PRIME] ⚠️ Advertencia navegación your-devices: ${e.message}`);
         }
         await sleep(3500);
+
+        // Si en your-devices Amazon solicita contraseña nuevamente para verificar identidad
+        const passOnDevices = await page.$('#ap_password, input[type="password"]');
+        if (passOnDevices) {
+            console.log('[BOT-ADMIN-PRIME] 🔑 Amazon solicitó confirmación de contraseña para acceder a Dispositivos. Confirmando...');
+            await performAmazonLogin(true);
+            await sleep(3000);
+            try {
+                await page.goto('https://www.primevideo.com/region/na/settings/your-devices?ref_=atv_pr_sw_sc', { waitUntil: 'domcontentloaded', timeout: 45000 });
+            } catch (e) { }
+            await sleep(2500);
+        }
 
         // Paso 4: Aplicar Zoom y Barra flotante arrastrable
         let targetZoom = parseInt(zoomLevel, 10);
