@@ -1328,35 +1328,80 @@ async function doNetflixAccountLogin(email) {
             await sleep(2000);
         } catch (e) { }
 
-        // 2. Navegar a https://www.netflix.com/mfa
-        console.log('[BOT-ADMIN-LOGIN] 🛡️ Navegando a https://www.netflix.com/mfa...');
+        // 2. Navegar a https://www.netflix.com/account/devices
+        console.log('[BOT-ADMIN-LOGIN] 🛡️ Navegando a https://www.netflix.com/account/devices...');
         try {
-            await page.goto('https://www.netflix.com/mfa', { waitUntil: 'domcontentloaded', timeout: 45000 });
+            await page.goto('https://www.netflix.com/account/devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
         } catch (navErr) {
-            console.warn(`[BOT-ADMIN-LOGIN] ⚠️ Advertencia navegación MFA: ${navErr.message}`);
+            console.warn(`[BOT-ADMIN-LOGIN] ⚠️ Advertencia navegación devices: ${navErr.message}`);
         }
         await sleep(3500);
 
-        const mfaUrl = page.url();
-        console.log(`[BOT-ADMIN-LOGIN] 🔗 URL MFA: ${mfaUrl}`);
+        // Si muestra la pantalla de error "Parece que algo salió mal", pulsar "Regresar a Cuenta"
+        const clickedBackToAccount = await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button, a, div[role="button"]'));
+            const backBtn = btns.find(b => (b.innerText || '').toLowerCase().includes('regresar a cuenta'));
+            if (backBtn) {
+                backBtn.click();
+                return true;
+            }
+            return false;
+        });
+        if (clickedBackToAccount) {
+            console.log('[BOT-ADMIN-LOGIN] 🔄 Clic en "Regresar a Cuenta"');
+            await sleep(3000);
+        }
 
-        if (mfaUrl.includes('/login') && !mfaUrl.includes('/mfa')) {
+        // Asegurar que estamos en la sección de dispositivos
+        if (!page.url().includes('/account/devices')) {
+            try {
+                await page.goto('https://www.netflix.com/account/devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
+                await sleep(3000);
+            } catch (e) { }
+        }
+
+        const currentDevicesUrl = page.url();
+        console.log(`[BOT-ADMIN-LOGIN] 🔗 URL dispositivos: ${currentDevicesUrl}`);
+
+        if (currentDevicesUrl.includes('/login')) {
             return {
                 success: false,
                 error: 'Netflix redirigió a /login. El inicio de sesión con el código de 4 dígitos no se completó.'
             };
         }
 
-        // 3. Dar click para solicitar código de 6 dígitos ("Enviar código por email")
+        // 3. Dar clic en "Acceso y dispositivos" para detonar la verificación de identidad (MFA)
+        console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Acceso y dispositivos"...');
+        const clickedAccessDevices = await page.evaluate(() => {
+            const candidates = Array.from(document.querySelectorAll('a, button, div[role="button"], div, li'));
+            const target = candidates.find(el => {
+                const txt = (el.innerText || '').toLowerCase().trim();
+                return txt.includes('acceso y dispositivos') || txt.includes('administrar dispositivos') || txt.includes('access and devices') || txt.includes('manage access');
+            });
+            if (target) {
+                target.click();
+                return true;
+            }
+            return false;
+        });
+
+        console.log(`[BOT-ADMIN-LOGIN] Clic en "Acceso y dispositivos": ${clickedAccessDevices ? 'EXITOSO' : 'Buscando enlace alternativo...'}`);
+        if (!clickedAccessDevices) {
+            const altLink = await page.$('a[href*="/manage-devices"], a[href*="/account/devices"], [data-uia*="devices"]');
+            if (altLink) await altLink.click();
+        }
+        await sleep(3500);
+
+        // 4. En la pantalla "Primero, tenemos que asegurarnos de que seas tú", dar click en "Enviar código por email"
         const mfaRequestTime = Date.now();
-        let codeInputs = await page.$$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="código" i], input[type="text"]');
+        let codeInputs = await page.$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="código" i], input[type="text"]');
         if (codeInputs.length < 6) {
             console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Enviar código por email"...');
             const clickedSendCode = await page.evaluate(() => {
                 const candidates = Array.from(document.querySelectorAll('button, a, div[role="button"], li, div, [data-uia]'));
                 const target = candidates.find(el => {
                     const txt = (el.innerText || '').toLowerCase();
-                    return (txt.includes('enviar código por email') || txt.includes('enviar codigo por email') || (txt.includes('código por email') && txt.includes('@')) || txt.includes('enviar código'));
+                    return (txt.includes('enviar código por email') || txt.includes('enviar codigo por email') || (txt.includes('código por email') && txt.includes('@')) || txt.includes('enviar código') || txt.includes('send code'));
                 });
                 if (target) {
                     target.click();
@@ -1373,12 +1418,12 @@ async function doNetflixAccountLogin(email) {
             await sleep(3500);
         }
 
-        // Esperar que aparezcan los 6 campos para el código MFA
+        // Esperar que aparezcan los 6 campos para el código MFA ("Ingresa el código que te acabamos de enviar")
         try {
             await page.waitForFunction(() => {
                 const inputs = document.querySelectorAll('input:not([type="hidden"])');
                 return inputs.length >= 6 || document.body.innerText.includes('acabamos de enviar');
-            }, { timeout: 8000 });
+            }, { timeout: 10000 });
         } catch (e) { }
 
         // 4. Buscar en email "Tu código de verificación" (6 dígitos) posterior a mfaRequestTime
