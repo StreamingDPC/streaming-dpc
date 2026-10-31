@@ -287,6 +287,10 @@ async function processQueue() {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta Disney+ (Código 6 Dígitos + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doDisneyAccountLogin(item.email, item.zoom);
                 item.resolve(result);
+            } else if (item.platform === 'hbomax_account_login') {
+                console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta HBO Max (Código 6 Dígitos + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
+                const result = await doHboMaxAccountLogin(item.email, item.zoom);
+                item.resolve(result);
             } else {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando turno Netflix TV: ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doActivateTv(item.email, item.tvCode);
@@ -381,6 +385,31 @@ app.post('/api/disney-account-login', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: err.message || 'Error en el ingreso de cuenta Disney+ en el bot local.'
+        });
+    }
+});
+
+// ── ENDPOINT: Ingreso de Cuentas HBO Max (Login + Código 6 Dígitos - Dejar Abierta) ──────
+app.post('/api/hbomax-account-login', async (req, res) => {
+    const { email, zoom } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email de la cuenta es requerido.' });
+    }
+
+    const queuePromise = new Promise((resolve, reject) => {
+        activationQueue.push({ platform: 'hbomax_account_login', email, zoom, resolve, reject, time: Date.now() });
+    });
+
+    processQueue();
+
+    try {
+        const result = await queuePromise;
+        return res.json(result);
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta HBO Max en el bot local.'
         });
     }
 });
@@ -1112,6 +1141,17 @@ async function fetchLocalImapCode(email, platform, minTimestamp = 0) {
                 // Buscar código de acceso único de 6 dígitos de Disney+ ("Tu código de acceso único para Disney+")
                 const isDisneySubject = subject.includes('código de acceso') || subject.includes('codigo de acceso') || subject.includes('código') || subject.includes('passcode') || textContent.includes('código de acceso') || textContent.includes('codigo de acceso') || textContent.includes('código de verificación');
                 if (isDisneySubject) {
+                    const matches = textContent.match(/\b\d{6}\b/g) || [];
+                    const valid = matches.find(m => m !== '000000');
+                    if (valid) {
+                        connection.end();
+                        return valid;
+                    }
+                }
+            } else if (fromText.includes('hbomax') || fromText.includes('max.com') || fromText.includes('hbo.com') || subject.includes('hbo') || subject.includes('max')) {
+                // Buscar código de un solo uso / código único de 6 dígitos de HBO Max ("Tu código único para HBO Max" / "Tu código de un solo uso de HBO Max")
+                const isHboSubject = subject.includes('código') || subject.includes('codigo') || subject.includes('code') || textContent.includes('código') || textContent.includes('codigo') || textContent.includes('código único') || textContent.includes('codigo unico');
+                if (isHboSubject) {
                     const matches = textContent.match(/\b\d{6}\b/g) || [];
                     const valid = matches.find(m => m !== '000000');
                     if (valid) {
@@ -2159,6 +2199,457 @@ async function doDisneyAccountLogin(email, zoomLevel = 80) {
     }
 }
 
+
+
+// ── FUNCIÓN: Ingreso de Cuentas HBO Max (Login + Código 6 Dígitos - Dejar Abierta) ──
+async function doHboMaxAccountLogin(email, zoomLevel = 80) {
+    let browser = null;
+    let finalCode = '';
+    try {
+        console.log(`\n[BOT-ADMIN-HBOMAX] ════════════════════════════════════`);
+        console.log(`[BOT-ADMIN-HBOMAX] 🚀 Iniciando ingreso de cuenta HBO Max para: ${email}`);
+
+        const chromePath = getChromePath();
+        if (!chromePath) {
+            return {
+                success: false,
+                error: 'Google Chrome no está instalado en esta PC.'
+            };
+        }
+
+        // Lanzar navegador visible en el escritorio para que el usuario pueda usarlo
+        browser = await puppeteer.launch({
+            executablePath: chromePath,
+            headless: false,
+            defaultViewport: null,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--window-position=50,50',
+                '--window-size=1250,850'
+            ]
+        });
+
+        const pages = await browser.pages();
+        const page = pages.length > 0 ? pages[0] : await browser.newPage();
+
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        });
+
+        // 1. Paso 1: Navegar a https://www.hbomax.com/auth/login
+        console.log('[BOT-ADMIN-HBOMAX] 🌐 Navegando a https://www.hbomax.com/auth/login...');
+        try {
+            await page.goto('https://www.hbomax.com/auth/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (navErr) {
+            console.warn(`[BOT-ADMIN-HBOMAX] ⚠️ Advertencia navegación: ${navErr.message}`);
+        }
+        await sleep(3000);
+
+        console.log(`[BOT-ADMIN-HBOMAX] 🔗 URL actual: ${page.url()}`);
+
+        // Si ya está en pantalla de perfiles o home o dispositivos, pasar directo a devices
+        if (page.url().includes('account/devices') || page.url().includes('select-profile') || page.url().includes('/home')) {
+            console.log('[BOT-ADMIN-HBOMAX] Sesión ya iniciada, pasando directo a manage devices...');
+        } else {
+            // Localizar campo de correo
+            let emailReady = false;
+            for (let wait = 0; wait < 15; wait++) {
+                emailReady = await page.evaluate(() => {
+                    function search(root) {
+                        const inp = root.querySelector('#sign-in-phoneEmail-input, [data-testid*="phoneEmailInput"], input[name="phoneEmail"], input[name="email"], input[type="email"], input[type="text"]');
+                        if (inp) return true;
+                        for (const el of Array.from(root.querySelectorAll('*'))) {
+                            if (el.shadowRoot && search(el.shadowRoot)) return true;
+                        }
+                        return false;
+                    }
+                    return search(document);
+                });
+                if (emailReady) break;
+                await sleep(1000);
+            }
+
+            if (!emailReady) {
+                return {
+                    success: false,
+                    error: `No se encontró el campo de correo en ${page.url()}.`
+                };
+            }
+
+            // Inyección limpia y nativa de email sin interferencias de teclado
+            await sleep(500);
+            await page.evaluate((targetEmail) => {
+                function inject(root) {
+                    const el = root.querySelector('#sign-in-phoneEmail-input, [data-testid*="phoneEmailInput"], input[name="phoneEmail"], input[name="email"], input[type="email"], input[type="text"]');
+                    if (el) {
+                        el.focus();
+                        el.value = '';
+                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                        if (nativeSetter) nativeSetter.call(el, targetEmail);
+                        else el.value = targetEmail;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return true;
+                    }
+                    for (const node of Array.from(root.querySelectorAll('*'))) {
+                        if (node.shadowRoot && inject(node.shadowRoot)) return true;
+                    }
+                    return false;
+                }
+                return inject(document);
+            }, email);
+            await sleep(300);
+
+            const typedVal = await page.evaluate(() => {
+                function getVal(root) {
+                    const el = root.querySelector('#sign-in-phoneEmail-input, [data-testid*="phoneEmailInput"], input[name="phoneEmail"], input[name="email"], input[type="email"], input[type="text"]');
+                    if (el) return el.value;
+                    for (const node of Array.from(root.querySelectorAll('*'))) {
+                        if (node.shadowRoot) {
+                            const v = getVal(node.shadowRoot);
+                            if (v !== null) return v;
+                        }
+                    }
+                    return null;
+                }
+                return getVal(document);
+            });
+            console.log(`[BOT-ADMIN-HBOMAX] ✉️ Email verificado en pantalla: "${typedVal}" (Objetivo: "${email}")`);
+
+            // Clic en Continuar
+            console.log('[BOT-ADMIN-HBOMAX] ➡️ Clic en Continuar tras ingresar correo...');
+            const clickedContinue = await page.evaluate(() => {
+                function searchContinue(root) {
+                    const btn = root.querySelector('button[data-testid="gisdk.gi-sign-in.continue_button"], button[type="submit"]') ||
+                        Array.from(root.querySelectorAll('button')).find(b => {
+                            const t = (b.innerText || b.value || '').toLowerCase().trim();
+                            return t.includes('continu') || t.includes('siguiente') || t.includes('next');
+                        });
+                    if (btn) {
+                        btn.click();
+                        return true;
+                    }
+                    for (const el of Array.from(root.querySelectorAll('*'))) {
+                        if (el.shadowRoot) {
+                            const res = searchContinue(el.shadowRoot);
+                            if (res) return res;
+                        }
+                    }
+                    return false;
+                }
+                return searchContinue(document);
+            });
+            if (!clickedContinue) {
+                await page.keyboard.press('Enter');
+            }
+            await sleep(3500);
+
+            // 2. Paso 2: Clic en "Obtener código de un solo uso"
+            const hboRequestTime = Date.now();
+            console.log('[BOT-ADMIN-HBOMAX] 🔘 Buscando opción "Obtener código de un solo uso"...');
+            let clickedOtpBtn = false;
+            for (let wait = 0; wait < 15; wait++) {
+                clickedOtpBtn = await page.evaluate(() => {
+                    function searchOtp(root) {
+                        const btns = Array.from(root.querySelectorAll('button, a, [role="button"], span'));
+                        for (const b of btns) {
+                            const txt = (b.innerText || b.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            if (txt.includes('obtener codigo de un solo uso') || txt.includes('un solo uso') || txt.includes('one-time code') || txt.includes('one time code') || txt.includes('codigo de un solo uso') || txt.includes('codigo unico')) {
+                                b.click();
+                                return true;
+                            }
+                        }
+                        for (const el of Array.from(root.querySelectorAll('*'))) {
+                            if (el.shadowRoot) {
+                                const res = searchOtp(el.shadowRoot);
+                                if (res) return res;
+                            }
+                        }
+                        return false;
+                    }
+                    return searchOtp(document);
+                });
+                if (clickedOtpBtn) {
+                    console.log('[BOT-ADMIN-HBOMAX] ✅ Clic en "Obtener código de un solo uso" ejecutado.');
+                    break;
+                }
+                await sleep(1000);
+            }
+            await sleep(3000);
+
+            // 3. Paso 3: Ingresar código de 6 dígitos del correo ("Tu código único para HBO Max")
+            console.log(`[BOT-ADMIN-HBOMAX] 📨 Buscando código de acceso único de 6 dígitos en el correo (${email})...`);
+            let hboCode = null;
+            const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+            for (let attempt = 1; attempt <= 15; attempt++) {
+                console.log(`[BOT-ADMIN-HBOMAX] 🔍 Intento ${attempt}/15 buscando código HBO Max (después de ${new Date(hboRequestTime).toLocaleTimeString()})...`);
+                try {
+                    hboCode = await fetchLocalImapCode(email, 'hbomax', hboRequestTime);
+                } catch (e) { }
+
+                if (!hboCode) {
+                    try {
+                        const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                            email: email,
+                            platform: 'hbomax_tv'
+                        }, { timeout: 15000 });
+                        if (codeResp.data && codeResp.data.code) {
+                            const raw = codeResp.data.code.toString().replace(/\D/g, '');
+                            if (raw.length >= 6) {
+                                hboCode = raw.substring(0, 6);
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                if (hboCode && hboCode.length >= 6) {
+                    console.log(`[BOT-ADMIN-HBOMAX] ✅ Código de acceso único HBO Max recibido: ${hboCode}`);
+                    break;
+                }
+                await sleep(4000);
+            }
+
+            if (!hboCode) {
+                return {
+                    success: false,
+                    error: 'HBO Max solicitó código de 6 dígitos, pero no llegó al correo en 60 segundos.'
+                };
+            }
+
+            finalCode = hboCode;
+
+            // Ingresar código de 6 dígitos en las casillas
+            console.log(`[BOT-ADMIN-HBOMAX] ⌨️ Ingresando código de 6 dígitos: ${hboCode}`);
+            await sleep(1000);
+
+            // Esperar que estén disponibles las casillas
+            for (let wait = 0; wait < 10; wait++) {
+                const hasInp = await page.$('input[id*="oneTimeCode"], input[data-testid*="single_input"], input[id*="activationCode"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"])');
+                if (hasInp) break;
+                await sleep(800);
+            }
+
+            let sixInputs = await page.$('input[id*="oneTimeCode"], input[data-testid*="single_input"], input[id*="activationCode"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"])');
+
+            if (sixInputs.length >= 6) {
+                console.log('[BOT-ADMIN-HBOMAX] 🎯 Detectadas 6 casillas individuales. Escribiendo dígito por dígito...');
+                for (let i = 0; i < 6; i++) {
+                    await sixInputs[i].click();
+                    await sleep(120);
+                    await page.keyboard.press('Backspace');
+                    await sixInputs[i].type(hboCode[i], { delay: 90 });
+                    await sleep(120);
+                }
+            } else if (sixInputs.length === 1) {
+                console.log('[BOT-ADMIN-HBOMAX] 🎯 Detectada 1 casilla. Escribiendo código completo...');
+                await sixInputs[0].click({ clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                await sixInputs[0].type(hboCode, { delay: 90 });
+            } else {
+                console.log('[BOT-ADMIN-HBOMAX] 🎯 Enfocando casilla OTP y escribiendo con teclado general...');
+                await page.evaluate(() => {
+                    function searchOtpField(root) {
+                        const f0 = root.querySelector('#oneTimeCode-field-0, #activationCode-field-0, [data-testid*="single_input_0"], [data-testid*="oneTimeCode"], input[type="text"], input[type="tel"]');
+                        if (f0) return f0;
+                        for (const el of Array.from(root.querySelectorAll('*'))) {
+                            if (el.shadowRoot) {
+                                const res = searchOtpField(el.shadowRoot);
+                                if (res) return res;
+                            }
+                        }
+                        return null;
+                    }
+                    const inp = searchOtpField(document);
+                    if (inp) inp.focus();
+                });
+                await page.keyboard.type(hboCode, { delay: 100 });
+            }
+
+            await sleep(800);
+
+            // Clic en botón Continuar / Enviar / Submit
+            console.log('[BOT-ADMIN-HBOMAX] 🔘 Presionando botón Continuar / Enviar...');
+            const submitClicked = await page.evaluate(() => {
+                function searchSubmit(root) {
+                    const btns = Array.from(root.querySelectorAll('button, input[type="submit"]'));
+                    for (const b of btns) {
+                        const txt = (b.innerText || b.value || '').toLowerCase().trim();
+                        if (txt.includes('continu') || txt.includes('enviar') || txt.includes('submit') || txt.includes('verify')) {
+                            b.click();
+                            return true;
+                        }
+                    }
+                    for (const el of Array.from(root.querySelectorAll('*'))) {
+                        if (el.shadowRoot) {
+                            const res = searchSubmit(el.shadowRoot);
+                            if (res) return res;
+                        }
+                    }
+                    return false;
+                }
+                return searchSubmit(document);
+            });
+
+            if (!submitClicked) {
+                await page.keyboard.press('Enter');
+            }
+            console.log('[BOT-ADMIN-HBOMAX] ⏳ Esperando validación del código HBO Max...');
+            await sleep(5000);
+        }
+
+        // 4. Paso 4: Navegar a https://www.hbomax.com/auth/account/devices y dejar abierta
+        console.log('[BOT-ADMIN-HBOMAX] 🛡️ Navegando a https://www.hbomax.com/auth/account/devices...');
+        try {
+            await page.goto('https://www.hbomax.com/auth/account/devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (e) {
+            console.warn(`[BOT-ADMIN-HBOMAX] ⚠️ Advertencia navegación devices: ${e.message}`);
+        }
+        await sleep(3500);
+
+        // 5. Aplicar Zoom y Barra flotante arrastrable
+        let targetZoom = parseInt(zoomLevel, 10);
+        if (isNaN(targetZoom) || targetZoom < 30 || targetZoom > 200) targetZoom = 80;
+        console.log(`[BOT-ADMIN-HBOMAX] 🔍 Estableciendo zoom del navegador al ${targetZoom}%...`);
+
+        try {
+            await page.evaluate((initialZoom) => {
+                let currentZoom = initialZoom;
+                const applyZoom = (z) => {
+                    currentZoom = z;
+                    document.documentElement.style.zoom = z + '%';
+                    if (document.body) document.body.style.zoom = z + '%';
+                    const display = document.getElementById('admin-floating-zoom-text');
+                    if (display) display.innerText = z + '%';
+                };
+
+                applyZoom(initialZoom);
+
+                if (document.getElementById('admin-floating-zoom-bar')) return;
+
+                const bar = document.createElement('div');
+                bar.id = 'admin-floating-zoom-bar';
+                bar.style.cssText = `
+                    position: fixed;
+                    bottom: 25px;
+                    right: 25px;
+                    z-index: 999999999;
+                    background: rgba(15, 23, 42, 0.94);
+                    color: #fff;
+                    padding: 8px 16px;
+                    border-radius: 30px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+                    border: 1px solid rgba(255,255,255,0.25);
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    font-size: 13px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    backdrop-filter: blur(8px);
+                    user-select: none;
+                    cursor: grab;
+                    touch-action: none;
+                `;
+
+                bar.innerHTML = `
+                    <span id="drag-handle" style="cursor:grab; font-size:16px; color:#94a3b8; margin-right:2px; padding:0 3px;" title="Arrastrar barra">⠿</span>
+                    <span style="font-weight: bold; color: #c77dff; margin-right: 2px;">🔍 Zoom:</span>
+                    <button id="btn-zoom-minus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">-</button>
+                    <span id="admin-floating-zoom-text" style="font-weight: bold; min-width: 46px; text-align: center; color:#c77dff; font-size:14px;">${initialZoom}%</span>
+                    <button id="btn-zoom-plus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">+</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button class="quick-zoom-btn" data-z="67" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">67%</button>
+                    <button class="quick-zoom-btn" data-z="75" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">75%</button>
+                    <button class="quick-zoom-btn" data-z="80" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">80%</button>
+                    <button class="quick-zoom-btn" data-z="85" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">85%</button>
+                    <button class="quick-zoom-btn" data-z="90" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">90%</button>
+                    <button class="quick-zoom-btn" data-z="100" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">100%</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button id="btn-zoom-close" style="background:transparent; color:#94a3b8; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center;" title="Cerrar barra">✕</button>
+                `;
+
+                document.body.appendChild(bar);
+
+                let isDragging = false;
+                let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+                bar.onmousedown = (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = bar.getBoundingClientRect();
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
+                    bar.style.bottom = 'auto';
+                    bar.style.right = 'auto';
+                    bar.style.left = initialLeft + 'px';
+                    bar.style.top = initialTop + 'px';
+                    bar.style.cursor = 'grabbing';
+                    e.preventDefault();
+                };
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    bar.style.left = (initialLeft + dx) + 'px';
+                    bar.style.top = (initialTop + dy) + 'px';
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        bar.style.cursor = 'grab';
+                    }
+                });
+
+                document.getElementById('btn-zoom-minus').onclick = () => {
+                    applyZoom(Math.max(30, currentZoom - 5));
+                };
+                document.getElementById('btn-zoom-plus').onclick = () => {
+                    applyZoom(Math.min(150, currentZoom + 5));
+                };
+                document.getElementById('btn-zoom-close').onclick = () => {
+                    bar.style.display = 'none';
+                };
+                bar.querySelectorAll('.quick-zoom-btn').forEach(btn => {
+                    btn.onclick = () => applyZoom(parseInt(btn.getAttribute('data-z'), 10));
+                });
+            }, targetZoom);
+
+            const client = await page.target().createCDPSession();
+            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: parseFloat((targetZoom / 100).toFixed(2)) });
+            console.log(`[BOT-ADMIN-HBOMAX] ✅ Zoom al ${targetZoom}% aplicado correctamente.`);
+        } catch (e) {
+            console.log('[BOT-ADMIN-HBOMAX] Nota aplicación zoom:', e.message);
+        }
+
+        console.log('[BOT-ADMIN-HBOMAX] 🎉 ¡Éxito! Cuenta de HBO Max ingresada.');
+        console.log(`[BOT-ADMIN-HBOMAX] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al ${targetZoom}%) para el administrador...`);
+
+        return {
+            success: true,
+            code: finalCode,
+            message: `¡Sesión iniciada en HBO Max! Código de 6 dígitos (${finalCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administración de Dispositivos para tu gestión manual.`
+        };
+
+    } catch (err) {
+        console.error('[BOT-ADMIN-HBOMAX] ❌ Error:', err);
+        return {
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta HBO Max.'
+        };
+    }
+}
 
 // ── FUNCIÓN: Activar HBO Max TV (auth.hbomax.com/link?flow=connectDeviceSignIn) ──
 async function doActivateHboTv(email, tvCode) {

@@ -1170,6 +1170,9 @@ app.post('/api/activate-prime-tv', (req, res) => forwardToLocalBot('/api/activat
 app.post('/api/activate-crunchyroll-tv', (req, res) => forwardToLocalBot('/api/activate-crunchyroll-tv', req, res));
 app.post('/api/activate-disney-tv', (req, res) => forwardToLocalBot('/api/activate-disney-tv', req, res));
 app.post('/api/activate-vix-tv', (req, res) => forwardToLocalBot('/api/activate-vix-tv', req, res));
+app.post('/api/netflix-account-login', (req, res) => forwardToLocalBot('/api/netflix-account-login', req, res));
+app.post('/api/disney-account-login', (req, res) => forwardToLocalBot('/api/disney-account-login', req, res));
+app.post('/api/hbomax-account-login', (req, res) => forwardToLocalBot('/api/hbomax-account-login', req, res));
 app.post('/api/activate-netflix-tv', (req, res) => {
     req.url = '/api/activate-tv';
     app._router.handle(req, res);
