@@ -1174,6 +1174,7 @@ app.post('/api/netflix-account-login', (req, res) => forwardToLocalBot('/api/net
 app.post('/api/disney-account-login', (req, res) => forwardToLocalBot('/api/disney-account-login', req, res));
 app.post('/api/hbomax-account-login', (req, res) => forwardToLocalBot('/api/hbomax-account-login', req, res));
 app.post('/api/prime-account-login', (req, res) => forwardToLocalBot('/api/prime-account-login', req, res));
+app.post('/api/paramount-account-login', (req, res) => forwardToLocalBot('/api/paramount-account-login', req, res));
 app.post('/api/activate-netflix-tv', (req, res) => {
     req.url = '/api/activate-tv';
     app._router.handle(req, res);
