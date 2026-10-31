@@ -1173,68 +1173,81 @@ async function doNetflixAccountLogin(email) {
                 };
             }
 
-            // Limpieza rigurosa del input para evitar tipeos corruptos (ej: gmail.co2m)
+            // Establecer el correo de forma 100% nativa para evitar cualquier bug de teclado/layout (ej: '@' inyectando '2' en '.co2m')
             await sleep(500);
-            await emailInput.click({ clickCount: 3 });
-            await page.keyboard.press('Backspace');
-            await page.evaluate(el => {
+            await page.evaluate((el, targetEmail) => {
+                el.focus();
                 el.value = '';
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                if (nativeSetter) {
+                    nativeSetter.call(el, targetEmail);
+                } else {
+                    el.value = targetEmail;
+                }
                 el.dispatchEvent(new Event('input', { bubbles: true }));
                 el.dispatchEvent(new Event('change', { bubbles: true }));
-            }, emailInput);
-            await sleep(200);
-
-            await emailInput.type(email, { delay: 60 });
+            }, emailInput, email);
             await sleep(300);
 
-            // Verificación del valor tipeado
+            // Verificación del valor tipeado en el DOM
             const typedVal = await page.evaluate(el => el.value, emailInput);
+            console.log(`[BOT-ADMIN-LOGIN] ✉️ Email verificado en pantalla: "${typedVal}" (Objetivo: "${email}")`);
             if (typedVal !== email) {
                 console.log(`[BOT-ADMIN-LOGIN] ⚠️ Corrigiendo email en input: "${typedVal}" -> "${email}"`);
                 await page.evaluate((el, targetEmail) => {
-                    el.value = targetEmail;
+                    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                    if (nativeSetter) nativeSetter.call(el, targetEmail);
+                    else el.value = targetEmail;
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                 }, emailInput, email);
                 await sleep(200);
             }
-            console.log(`[BOT-ADMIN-LOGIN] ✉️ Email confirmado en pantalla: ${email}`);
 
             // Registrar marca de tiempo exacta de cuando se solicita el código de 4 dígitos
             const loginCodeRequestTime = Date.now();
 
-            // Buscar si hay botón para solicitar código de inicio de sesión
-            let clickedUseCode = await page.evaluate(() => {
-                const btns = Array.from(document.querySelectorAll('button, a, div[role="button"]'));
-                const btn = btns.find(b => {
-                    const t = (b.innerText || '').toLowerCase();
+            // Buscar botón Continue / Continuar o solicitar código de inicio de sesión
+            let clickedSubmitOrCode = await page.evaluate(() => {
+                const btns = Array.from(document.querySelectorAll('button, a, div[role="button"], input[type="submit"]'));
+                // 1. Preferir botón específico de código si ya está visible
+                const codeBtn = btns.find(b => {
+                    const t = (b.innerText || b.value || '').toLowerCase();
                     return t.includes('código de inicio de sesión') || t.includes('codigo de inicio de sesion') || t.includes('iniciar sesión con un código') || t.includes('iniciar sesion con un codigo') || t.includes('usa un código') || t.includes('usa un codigo');
                 });
-                if (btn) {
-                    btn.click();
+                if (codeBtn) {
+                    codeBtn.click();
+                    return true;
+                }
+                // 2. Si no, hacer clic en Continue / Continuar / Iniciar sesión
+                const continueBtn = btns.find(b => {
+                    const t = (b.innerText || b.value || '').trim().toLowerCase();
+                    return t === 'continue' || t === 'continuar' || t === 'iniciar sesión' || t === 'sign in';
+                });
+                if (continueBtn) {
+                    continueBtn.click();
                     return true;
                 }
                 return false;
             });
 
-            if (!clickedUseCode) {
-                await page.keyboard.press('Enter');
-                await sleep(3000);
-
-                // Revisar si en la siguiente pantalla aparece el botón para pedir código
-                clickedUseCode = await page.evaluate(() => {
-                    const btns = Array.from(document.querySelectorAll('button, a, div[role="button"]'));
-                    const btn = btns.find(b => {
-                        const t = (b.innerText || '').toLowerCase();
-                        return t.includes('código de inicio de sesión') || t.includes('codigo de inicio de sesion') || t.includes('iniciar sesión con un código') || t.includes('iniciar sesion con un codigo') || t.includes('usa un código') || t.includes('usa un codigo');
-                    });
-                    if (btn) {
-                        btn.click();
-                        return true;
-                    }
-                    return false;
-                });
+            if (!clickedSubmitOrCode) {
+                const submitBtn = await page.$('button[data-uia="login-submit-button"], button[type="submit"]');
+                if (submitBtn) await submitBtn.click();
+                else await page.keyboard.press('Enter');
             }
+
+            await sleep(3500);
+
+            // Revisar si en la siguiente pantalla aparece el botón para pedir código
+            await page.evaluate(() => {
+                const btns = Array.from(document.querySelectorAll('button, a, div[role="button"]'));
+                const btn = btns.find(b => {
+                    const t = (b.innerText || '').toLowerCase();
+                    return t.includes('código de inicio de sesión') || t.includes('codigo de inicio de sesion') || t.includes('iniciar sesión con un código') || t.includes('iniciar sesion con un codigo') || t.includes('usa un código') || t.includes('usa un codigo');
+                });
+                if (btn) btn.click();
+            });
 
             console.log(`[BOT-ADMIN-LOGIN] ⏳ Esperando código de 4 dígitos o validación...`);
             await sleep(2500);
