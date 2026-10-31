@@ -2092,14 +2092,31 @@
                                 </button>
                             </div>
 
-                            <!-- Selector de Correo -->
+                            <!-- Selector de Correo con Buscador -->
                             <div style="margin-bottom:1.2rem;">
-                                <label
-                                    style="display:block; font-size:0.82rem; color:#f39c12; font-weight:bold; margin-bottom:5px;">
-                                    <i class="fa-solid fa-envelope"></i> Correo de la cuenta a consultar:
-                                </label>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <label
+                                        style="font-size:0.82rem; color:#f39c12; font-weight:bold; margin-bottom:0;">
+                                        <i class="fa-solid fa-envelope"></i> Correo de la cuenta a consultar:
+                                    </label>
+                                    <span id="admin-console-email-count" style="font-size:0.75rem; color:#aaa;"></span>
+                                </div>
+                                <div style="position:relative; margin-bottom:6px;">
+                                    <i class="fa-solid fa-magnifying-glass"
+                                        style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#888; font-size:0.85rem; pointer-events:none;"></i>
+                                    <input type="text" id="admin-console-email-search"
+                                        placeholder="🔍 Escribe para buscar correo (ej: doctor, netflix, hotmail)..."
+                                        oninput="filterAdminConsoleEmails(this.value)"
+                                        style="width:100%; padding:9px 34px 9px 34px; border-radius:8px; border:1px solid rgba(243,156,18,0.5); background:rgba(20,20,25,0.95); color:white; font-size:0.9rem; box-sizing:border-box; outline:none;">
+                                    <button type="button" id="admin-console-email-clear-btn"
+                                        onclick="clearAdminConsoleEmailSearch()"
+                                        style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#888; cursor:pointer; font-size:0.85rem; display:none; padding:4px;"
+                                        title="Limpiar búsqueda">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
+                                </div>
                                 <select id="admin-console-email-select"
-                                    style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(243,156,18,0.4); background:rgba(0,0,0,0.8); color:white; font-size:0.9rem;">
+                                    style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(243,156,18,0.4); background:rgba(0,0,0,0.85); color:white; font-size:0.92rem; cursor:pointer;">
                                     <option value="">Cargando correos vinculados...</option>
                                 </select>
                             </div>
@@ -3796,6 +3813,57 @@
             }
         };
 
+        window.adminConsoleAllEmails = [];
+
+        window.renderAdminConsoleEmailOptions = function (list, selectedValue) {
+            const emailSelect = document.getElementById('admin-console-email-select');
+            const countEl = document.getElementById('admin-console-email-count');
+            if (!emailSelect) return;
+
+            if (!list || list.length === 0) {
+                emailSelect.innerHTML = '<option value="">⚠️ Ningún correo coincide con la búsqueda</option>';
+                if (countEl) countEl.innerText = '(0 correos)';
+                return;
+            }
+
+            let optionsHtml = '';
+            list.forEach(e => {
+                const isSel = (selectedValue && e === selectedValue) ? 'selected' : '';
+                optionsHtml += `<option value="${e}" ${isSel}>${e}</option>`;
+            });
+            emailSelect.innerHTML = optionsHtml;
+
+            if (countEl) {
+                const total = (window.adminConsoleAllEmails || []).length;
+                countEl.innerText = list.length === total ? `(${total} correos)` : `(${list.length} de ${total} correos)`;
+            }
+        };
+
+        window.filterAdminConsoleEmails = function (term) {
+            const all = window.adminConsoleAllEmails || [];
+            const clearBtn = document.getElementById('admin-console-email-clear-btn');
+            const cleanTerm = (term || '').trim().toLowerCase();
+
+            if (clearBtn) clearBtn.style.display = cleanTerm ? 'block' : 'none';
+
+            if (!cleanTerm) {
+                window.renderAdminConsoleEmailOptions(all);
+                return;
+            }
+
+            const filtered = all.filter(e => e.toLowerCase().includes(cleanTerm));
+            window.renderAdminConsoleEmailOptions(filtered);
+        };
+
+        window.clearAdminConsoleEmailSearch = function () {
+            const searchInput = document.getElementById('admin-console-email-search');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            window.filterAdminConsoleEmails('');
+        };
+
         window.openAdminActivationConsole = async function (phone, clientName, sellerName, product) {
             window.adminActiveClient = { phone, clientName, sellerName, product };
 
@@ -3813,6 +3881,12 @@
             if (prodEl) prodEl.innerText = product || 'Streaming';
             if (resultBox) resultBox.style.display = 'none';
 
+            // Resetear buscador de correo
+            const emailSearchInput = document.getElementById('admin-console-email-search');
+            if (emailSearchInput) emailSearchInput.value = '';
+            const emailClearBtn = document.getElementById('admin-console-email-clear-btn');
+            if (emailClearBtn) emailClearBtn.style.display = 'none';
+
             // Cargar lista de correos vinculados desde Firebase
             if (emailSelect) {
                 emailSelect.innerHTML = '<option value="">Cargando correos vinculados...</option>';
@@ -3823,14 +3897,12 @@
 
                     if (entries.length === 0) {
                         emailSelect.innerHTML = '<option value="">⚠️ No hay correos registrados en "Mis Cuentas de Correo"</option>';
+                        window.adminConsoleAllEmails = [];
+                        if (document.getElementById('admin-console-email-count')) document.getElementById('admin-console-email-count').innerText = '(0 correos)';
                     } else {
-                        // Ordenar correos
                         const emails = Array.from(new Set(entries.map(a => a.email).filter(Boolean))).sort();
-                        let optionsHtml = '';
-                        emails.forEach(e => {
-                            optionsHtml += `<option value="${e}">${e}</option>`;
-                        });
-                        emailSelect.innerHTML = optionsHtml;
+                        window.adminConsoleAllEmails = emails;
+                        window.renderAdminConsoleEmailOptions(emails);
                     }
                 } catch (e) {
                     console.error('[ADMIN-CONSOLE] Error cargando correos:', e);
@@ -3897,7 +3969,11 @@
             }
 
             const emailSelect = document.getElementById('admin-console-email-select');
-            const email = emailSelect ? emailSelect.value.trim() : '';
+            const searchInput = document.getElementById('admin-console-email-search');
+            let email = emailSelect ? emailSelect.value.trim() : '';
+            if (!email && searchInput && searchInput.value.includes('@')) {
+                email = searchInput.value.trim();
+            }
 
             if (!email) {
                 alert('Por favor selecciona o ingresa el correo de la cuenta a consultar.');
