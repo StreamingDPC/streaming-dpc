@@ -2789,7 +2789,7 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
         });
 
         // 1. Navegar a la URL de inicio de sesión de Amazon / Prime Video
-        const PRIME_LOGIN_URL = 'https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fna.primevideo.com%2Fregion%2Fna%2Fauth%2Freturn%3F_t%3D1sg0Cj-QerCAnBQ6EztbMNE9wAangbcyll2TAKl4ZnafLRAAAAAQAAAABq5giGcmF3AAAAAPgWC9WfHH8iB-olH_E9xQ%26ref_%3Dav_auth_ap%26location%3D%2Fregion%2Fna%2Foffers%2Fnonprimehomepage%3Fref_%253Ddv_web_force_root&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=amzn_prime_video_sso_us&openid.mode=checkid_setup&countryCode=CO&siteState=135-4935419-1604328&language=es_419&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0';
+        const PRIME_LOGIN_URL = 'https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.primevideo.com%2Fprofiles%3FswitchRurl%3D%252Fstorefront%26ref_%3Datv_profile_redirect_pid_locked&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=amzn_prime_video_sso_us&openid.mode=checkid_setup&countryCode=CO&language=es_419&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0';
 
         console.log('[BOT-ADMIN-PRIME] 🌐 Navegando a Amazon Signin...');
         try {
@@ -2899,10 +2899,19 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
             await sleep(4000);
         }
 
-        // Paso 3: Navegar a https://www.primevideo.com/region/na/settings/your-devices
-        console.log('[BOT-ADMIN-PRIME] 🛡️ Navegando a https://www.primevideo.com/region/na/settings/your-devices...');
+        // Paso Intermedio: Navegar a perfiles para validar sesión y evitar bloqueo
+        console.log('[BOT-ADMIN-PRIME] 👤 Navegando a perfiles de Prime Video para validar sesión...');
         try {
-            await page.goto('https://www.primevideo.com/region/na/settings/your-devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
+            await page.goto('https://www.primevideo.com/profiles?switchRurl=%2Fstorefront&ref_=atv_profile_redirect_pid_locked', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (e) {
+            console.warn(`[BOT-ADMIN-PRIME] ⚠️ Advertencia navegación profiles: ${e.message}`);
+        }
+        await sleep(3000);
+
+        // Paso 3: Navegar a https://www.primevideo.com/region/na/settings/your-devices?ref_=atv_set_your-devices
+        console.log('[BOT-ADMIN-PRIME] 🛡️ Navegando a configuración de dispositivos (your-devices)...');
+        try {
+            await page.goto('https://www.primevideo.com/region/na/settings/your-devices?ref_=atv_set_your-devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
         } catch (e) {
             console.warn(`[BOT-ADMIN-PRIME] ⚠️ Advertencia navegación your-devices: ${e.message}`);
         }
