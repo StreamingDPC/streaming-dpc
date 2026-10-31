@@ -473,9 +473,15 @@
                         <input type="number" id="new-seller-price" placeholder="Ej: 14000 (Opcional)">
                     </div>
                     <div class="form-col">
-                        <label style="color: #f39c12; font-weight: bold;">Precio de Compra / Costo ($)</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="color: #f39c12; font-weight: bold; margin-bottom: 0;">Precio de Compra / Costo ($)</label>
+                            <button type="button" id="btn-recalc-combo-single" onclick="forceRecalcCurrentCombo()" title="Recalcular automáticamente según productos individuales" style="display: none; background: none; border: none; color: #f39c12; cursor: pointer; font-size: 0.75rem; text-decoration: underline; padding: 0;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Auto-Calcular
+                            </button>
+                        </div>
                         <input type="number" id="new-purchase-price" placeholder="Ej: 8000 (Para ganancias)"
-                            style="border: 1px solid #f39c12;">
+                            style="border: 1px solid #f39c12; margin-top: 4px;">
+                        <small id="combo-cost-hint" style="color: #f39c12; font-size: 0.78rem; display: none; margin-top: 4px; line-height: 1.3; background: rgba(243, 156, 18, 0.1); padding: 5px 8px; border-radius: 6px; border-left: 3px solid #f39c12;"></small>
                     </div>
                     <div class="form-col">
                         <label>Categoría</label>
@@ -581,7 +587,13 @@
             </div>
 
             <div class="admin-form">
-                <h3>Gestionar Productos</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;">
+                    <h3 style="margin: 0;">Gestionar Productos</h3>
+                    <button type="button" class="btn-icon" onclick="recalculateAllCombosCost()" title="Recalcular automáticamente el costo de todos los combos usando los productos individuales"
+                        style="width: auto; padding: 0.45rem 0.9rem; border-radius: 10px; background: rgba(243, 156, 18, 0.15); border: 1px solid #f39c12; color: #f39c12; font-weight: bold; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.45rem;">
+                        <i class="fa-solid fa-calculator"></i> Recalcular Costos Combos
+                    </button>
+                </div>
                 <div class="search-bar">
                     <input type="text" id="search-prod" placeholder="🔍 Buscar por nombre..."
                         onkeyup="renderAdminList()">
@@ -5952,6 +5964,7 @@
             }
 
             window.lastSelectedMonths = m;
+            if (window.updateComboCostUI) window.updateComboCostUI(false);
         };
 
         // Guardar basePrice cuando el usuario escribe manualmente en modo 1 Mes
@@ -5970,6 +5983,12 @@
 
             const nameEl = document.getElementById('new-name');
             if (nameEl) {
+                nameEl.addEventListener('input', function () {
+                    if (window.comboCostDebounceTimer) clearTimeout(window.comboCostDebounceTimer);
+                    window.comboCostDebounceTimer = setTimeout(() => {
+                        if (window.updateComboCostUI) window.updateComboCostUI(false);
+                    }, 250);
+                });
                 nameEl.addEventListener('blur', function () {
                     const m = parseInt(document.getElementById('new-months') ? document.getElementById('new-months').value : 1) || 1;
                     if (m > 1 && this.value.trim()) {
@@ -5979,9 +5998,256 @@
                             this.value = `${baseName} (${m} Meses)`;
                         }
                     }
+                    if (window.updateComboCostUI) window.updateComboCostUI(false);
+                });
+            }
+
+            const catEl = document.getElementById('new-category');
+            if (catEl) {
+                catEl.addEventListener('change', function () {
+                    if (window.updateComboCostUI) window.updateComboCostUI(false);
+                });
+            }
+
+            const purchaseInputEl = document.getElementById('new-purchase-price');
+            if (purchaseInputEl) {
+                purchaseInputEl.addEventListener('input', function () {
+                    if (this.value) {
+                        this.dataset.autoCalculated = 'false';
+                    }
                 });
             }
         }, 500);
+
+        // =========================================================================
+        // SISTEMA AUTOMÁTICO DE CÁLCULO DE COSTO DE COMBOS SEGÚN INDIVIDUALES
+        // =========================================================================
+        window.getIndividualProductCostMap = function (prods) {
+            const list = prods || (typeof dynamicProducts !== 'undefined' ? dynamicProducts : []);
+            const inds = list.filter(p => p && p.category === 'individual');
+
+            function clean(s) {
+                return (s || '').toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            const map = {};
+            // Priorizamos activos y con costo mayor primero
+            const sortedInds = [...inds].sort((a, b) => {
+                if (a.active !== b.active) return a.active ? -1 : 1;
+                return (b.purchasePrice || 0) - (a.purchasePrice || 0);
+            });
+
+            sortedInds.forEach(p => {
+                if (!p.name) return;
+                const m = parseInt(p.months) || 1;
+                const cost = p.purchasePrice ? Math.round(p.purchasePrice / m) : 0;
+                const cName = clean(p.name.replace(/\(\d+\s*mes(es)?\)/i, ''));
+                if (!map[cName] || p.active) {
+                    map[cName] = {
+                        name: p.name.replace(/\(\d+\s*mes(es)?\)/i, '').trim(),
+                        cleanName: cName,
+                        cost1m: cost,
+                        active: p.active !== false
+                    };
+                }
+            });
+            return map;
+        };
+
+        window.calculateComboCost = function (name, months, prods) {
+            if (!name) return { totalCost: 0, baseCost1m: 0, months: 1, matched: [], missing: [], isCombo: false };
+            const map = window.getIndividualProductCostMap(prods || (typeof dynamicProducts !== 'undefined' ? dynamicProducts : []));
+
+            let m = parseInt(months) || 1;
+            const mMatch = name.match(/\((\d+)\s*mes(es)?\)/i);
+            if (mMatch) m = parseInt(mMatch[1]) || m;
+
+            let cleanName = name.replace(/\(\d+\s*mes(es)?\)/i, '').trim();
+            cleanName = cleanName.replace(/([a-zA-Z])(\d{4,})/g, '$1');
+
+            let rawParts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
+            const isCombo = rawParts.length > 1;
+
+            function cleanToken(s) {
+                return (s || '').toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            const matched = [];
+            const missing = [];
+            let total1m = 0;
+
+            const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+
+            rawParts.forEach(part => {
+                let tok = cleanToken(part);
+                if (!tok) return;
+
+                if (tok === 'vux') tok = 'vix';
+                if (tok === 'amazon' || tok === 'prime') tok = 'prime video';
+                if (tok === 'max' || tok === 'hbo') tok = 'hbo max';
+                if (tok === 'apple' || tok === 'apple tv') tok = 'apple tv';
+                if (tok.startsWith('paramount')) tok = 'paramount';
+
+                let foundKey = keys.find(k => k === tok);
+                if (!foundKey && tok.includes('privada')) {
+                    foundKey = keys.find(k => k.includes('privada') && (k.includes(tok.replace('privada', '').trim()) || tok.includes(k.replace('privada', '').trim())));
+                }
+                if (!foundKey) {
+                    foundKey = keys.find(k => !k.includes('privada') && (k.includes(tok) || tok.includes(k)));
+                }
+
+                if (foundKey && map[foundKey]) {
+                    const item = map[foundKey];
+                    total1m += item.cost1m;
+                    matched.push({ part, name: item.name, cost: item.cost1m });
+                } else {
+                    missing.push(part);
+                }
+            });
+
+            const totalCost = Math.round(total1m * m);
+            return {
+                totalCost,
+                baseCost1m: Math.round(total1m),
+                months: m,
+                matched,
+                missing,
+                isCombo
+            };
+        };
+
+        window.updateComboCostUI = function (forceOverwrite = false) {
+            const nameEl = document.getElementById('new-name');
+            const catEl = document.getElementById('new-category');
+            const monthsEl = document.getElementById('new-months');
+            const purchaseInput = document.getElementById('new-purchase-price');
+            const hintEl = document.getElementById('combo-cost-hint');
+            const recalcBtn = document.getElementById('btn-recalc-combo-single');
+
+            if (!nameEl || !catEl || !purchaseInput) return;
+
+            const name = nameEl.value.trim();
+            const cat = catEl.value || '';
+            const months = parseInt(monthsEl ? monthsEl.value : 1) || 1;
+
+            const isComboCategory = cat.startsWith('combo') || cat.includes('promocion');
+            const hasPlus = name.includes('+');
+
+            if ((isComboCategory || hasPlus) && name.length >= 3) {
+                const calc = window.calculateComboCost(name, months);
+
+                if (calc.isCombo && calc.matched.length > 0) {
+                    if (recalcBtn) recalcBtn.style.display = 'inline-block';
+
+                    const currentVal = parseInt(purchaseInput.value) || 0;
+                    const isDefaultOrEmpty = currentVal === 0 || !purchaseInput.value || purchaseInput.dataset.autoCalculated === 'true';
+
+                    if (forceOverwrite || isDefaultOrEmpty) {
+                        purchaseInput.value = calc.totalCost;
+                        purchaseInput.dataset.basePrice = calc.baseCost1m;
+                        purchaseInput.dataset.autoCalculated = 'true';
+                    }
+
+                    if (hintEl) {
+                        let hintHtml = `<i class="fa-solid fa-wand-magic-sparkles"></i> <b>Costo individual calculado:</b> ${calc.totalCost.toLocaleString()}`;
+                        hintHtml += ` <span style="opacity: 0.9;">(` + calc.matched.map(m => `${m.name}: ${m.cost.toLocaleString()}`).join(' + ');
+                        if (calc.months > 1) {
+                            hintHtml += ` &times; ${calc.months} Meses`;
+                        }
+                        hintHtml += `)</span>`;
+
+                        if (calc.missing.length > 0) {
+                            hintHtml += `<br><span style="color: #ff6b6b;"><i class="fa-solid fa-triangle-exclamation"></i> Sin costo individual: ${calc.missing.join(', ')}</span>`;
+                        }
+                        hintEl.innerHTML = hintHtml;
+                        hintEl.style.display = 'block';
+                    }
+                    return;
+                }
+            }
+
+            if (recalcBtn) recalcBtn.style.display = 'none';
+            if (hintEl) hintEl.style.display = 'none';
+            if (purchaseInput && purchaseInput.dataset.autoCalculated === 'true' && !forceOverwrite && !hasPlus && !isComboCategory) {
+                delete purchaseInput.dataset.autoCalculated;
+            }
+        };
+
+        window.forceRecalcCurrentCombo = function () {
+            window.updateComboCostUI(true);
+        };
+
+        window.recalculateAllCombosCost = async function (isSilent = false) {
+            const combos = (dynamicProducts || []).filter(p => {
+                if (!p) return false;
+                const cat = (p.category || '').toLowerCase();
+                return cat.startsWith('combo') || cat.includes('promocion') || (p.name && p.name.includes('+'));
+            });
+
+            if (combos.length === 0) {
+                if (!isSilent) alert('No se encontraron productos de combos en el catálogo.');
+                return 0;
+            }
+
+            if (!isSilent) {
+                const ok = confirm(`¿Deseas recalcular automáticamente el Precio de Compra / Costo de los ${combos.length} combos con base en los productos individuales actuales?`);
+                if (!ok) return 0;
+            }
+
+            let updatedCount = 0;
+            (dynamicProducts || []).forEach(p => {
+                if (!p) return;
+                const cat = (p.category || '').toLowerCase();
+                const isCombo = cat.startsWith('combo') || cat.includes('promocion') || (p.name && p.name.includes('+'));
+                if (isCombo) {
+                    const res = window.calculateComboCost(p.name, p.months, dynamicProducts);
+                    if (res.isCombo && res.matched.length > 0 && res.totalCost > 0) {
+                        p.purchasePrice = res.totalCost;
+                        updatedCount++;
+                    }
+                }
+            });
+
+            if (updatedCount > 0) {
+                await saveProductsToStorage();
+                renderAdminList();
+                if (!isSilent) {
+                    alert(`✅ ¡Éxito! Se actualizaron los precios de compra/costo de ${updatedCount} combos según los productos individuales.`);
+                }
+            } else {
+                if (!isSilent) alert('Todos los combos ya tienen sus costos al día.');
+            }
+            return updatedCount;
+        };
+
+        window.autoSyncCombosWithIndividualCosts = async function (changedProductName) {
+            let updatedCount = 0;
+            (dynamicProducts || []).forEach(p => {
+                if (!p) return;
+                const cat = (p.category || '').toLowerCase();
+                const isCombo = cat.startsWith('combo') || cat.includes('promocion') || (p.name && p.name.includes('+'));
+                if (isCombo) {
+                    const res = window.calculateComboCost(p.name, p.months, dynamicProducts);
+                    if (res.isCombo && res.matched.length > 0 && res.totalCost > 0) {
+                        p.purchasePrice = res.totalCost;
+                        updatedCount++;
+                    }
+                }
+            });
+            if (updatedCount > 0) {
+                console.log(`[Auto-Sync Combos] Se actualizaron ${updatedCount} combos tras cambio en: ${changedProductName}`);
+                await saveProductsToStorage();
+            }
+            return updatedCount;
+        };
 
         function renderAdminList() {
             if (window.renderManualClientProducts) window.renderManualClientProducts();
@@ -6013,7 +6279,7 @@
                         ${p.months && p.months > 1 ? `<span style="background:rgba(0, 210, 211, 0.15); color:#00d2d3; border:1px solid #00d2d3; border-radius:10px; padding:1px 7px; font-size:0.75rem; font-weight:bold; margin-left:6px;"><i class="fa-solid fa-calendar-days"></i> ${p.months} Meses</span>` : ''}
                         <br>
                         <span style="font-size: 0.8rem; color: var(--text-primary)">$${p.price.toLocaleString()}</span> - 
-                        <span style="font-size: 0.8rem; color: #ccc;">${p.category} | ${p.brand}</span>
+                        <span style="font-size: 0.8rem; color: #ccc;">${p.category} | ${p.brand}</span>${p.purchasePrice ? `<br><span style="color:#f39c12; font-size: 0.75rem; font-weight: 600;"><i class="fa-solid fa-tag"></i> Costo: ${p.purchasePrice.toLocaleString()}</span>` : ''}
                         ${p.stock > 0 ? `<br><span style="color:#f39c12; font-size: 0.75rem; font-weight: bold;">[Stock: ${p.stock}]</span>` : ''}
                         ${!inStock ? '<br><span style="color:#ff4d4d; font-size: 0.75rem; font-weight: bold;">[AGOTADO]</span>' : ''}
                     </div>
@@ -6128,6 +6394,7 @@
             if (p.price) document.getElementById('new-price').dataset.basePrice = Math.round(p.price / m);
             if (p.sellerPrice) document.getElementById('new-seller-price').dataset.basePrice = Math.round(p.sellerPrice / m);
             if (p.purchasePrice) document.getElementById('new-purchase-price').dataset.basePrice = Math.round(p.purchasePrice / m);
+            if (window.updateComboCostUI) window.updateComboCostUI(false);
 
             document.getElementById('form-title').innerText = "Duplicar Producto (Copia)";
             document.querySelector('.save-btn').innerText = "Guardar Nuevo Producto";
@@ -6187,6 +6454,7 @@
                 document.getElementById('new-allow-exhausted-date').value = defaultDate;
             }
 
+            if (window.updateComboCostUI) window.updateComboCostUI(false);
             document.getElementById('form-title').innerText = "Editar Producto";
             document.querySelector('.save-btn').innerText = "Actualizar Producto";
             document.getElementById('btn-cancel').style.display = "block";
@@ -6200,6 +6468,8 @@
             document.getElementById('new-price').value = '';
             document.getElementById('new-seller-price').value = '';
             document.getElementById('new-purchase-price').value = '';
+            if (document.getElementById('combo-cost-hint')) document.getElementById('combo-cost-hint').style.display = 'none';
+            if (document.getElementById('btn-recalc-combo-single')) document.getElementById('btn-recalc-combo-single').style.display = 'none';
             document.getElementById('new-brand').value = '';
             document.getElementById('new-image').value = '';
             document.getElementById('new-desc').value = '';
@@ -6231,7 +6501,13 @@
             const name = document.getElementById('new-name').value;
             const price = parseInt(document.getElementById('new-price').value);
             const sellerPrice = parseInt(document.getElementById('new-seller-price').value) || price;
-            const purchasePrice = parseInt(document.getElementById('new-purchase-price').value) || 0;
+            let purchasePrice = parseInt(document.getElementById('new-purchase-price').value) || 0;
+            if (purchasePrice === 0 && window.calculateComboCost) {
+                const autoCalc = window.calculateComboCost(name, months);
+                if (autoCalc.isCombo && autoCalc.totalCost > 0) {
+                    purchasePrice = autoCalc.totalCost;
+                }
+            }
             const category = document.getElementById('new-category').value;
             const months = parseInt(document.getElementById('new-months') ? document.getElementById('new-months').value : 1) || 1;
             const owner = category === 'ventas_extras' ? document.getElementById('new-owner').value : null;
@@ -6323,6 +6599,9 @@
 
             saveProductsToStorage();
             renderAdminList();
+            if (category === 'individual' && window.autoSyncCombosWithIndividualCosts) {
+                window.autoSyncCombosWithIndividualCosts(name);
+            }
             alert(editIndex === -1 ? 'Producto Guardado!' : 'Producto Actualizado!');
             if (editIndex === -1) cancelEdit(); // clear forms
         }
@@ -6878,7 +7157,7 @@
 
                     items.forEach(it => {
                         const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
-                        const cost = prod ? (prod.purchasePrice || 0) : 0;
+                        const cost = (prod && prod.purchasePrice) ? prod.purchasePrice : (window.calculateComboCost ? window.calculateComboCost(it.name, it.months || 1).totalCost : 0);
                         totalCost += cost;
 
                         const itName = it.name || 'Pantalla Streaming';
@@ -7197,7 +7476,7 @@
 
                             items.forEach(it => {
                                 const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
-                                const cost = prod ? (prod.purchasePrice || 0) : 0;
+                                const cost = (prod && prod.purchasePrice) ? prod.purchasePrice : (window.calculateComboCost ? window.calculateComboCost(it.name, it.months || 1).totalCost : 0);
                                 const income = it.finalPrice || (s.total / Math.max(1, items.length));
                                 const profit = income - cost;
                                 const cat = it.category || 'Otros';
