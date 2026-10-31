@@ -2009,7 +2009,7 @@ async function doDisneyAccountLogin(email, zoomLevel = 80) {
                 await sleep(800);
             }
 
-            let sixInputs = await page.$('input[name*="code"], input[name*="passcode"], input[name*="otp"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"]), input:not([type="hidden"]):not([type="checkbox"])');
+            let sixInputs = await page.$$('input[name*="code"], input[name*="passcode"], input[name*="otp"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"]), input:not([type="hidden"]):not([type="checkbox"])');
 
             if (sixInputs.length >= 6) {
                 console.log('[BOT-ADMIN-DISNEY] 🎯 Detectadas 6 casillas individuales. Escribiendo dígito por dígito...');
@@ -2255,6 +2255,42 @@ async function doHboMaxAccountLogin(email, zoomLevel = 80) {
 
         console.log(`[BOT-ADMIN-HBOMAX] 🔗 URL actual: ${page.url()}`);
 
+        // Aceptar banner de cookies si aparece ("Accept All" / "Aceptar todo")
+        async function autoAcceptCookies() {
+            try {
+                return await page.evaluate(() => {
+                    function findCookieBtn(root) {
+                        const otBtn = root.querySelector('#onetrust-accept-btn-handler, #accept-all-btn, [data-testid*="cookie-accept"], [id*="cookie-accept"], [class*="cookie"] button');
+                        if (otBtn) { otBtn.click(); return true; }
+                        const btns = Array.from(root.querySelectorAll('button, a, [role="button"]'));
+                        for (const b of btns) {
+                            const txt = (b.innerText || b.textContent || '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            if (txt === 'accept all' || txt === 'aceptar todo' || txt === 'aceptar todas' || txt === 'aceptar' || txt === 'accept' || txt.includes('accept all') || txt.includes('aceptar todo')) {
+                                b.click();
+                                return true;
+                            }
+                        }
+                        for (const el of Array.from(root.querySelectorAll('*'))) {
+                            if (el.shadowRoot) {
+                                const found = findCookieBtn(el.shadowRoot);
+                                if (found) return true;
+                            }
+                        }
+                        return false;
+                    }
+                    return findCookieBtn(document);
+                });
+            } catch (e) {
+                return false;
+            }
+        }
+
+        const acceptedCookies = await autoAcceptCookies();
+        if (acceptedCookies) {
+            console.log('[BOT-ADMIN-HBOMAX] 🍪 Banner de cookies aceptado automáticamente.');
+            await sleep(1500);
+        }
+
         // Si ya está en pantalla de perfiles o home o dispositivos, pasar directo a devices
         if (page.url().includes('account/devices') || page.url().includes('select-profile') || page.url().includes('/home')) {
             console.log('[BOT-ADMIN-HBOMAX] Sesión ya iniciada, pasando directo a manage devices...');
@@ -2262,6 +2298,7 @@ async function doHboMaxAccountLogin(email, zoomLevel = 80) {
             // Localizar campo de correo
             let emailReady = false;
             for (let wait = 0; wait < 15; wait++) {
+                await autoAcceptCookies();
                 emailReady = await page.evaluate(() => {
                     function search(root) {
                         const inp = root.querySelector('#sign-in-phoneEmail-input, [data-testid*="phoneEmailInput"], input[name="phoneEmail"], input[name="email"], input[type="email"], input[type="text"]');
@@ -2432,13 +2469,26 @@ async function doHboMaxAccountLogin(email, zoomLevel = 80) {
             await sleep(1000);
 
             // Esperar que estén disponibles las casillas
-            for (let wait = 0; wait < 10; wait++) {
+            for (let wait = 0; wait < 12; wait++) {
                 const hasInp = await page.$('input[id*="oneTimeCode"], input[data-testid*="single_input"], input[id*="activationCode"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"])');
                 if (hasInp) break;
+                const inShadow = await page.evaluate(() => {
+                    function searchOtp(root) {
+                        const inp = root.querySelector('#oneTimeCode-field-0, #activationCode-field-0, [data-testid*="single_input_0"], [data-testid*="oneTimeCode"], input[type="text"], input[type="tel"], input[inputmode="numeric"]');
+                        if (inp) return true;
+                        for (const el of Array.from(root.querySelectorAll('*'))) {
+                            if (el.shadowRoot && searchOtp(el.shadowRoot)) return true;
+                        }
+                        return false;
+                    }
+                    return searchOtp(document);
+                });
+                if (inShadow) break;
                 await sleep(800);
             }
 
-            let sixInputs = await page.$('input[id*="oneTimeCode"], input[data-testid*="single_input"], input[id*="activationCode"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"])');
+            let sixInputs = await page.$$('input[id*="oneTimeCode"], input[data-testid*="single_input"], input[id*="activationCode"], input[autocomplete*="one-time-code"], input[type="tel"], input[type="text"]:not([type="hidden"])');
+            if (!sixInputs) sixInputs = [];
 
             if (sixInputs.length >= 6) {
                 console.log('[BOT-ADMIN-HBOMAX] 🎯 Detectadas 6 casillas individuales. Escribiendo dígito por dígito...');
@@ -2455,10 +2505,10 @@ async function doHboMaxAccountLogin(email, zoomLevel = 80) {
                 await page.keyboard.press('Backspace');
                 await sixInputs[0].type(hboCode, { delay: 90 });
             } else {
-                console.log('[BOT-ADMIN-HBOMAX] 🎯 Enfocando casilla OTP y escribiendo con teclado general...');
+                console.log('[BOT-ADMIN-HBOMAX] 🎯 Enfocando casilla OTP e ingresando con teclado...');
                 await page.evaluate(() => {
                     function searchOtpField(root) {
-                        const f0 = root.querySelector('#oneTimeCode-field-0, #activationCode-field-0, [data-testid*="single_input_0"], [data-testid*="oneTimeCode"], input[type="text"], input[type="tel"]');
+                        const f0 = root.querySelector('#oneTimeCode-field-0, #activationCode-field-0, [data-testid*="single_input_0"], [data-testid*="oneTimeCode"], input[type="text"], input[type="tel"], input[inputmode="numeric"]');
                         if (f0) return f0;
                         for (const el of Array.from(root.querySelectorAll('*'))) {
                             if (el.shadowRoot) {
@@ -2469,9 +2519,14 @@ async function doHboMaxAccountLogin(email, zoomLevel = 80) {
                         return null;
                     }
                     const inp = searchOtpField(document);
-                    if (inp) inp.focus();
+                    if (inp) {
+                        inp.focus();
+                        return true;
+                    }
+                    return false;
                 });
-                await page.keyboard.type(hboCode, { delay: 100 });
+                await sleep(200);
+                await page.keyboard.type(hboCode, { delay: 120 });
             }
 
             await sleep(800);
