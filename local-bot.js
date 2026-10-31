@@ -1370,61 +1370,138 @@ async function doNetflixAccountLogin(email) {
             };
         }
 
-        // 3. Dar clic en "Acceso y dispositivos" para detonar la verificación de identidad (MFA)
-        console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Acceso y dispositivos"...');
-        const clickedAccessDevices = await page.evaluate(() => {
-            const candidates = Array.from(document.querySelectorAll('a, button, div[role="button"], div, li'));
-            const target = candidates.find(el => {
-                const txt = (el.innerText || '').toLowerCase().trim();
-                return txt.includes('acceso y dispositivos') || txt.includes('administrar dispositivos') || txt.includes('access and devices') || txt.includes('manage access');
+        // 3. Dar clic en la tarjeta o enlace "Acceso y dispositivos" para detonar la verificación MFA
+        console.log('[BOT-ADMIN-LOGIN] 👆 Accediendo a "Acceso y dispositivos"...');
+        const deviceLinkFound = await page.evaluate(() => {
+            // 1. Buscar enlaces <a> directos
+            const links = Array.from(document.querySelectorAll('a'));
+            const linkMatch = links.find(a => {
+                const t = (a.innerText || '').toLowerCase();
+                const h = (a.href || '').toLowerCase();
+                return t.includes('acceso y dispositivos') || t.includes('administrar dispositivos') || h.includes('managedevices') || h.includes('manage-devices');
             });
-            if (target) {
-                target.click();
+            if (linkMatch) {
+                linkMatch.click();
+                return linkMatch.href || true;
+            }
+
+            // 2. Buscar texto "Acceso y dispositivos" y encontrar el ancestro interactivo
+            const elements = Array.from(document.querySelectorAll('*'));
+            const textEl = elements.find(el => {
+                const directText = Array.from(el.childNodes)
+                    .filter(n => n.nodeType === 3)
+                    .map(n => n.textContent.trim())
+                    .join(' ');
+                return directText.toLowerCase().includes('acceso y dispositivos');
+            });
+            if (textEl) {
+                const clickable = textEl.closest('a') || textEl.closest('button') || textEl.closest('[role="button"]') || textEl.closest('div[class*="card"], div[class*="item"]') || textEl;
+                clickable.click();
                 return true;
             }
             return false;
         });
 
-        console.log(`[BOT-ADMIN-LOGIN] Clic en "Acceso y dispositivos": ${clickedAccessDevices ? 'EXITOSO' : 'Buscando enlace alternativo...'}`);
-        if (!clickedAccessDevices) {
-            const altLink = await page.$('a[href*="/manage-devices"], a[href*="/account/devices"], [data-uia*="devices"]');
-            if (altLink) await altLink.click();
-        }
-        await sleep(3500);
+        console.log(`[BOT-ADMIN-LOGIN] Clic en "Acceso y dispositivos": ${deviceLinkFound ? 'EXITOSO' : 'Intentando navegación directa'}`);
+        await sleep(3000);
 
-        // 4. En la pantalla "Primero, tenemos que asegurarnos de que seas tú", dar click en "Enviar código por email"
-        const mfaRequestTime = Date.now();
-        let codeInputs = await page.$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="código" i], input[type="text"]');
-        if (codeInputs.length < 6) {
-            console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Enviar código por email"...');
-            const clickedSendCode = await page.evaluate(() => {
-                const candidates = Array.from(document.querySelectorAll('button, a, div[role="button"], li, div, [data-uia]'));
-                const target = candidates.find(el => {
-                    const txt = (el.innerText || '').toLowerCase();
-                    return (txt.includes('enviar código por email') || txt.includes('enviar codigo por email') || (txt.includes('código por email') && txt.includes('@')) || txt.includes('enviar código') || txt.includes('send code'));
-                });
-                if (target) {
-                    target.click();
-                    return true;
-                }
-                return false;
+        // Si todavía estamos en /account/devices, navegar directamente a /ManageDevices
+        if (page.url().endsWith('/devices') || page.url().endsWith('/devices/')) {
+            console.log('[BOT-ADMIN-LOGIN] Navegando directamente a https://www.netflix.com/ManageDevices...');
+            try {
+                await page.goto('https://www.netflix.com/ManageDevices', { waitUntil: 'domcontentloaded', timeout: 45000 });
+                await sleep(3500);
+            } catch (e) { }
+        }
+
+        console.log(`[BOT-ADMIN-LOGIN] 🔗 URL tras acceder a dispositivos: ${page.url()}`);
+
+        // 4. En la pantalla "Primero, tenemos que asegurarnos de que seas tú", hacer clic real en "Enviar código por email"
+        console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando opción "Enviar código por email"...');
+        try {
+            await page.waitForFunction(() => {
+                const text = (document.body ? document.body.innerText : '').toLowerCase();
+                return text.includes('enviar código por email') || text.includes('enviar codigo por email') || text.includes('código por email') || text.includes('asegurarnos de que seas') || text.includes('just need to confirm');
+            }, { timeout: 12000 });
+        } catch (e) { }
+
+        await sleep(1000);
+
+        console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Enviar código por email"...');
+
+        // Obtener la posición física exacta de la tarjeta/botón en la pantalla
+        const btnCoords = await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('*'));
+            const match = all.find(el => {
+                const t = (el.innerText || '').toLowerCase();
+                return t.includes('enviar código por email') || t.includes('enviar codigo por email');
+            });
+            if (!match) return null;
+
+            const target = match.closest('button') || match.closest('a') || match.closest('[role="button"]') || match.closest('div[class*="challenge"], div[class*="option"]') || match;
+            const rect = target.getBoundingClientRect();
+            return {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+                width: rect.width,
+                height: rect.height
+            };
+        });
+
+        // 1. Clic con el ratón real usando Puppeteer CDP
+        if (btnCoords && btnCoords.width > 0 && btnCoords.height > 0) {
+            console.log(`[BOT-ADMIN-LOGIN] 🖱️ Clic con ratón real en coordenadas (${Math.round(btnCoords.x)}, ${Math.round(btnCoords.y)})...`);
+            await page.mouse.click(btnCoords.x, btnCoords.y);
+        }
+
+        // 2. Disparar eventos DOM completos sobre el elemento interactivo
+        await page.evaluate(() => {
+            const all = Array.from(document.querySelectorAll('*'));
+            const match = all.find(el => {
+                const t = (el.innerText || '').toLowerCase();
+                return t.includes('enviar código por email') || t.includes('enviar codigo por email');
+            });
+            if (match) {
+                const target = match.closest('button') || match.closest('a') || match.closest('[role="button"]') || match;
+                target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+                target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                target.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+                target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                if (target.click) target.click();
+            }
+        });
+
+        // 3. Esperar confirmación de que la pantalla cambió a las 6 casillas
+        console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando confirmación de que la pantalla cambió a las 6 casillas...');
+        let transitionedToSixBoxes = false;
+        for (let check = 0; check < 15; check++) {
+            await sleep(600);
+            const status = await page.evaluate(() => {
+                const text = (document.body ? document.body.innerText : '').toLowerCase();
+                const inputs = document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"])');
+                const isSixBoxes = inputs.length >= 6 || text.includes('acabamos de enviar') || text.includes('vence 10 minutos');
+                return isSixBoxes;
             });
 
-            console.log(`[BOT-ADMIN-LOGIN] Clic en enviar código MFA: ${clickedSendCode ? 'EXITOSO' : 'Buscando botón alternativo...'}`);
-            if (!clickedSendCode) {
+            if (status) {
+                transitionedToSixBoxes = true;
+                console.log('[BOT-ADMIN-LOGIN] ✅ Pantalla de 6 casillas cargada exitosamente!');
+                break;
+            }
+
+            // Si a los 2.5 segundos aún no avanza, reintentar clic
+            if (check === 4 || check === 8) {
+                console.log('[BOT-ADMIN-LOGIN] 🔄 Reintentando clic físico en "Enviar código por email"...');
+                if (btnCoords && btnCoords.width > 0) {
+                    await page.mouse.click(btnCoords.x, btnCoords.y);
+                }
                 const altBtn = await page.$('button[data-uia*="email"], button[data-uia*="send"], [data-uia*="challenge-action"]');
                 if (altBtn) await altBtn.click();
             }
-            await sleep(3500);
         }
 
-        // Esperar que aparezcan los 6 campos para el código MFA ("Ingresa el código que te acabamos de enviar")
-        try {
-            await page.waitForFunction(() => {
-                const inputs = document.querySelectorAll('input:not([type="hidden"])');
-                return inputs.length >= 6 || document.body.innerText.includes('acabamos de enviar');
-            }, { timeout: 10000 });
-        } catch (e) { }
+        const mfaRequestTime = Date.now();
 
         // 4. Buscar en email "Tu código de verificación" (6 dígitos) posterior a mfaRequestTime
         console.log(`[BOT-ADMIN-LOGIN] 📨 Buscando código de verificación MFA de 6 dígitos en el correo (${email}) recibido después de ${new Date(mfaRequestTime).toLocaleTimeString()}...`);
