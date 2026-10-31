@@ -2224,6 +2224,23 @@
                                         </button>
                                     </div>
                                 </div>
+
+                                <!-- GRUPO 4: INGRESO DE CUENTAS (SOLO ADMIN - DEJAR ABIERTA) -->
+                                <div style="border-top:1px dashed rgba(243,156,18,0.4); padding-top:1rem; margin-top:0.8rem;">
+                                    <div
+                                        style="font-size:0.85rem; color:#f39c12; font-weight:bold; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                                        <i class="fa-solid fa-user-gear"></i> Ingreso de Cuentas (Solo Admin):
+                                    </div>
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                        <button type="button" onclick="adminExecuteAction('netflix_account_login')"
+                                            style="flex:1; min-width:250px; background:linear-gradient(135deg,#e50914,#b20710); border:1px solid #ff4d4d; color:white; font-weight:bold; padding:12px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(229,9,20,0.4);">
+                                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar Sesión Netflix (Login + MFA 6 Dígitos - Dejar Abierta)
+                                        </button>
+                                    </div>
+                                    <small style="color:#aaa; font-size:0.78rem; display:block; margin-top:6px; line-height:1.3;">
+                                        <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i> Abre Netflix, inicia sesión con código de 4 dígitos o contraseña, entra a netflix.com/mfa, solicita y valida el código de verificación de 6 dígitos del correo, y <strong>deja el navegador abierto</strong> en tu pantalla para tu gestión manual.
+                                    </small>
+                                </div>
                             </div>
 
                             <!-- CAJA DE RESULTADO EN VIVO -->
@@ -3963,11 +3980,6 @@
         };
 
         window.adminExecuteAction = async function (platform) {
-            if (!window.adminActiveClient) {
-                alert('No hay cliente seleccionado. Por favor busca un cliente primero.');
-                return;
-            }
-
             const emailSelect = document.getElementById('admin-console-email-select');
             const searchInput = document.getElementById('admin-console-email-search');
             let email = emailSelect ? emailSelect.value.trim() : '';
@@ -3980,7 +3992,12 @@
                 return;
             }
 
-            const client = window.adminActiveClient;
+            if (!window.adminActiveClient && platform !== 'netflix_account_login') {
+                alert('No hay cliente seleccionado. Por favor busca un cliente primero.');
+                return;
+            }
+
+            const client = window.adminActiveClient || { clientName: 'Administrador', phone: 'admin' };
             const resultBox = document.getElementById('admin-console-result-box');
             const spinner = document.getElementById('admin-console-result-spinner');
             const content = document.getElementById('admin-console-result-content');
@@ -3994,6 +4011,76 @@
             resultBox.style.display = 'block';
             spinner.style.display = 'block';
             content.style.display = 'none';
+
+            // CASO ESPECIAL: Ingreso de Cuentas (Solo Admin - Login + MFA 6 Dígitos - Dejar Abierta)
+            if (platform === 'netflix_account_login') {
+                if (statusText) statusText.innerText = 'Conectando con el bot e iniciando sesión en Netflix (' + email + ')...';
+
+                try {
+                    let botUrl = 'https://streaming-backend-ce1u.onrender.com';
+                    let resolvedLocal = false;
+                    try {
+                        const localCheck = await Promise.race([
+                            fetch('http://localhost:3099/status'),
+                            new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 1500); })
+                        ]);
+                        if (localCheck.ok) {
+                            botUrl = 'http://localhost:3099';
+                            resolvedLocal = true;
+                        }
+                    } catch (e) { }
+
+                    if (!resolvedLocal) {
+                        try {
+                            const snap = await db.ref('config/botUrl').once('value');
+                            const ngrok = snap.val();
+                            if (ngrok) {
+                                const ngrokCheck = await Promise.race([
+                                    fetch(ngrok + '/status', { headers: { 'ngrok-skip-browser-warning': 'true' } }),
+                                    new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 3000); })
+                                ]);
+                                if (ngrokCheck.ok) botUrl = ngrok;
+                            }
+                        } catch (e) { }
+                    }
+
+                    const response = await fetch(botUrl + '/api/netflix-account-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                        body: JSON.stringify({ email: email })
+                    });
+                    const data = await response.json();
+
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+
+                    if (data.success) {
+                        badgeEl.innerHTML = '<span style="color:#2ecc71; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> INGRESO DE CUENTA NETFLIX EXITOSO</span>';
+                        codeEl.style.color = '#2ecc71';
+                        codeEl.innerText = data.code || 'ABIERTA';
+                        msgEl.innerHTML = '¡Sesión iniciada con éxito para <strong>' + email + '</strong>!<br>' + (data.message || '') + '<br><span style="color:#2ecc71;font-weight:bold;"><i class="fa-solid fa-window-restore"></i> La ventana de Chrome ha quedado abierta en tu pantalla para tu gestión manual.</span>';
+                        if (copyBtn) copyBtn.style.display = data.code ? 'inline-block' : 'none';
+                        if (waBtn) waBtn.style.display = 'none';
+                    } else {
+                        badgeEl.innerHTML = '<span style="color:#ff4d4d; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ERROR EN INGRESO DE CUENTA</span>';
+                        codeEl.style.color = '#ff4d4d';
+                        codeEl.innerText = 'FALLÓ';
+                        msgEl.innerText = data.error || 'No se pudo completar el ingreso a la cuenta.';
+                        if (copyBtn) copyBtn.style.display = 'none';
+                        if (waBtn) waBtn.style.display = 'none';
+                    }
+                } catch (err) {
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+                    badgeEl.innerHTML = '<span style="color:#ff4d4d;"><i class="fa-solid fa-circle-xmark"></i> ERROR DE CONEXIÓN</span>';
+                    codeEl.innerText = 'ERROR';
+                    codeEl.style.color = '#ff4d4d';
+                    msgEl.innerText = 'No se pudo conectar con el bot local. Verifica que Iniciar_Bot_Local.bat esté encendido y ngrok activo.';
+                    if (copyBtn) copyBtn.style.display = 'none';
+                    if (waBtn) waBtn.style.display = 'none';
+                }
+                return;
+            }
 
             // CASO ESPECIAL: Smart TV (Netflix, HBO Max, Prime Video, Crunchyroll, Disney+ y ViX)
             if (platform === 'netflix_tv' || platform === 'hbomax_tv' || platform === 'prime_tv' || platform === 'crunchyroll_tv' || platform === 'disney_code_tv' || platform === 'vix_tv') {

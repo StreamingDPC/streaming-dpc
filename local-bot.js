@@ -279,6 +279,10 @@ async function processQueue() {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando turno Código Temporal Netflix: ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doGetNetflixTempCode(item.email, item.travelLink);
                 item.resolve(result);
+            } else if (item.platform === 'netflix_account_login') {
+                console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta Netflix (MFA + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
+                const result = await doNetflixAccountLogin(item.email);
+                item.resolve(result);
             } else {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando turno Netflix TV: ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doActivateTv(item.email, item.tvCode);
@@ -325,6 +329,31 @@ app.post('/api/activate-tv', async (req, res) => {
 app.post('/api/activate-netflix-tv', (req, res) => {
     req.url = '/api/activate-tv';
     app._router.handle(req, res);
+});
+
+// ── ENDPOINT: Ingreso de Cuentas Netflix (Login + MFA 6 Dígitos - Dejar Abierta) ──────
+app.post('/api/netflix-account-login', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email de la cuenta es requerido.' });
+    }
+
+    const queuePromise = new Promise((resolve, reject) => {
+        activationQueue.push({ platform: 'netflix_account_login', email, resolve, reject, time: Date.now() });
+    });
+
+    processQueue();
+
+    try {
+        const result = await queuePromise;
+        return res.json(result);
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta Netflix en el bot local.'
+        });
+    }
 });
 
 // ── ENDPOINT: Activar HBO Max TV ───────────────────────────────────────────
@@ -965,6 +994,381 @@ async function doGetNetflixTempCode(email, travelLink) {
             try { await browser.close(); } catch (_) { }
         }
         return { success: false, error: err.message, link: travelLink };
+    }
+}
+
+// ── HELPER: Lector IMAP ultrarrápido local para códigos de correo ──────────
+async function fetchLocalImapCode(email, platform) {
+    try {
+        const imaps = require('./backend/node_modules/imap-simple');
+        const { simpleParser } = require('./backend/node_modules/mailparser');
+
+        const dbResp = await axios.get('https://streamingdpc-7e7fa-default-rtdb.firebaseio.com/emailAccounts.json', { timeout: 4000 });
+        const accountsData = dbResp.data || {};
+        const target = email.toLowerCase().trim();
+        const account = Object.values(accountsData).find(a => a && a.email && a.password && a.email.toLowerCase().trim() === target);
+        if (!account) return null;
+
+        const config = {
+            imap: {
+                user: account.email,
+                password: account.password.replace(/\s+/g, ''),
+                host: account.email.includes('gmail.com') ? 'imap.gmail.com' : 'imap.titan.email',
+                port: 993,
+                tls: true,
+                authTimeout: 5000,
+                tlsOptions: { rejectUnauthorized: false }
+            }
+        };
+
+        const connection = await imaps.connect(config);
+        await connection.openBox('INBOX');
+
+        const sinceDate = new Date(Date.now() - 25 * 60 * 1000).toISOString();
+        const searchCriteria = [['SINCE', sinceDate]];
+        const fetchOptions = { bodies: ['HEADER', 'TEXT', ''], struct: true };
+
+        const messages = await connection.search(searchCriteria, fetchOptions);
+        messages.sort((a, b) => (b.attributes.date || 0) - (a.attributes.date || 0));
+
+        for (const message of messages.slice(0, 10)) {
+            const allPart = message.parts.find(p => p.which === '') || message.parts.find(p => p.which === 'TEXT');
+            if (!allPart) continue;
+
+            const parsed = await simpleParser(allPart.body);
+            const subject = (parsed.subject || '').toLowerCase();
+            const textContent = ((parsed.text || '') + ' ' + (parsed.html || '')).toLowerCase();
+            const fromText = (parsed.from && parsed.from.text ? parsed.from.text : '').toLowerCase();
+
+            if (fromText.includes('netflix') || subject.includes('netflix')) {
+                if (platform === 'netflix_mfa') {
+                    // Buscar código de verificación de 6 dígitos (Image 4: "Tu código de verificación")
+                    if (subject.includes('verificaci') || textContent.includes('verificaci') || subject.includes('código') || textContent.includes('código')) {
+                        const matches = textContent.match(/\b\d{6}\b/g) || [];
+                        const valid = matches.find(m => m !== '000000');
+                        if (valid) {
+                            connection.end();
+                            return valid;
+                        }
+                    }
+                } else if (platform === 'logincode') {
+                    // Buscar código de acceso de 4 dígitos
+                    const matches = textContent.match(/\b\d{4}\b/g) || [];
+                    const valid = matches.find(m => m !== '000000');
+                    if (valid) {
+                        connection.end();
+                        return valid;
+                    }
+                }
+            }
+        }
+        connection.end();
+    } catch (e) {
+        console.warn('[LOCAL-IMAP] Nota lectura correo:', e.message);
+    }
+    return null;
+}
+
+// ── FUNCIÓN: Ingreso de Cuentas Netflix (Login + MFA 6 Dígitos - Dejar Abierta) ──
+async function doNetflixAccountLogin(email) {
+    let browser = null;
+    try {
+        console.log(`\n[BOT-ADMIN-LOGIN] ════════════════════════════════════`);
+        console.log(`[BOT-ADMIN-LOGIN] 🚀 Iniciando ingreso de cuenta Netflix para: ${email}`);
+        const netflixPass = await findNetflixPassword(email);
+
+        const chromePath = getChromePath();
+        if (!chromePath) {
+            return {
+                success: false,
+                error: 'Google Chrome no está instalado en esta PC.'
+            };
+        }
+
+        // Lanzar navegador visible en el escritorio para que el usuario pueda usarlo
+        browser = await puppeteer.launch({
+            executablePath: chromePath,
+            headless: false,
+            defaultViewport: null,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--window-position=50,50',
+                '--window-size=1250,850'
+            ]
+        });
+
+        const pages = await browser.pages();
+        const page = pages.length > 0 ? pages[0] : await browser.newPage();
+
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        });
+
+        // 1. Navegar a netflix.com/co/login
+        console.log(`[BOT-ADMIN-LOGIN] 🌐 Navegando a https://www.netflix.com/co/login...`);
+        try {
+            await page.goto('https://www.netflix.com/co/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (navErr) {
+            console.warn(`[BOT-ADMIN-LOGIN] ⚠️ Advertencia navegación: ${navErr.message}`);
+        }
+        await sleep(2000);
+
+        let currentUrl = page.url();
+        console.log(`[BOT-ADMIN-LOGIN] 🔗 URL actual: ${currentUrl}`);
+
+        // Si estamos en pantalla de login, proceder con credenciales o código
+        if (currentUrl.includes('/login') || currentUrl.includes('/co/login')) {
+            const emailSelectors = [
+                'input[name="userLoginId"]',
+                'input[data-uia="login-field"]',
+                'input[autocomplete="email"]',
+                'input[type="email"]',
+                'input[id*="userLoginId"]'
+            ];
+
+            let emailInput = null;
+            for (const sel of emailSelectors) {
+                emailInput = await page.$(sel);
+                if (emailInput) break;
+            }
+
+            if (!emailInput) {
+                try {
+                    await page.waitForSelector('input[name="userLoginId"], input[data-uia="login-field"], input[type="email"], input[type="text"]', { visible: true, timeout: 8000 });
+                    emailInput = await page.$('input[name="userLoginId"], input[data-uia="login-field"], input[type="email"], input[type="text"]');
+                } catch (e) { }
+            }
+
+            if (!emailInput) {
+                return {
+                    success: false,
+                    error: `No se encontró el campo de correo en ${page.url()}.`
+                };
+            }
+
+            await sleep(500);
+            await emailInput.click({ clickCount: 3 });
+            await emailInput.type(email, { delay: 80 });
+            console.log(`[BOT-ADMIN-LOGIN] ✉️ Email escrito: ${email}`);
+
+            await sleep(800);
+            await page.keyboard.press('Enter');
+            console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando contraseña o código de acceso...');
+            await sleep(4000);
+
+            // Verificar si pide contraseña
+            let passInput = await page.$('input[name="password"], input[type="password"]');
+            let askedForPassword = false;
+            if (passInput) {
+                const box = await passInput.boundingBox();
+                if (box && box.width > 0 && box.height > 0) askedForPassword = true;
+            }
+
+            if (askedForPassword && netflixPass) {
+                console.log('[BOT-ADMIN-LOGIN] 🔒 Netflix solicitó contraseña. Escribiendo...');
+                await passInput.click({ clickCount: 3 });
+                await passInput.type(netflixPass.replace(/\s+/g, ''), { delay: 75 });
+                await sleep(500);
+                await page.keyboard.press('Enter');
+                console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando validación de contraseña...');
+                await sleep(4500);
+            }
+
+            // Comprobar si pide código OTP de 4 dígitos (PIN)
+            const checkNeedsEmailOtp = async () => {
+                return await page.evaluate(() => {
+                    const text = (document.body ? document.body.innerText : '') || '';
+                    const hasCodeText = /(?:enter the code|c[oó]digo que enviamos|enter a pin code|introduce un c[oó]digo|security code|c[oó]digo de seguridad|c[oó]digo de acceso|c[oó]digo de inicio)/i.test(text);
+                    const hasCodeInputs = document.querySelectorAll('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="code" i], input[aria-label*="código" i]').length >= 4 ||
+                        document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"])').length >= 4;
+                    return hasCodeText || hasCodeInputs;
+                });
+            };
+
+            const needsOtp = await checkNeedsEmailOtp();
+
+            if (needsOtp || !askedForPassword) {
+                console.log('[BOT-ADMIN-LOGIN] 📨 Netflix solicitó código de acceso de 4 dígitos enviado al correo...');
+                let loginCode = null;
+                const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+                for (let attempt = 1; attempt <= 15; attempt++) {
+                    console.log(`[BOT-ADMIN-LOGIN] 🔍 Intento ${attempt}/15 buscando código de 4 dígitos...`);
+                    try {
+                        loginCode = await fetchLocalImapCode(email, 'logincode');
+                    } catch (e) { }
+
+                    if (!loginCode) {
+                        try {
+                            const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                                email: email,
+                                platform: 'logincode'
+                            }, { timeout: 15000 });
+                            if (codeResp.data && codeResp.data.code) {
+                                loginCode = codeResp.data.code.toString().replace(/\D/g, '').substring(0, 4);
+                            }
+                        } catch (e) { }
+                    }
+
+                    if (loginCode && loginCode.length >= 4) {
+                        console.log(`[BOT-ADMIN-LOGIN] ✅ Código de 4 dígitos recibido: ${loginCode}`);
+                        break;
+                    }
+                    await sleep(4000);
+                }
+
+                if (!loginCode) {
+                    return {
+                        success: false,
+                        error: 'Netflix solicitó código de 4 dígitos, pero no llegó al correo en 60 segundos.'
+                    };
+                }
+
+                console.log(`[BOT-ADMIN-LOGIN] ⌨️ Escribiendo código de 4 dígitos: ${loginCode}`);
+                await sleep(1000);
+                const codeInputs = await page.$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label], input[type="text"], input:not([name]):not([type="hidden"])');
+                if (codeInputs.length >= 4) {
+                    for (let i = 0; i < Math.min(4, loginCode.length); i++) {
+                        await codeInputs[i].click();
+                        await sleep(150);
+                        await codeInputs[i].type(loginCode[i], { delay: 120 });
+                    }
+                } else {
+                    await page.keyboard.type(loginCode, { delay: 150 });
+                }
+
+                await sleep(800);
+                await page.keyboard.press('Enter');
+                console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando validación del código de 4 dígitos...');
+                await sleep(5000);
+            }
+        }
+
+        // 2. Navegar a https://www.netflix.com/mfa
+        console.log('[BOT-ADMIN-LOGIN] 🛡️ Navegando a https://www.netflix.com/mfa...');
+        try {
+            await page.goto('https://www.netflix.com/mfa', { waitUntil: 'domcontentloaded', timeout: 40000 });
+        } catch (navErr) {
+            console.warn(`[BOT-ADMIN-LOGIN] ⚠️ Advertencia navegación MFA: ${navErr.message}`);
+        }
+        await sleep(3000);
+
+        console.log(`[BOT-ADMIN-LOGIN] 🔗 URL MFA: ${page.url()}`);
+
+        // 3. Dar click para solicitar código de 6 dígitos ("Enviar código por email")
+        let codeInputs = await page.$('input[autocomplete="one-time-code"], input[type="tel"], input[aria-label*="código" i], input[type="text"]');
+        if (codeInputs.length < 6) {
+            console.log('[BOT-ADMIN-LOGIN] 👆 Haciendo clic en "Enviar código por email"...');
+            const clickedSendCode = await page.evaluate(() => {
+                const candidates = Array.from(document.querySelectorAll('button, a, div[role="button"], li, div, [data-uia]'));
+                const target = candidates.find(el => {
+                    const txt = (el.innerText || '').toLowerCase();
+                    return (txt.includes('enviar código por email') || txt.includes('enviar codigo por email') || (txt.includes('código por email') && txt.includes('@')) || txt.includes('enviar código'));
+                });
+                if (target) {
+                    target.click();
+                    return true;
+                }
+                return false;
+            });
+
+            console.log(`[BOT-ADMIN-LOGIN] Clic en enviar código MFA: ${clickedSendCode ? 'EXITOSO' : 'Buscando botón alternativo...'}`);
+            if (!clickedSendCode) {
+                const altBtn = await page.$('button[data-uia*="email"], button[data-uia*="send"], [data-uia*="challenge-action"]');
+                if (altBtn) await altBtn.click();
+            }
+            await sleep(3500);
+        }
+
+        // 4. Buscar en email "Tu código de verificación" (6 dígitos)
+        console.log(`[BOT-ADMIN-LOGIN] 📨 Buscando código de verificación MFA de 6 dígitos en el correo (${email})...`);
+        let mfaCode = null;
+        const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+        for (let attempt = 1; attempt <= 15; attempt++) {
+            console.log(`[BOT-ADMIN-LOGIN] 🔍 Intento ${attempt}/15 buscando código MFA de 6 dígitos...`);
+            try {
+                mfaCode = await fetchLocalImapCode(email, 'netflix_mfa');
+            } catch (e) { }
+
+            if (!mfaCode) {
+                try {
+                    const resp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                        email: email,
+                        platform: 'netflix_mfa'
+                    }, { timeout: 15000 });
+                    if (resp.data && resp.data.code) {
+                        mfaCode = resp.data.code.toString().replace(/\D/g, '').substring(0, 6);
+                    }
+                } catch (e) { }
+            }
+
+            if (mfaCode && mfaCode.length === 6) {
+                console.log(`[BOT-ADMIN-LOGIN] ✅ ¡Código MFA de 6 dígitos encontrado!: ${mfaCode}`);
+                break;
+            }
+            await sleep(4000);
+        }
+
+        if (!mfaCode) {
+            return {
+                success: false,
+                error: 'No se pudo obtener el código de verificación de 6 dígitos del correo en 60 segundos. Verifica si llegó a la bandeja de entrada o haz clic en Reenviar.'
+            };
+        }
+
+        // 5. Ingresar el código de 6 dígitos
+        console.log(`[BOT-ADMIN-LOGIN] ⌨️ Ingresando código MFA de 6 dígitos: ${mfaCode}`);
+        let sixInputs = await page.$$('input[autocomplete="one-time-code"], input[type="tel"], input[type="text"], input:not([type="hidden"])');
+        if (sixInputs.length >= 6) {
+            for (let i = 0; i < 6; i++) {
+                await sixInputs[i].click();
+                await sleep(150);
+                await sixInputs[i].type(mfaCode[i], { delay: 100 });
+            }
+        } else if (sixInputs.length === 1) {
+            await sixInputs[0].click({ clickCount: 3 });
+            await sixInputs[0].type(mfaCode, { delay: 100 });
+        } else {
+            await page.keyboard.type(mfaCode, { delay: 100 });
+        }
+
+        await sleep(1000);
+
+        // 6. Dar Enviar
+        console.log('[BOT-ADMIN-LOGIN] 🔘 Presionando botón Enviar...');
+        const submitBtn = await page.$('button[type="submit"], button.btn-primary, button[data-uia*="submit"], button[data-uia*="action"]');
+        if (submitBtn) {
+            await submitBtn.click();
+        } else {
+            await page.keyboard.press('Enter');
+        }
+        await sleep(5000);
+
+        console.log('[BOT-ADMIN-LOGIN] 🎉 ¡Éxito! Cuenta de Netflix ingresada y verificada.');
+        console.log('[BOT-ADMIN-LOGIN] 🔓 MANTENIENDO NAVEGADOR ABIERTO para el administrador...');
+
+        // ¡NO CERRAR EL NAVEGADOR! Se mantiene abierto para uso del usuario
+        return {
+            success: true,
+            code: mfaCode,
+            message: `¡Sesión iniciada y verificada! Código MFA de 6 dígitos (${mfaCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla para tu uso manual.`
+        };
+
+    } catch (err) {
+        console.error('[BOT-ADMIN-LOGIN] ❌ Error:', err);
+        return {
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta Netflix.'
+        };
     }
 }
 

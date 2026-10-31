@@ -412,7 +412,24 @@ app.post('/api/get-code', async (req, res) => {
                     if ((isFromPlatform || mentionsEmail) && !isPasswordEmail) {
                         console.log(`[DEBUG] ¡MATCH ENCONTRADO en ${account.email}!`);
                         if (platformLower.includes('netflix')) {
-                            if (platformLower === 'netflix_temp') {
+                            if (platformLower.includes('mfa') || platformLower.includes('verify') || platformLower.includes('6digit')) {
+                                // Código de verificación de 6 dígitos de Netflix (MFA)
+                                const normSub = subject.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                const isMfaSubject = normSub.includes('verificacion') || normSub.includes('seguridad') || normSub.includes('codigo') || normSub.includes('verification');
+                                if (isMfaSubject || isNetflixSender) {
+                                    let matches = textContent.match(/\b\d{6}\b/g) || [];
+                                    if (matches.length === 0) {
+                                        const htmlText = htmlContent.replace(/<[^>]*>/gm, ' ');
+                                        matches = htmlText.match(/\b\d{6}\b/g) || [];
+                                    }
+                                    const validCode = matches.find(m => m !== '000000');
+                                    if (validCode) {
+                                        accountLogs.found = true;
+                                        console.log(`[DEBUG] Código Netflix MFA de 6 dígitos encontrado: ${validCode}`);
+                                        return validCode;
+                                    }
+                                }
+                            } else if (platformLower === 'netflix_temp') {
                                 // En correos de acceso temporal de Netflix, el código oficial se obtiene abriendo el enlace oficial de viaje
                                 const $ = cheerio.load(htmlContent);
                                 const links = [];
