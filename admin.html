@@ -5845,6 +5845,7 @@
         }
         let dynamicProducts = [];
         const _recentProductToggles = new Map();
+        let _lastReorderTime = 0;
         let storeConfig = {
             whatsappNumber: "573155182545",
             paymentInfo: "*Medios de pago:*\n💳 Nequi o Daviplata: 3155182545\n🔑 Llave Nequi @NEQUICEC36\n🔑 Llave Daviplata @PLATA3155182545\n🔑 Llave Nu @CMA736\n🔑 Llave Be @BE346516",
@@ -5904,15 +5905,19 @@
             if (data) {
                 const incomingProds = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
                 const now = Date.now();
-                incomingProds.forEach((p, idx) => {
-                    if (!p) return;
-                    const recent = _recentProductToggles.get(idx);
-                    if (recent && (now - recent.time < 3500)) {
-                        if (recent.active !== undefined) p.active = recent.active;
-                        if (recent.inStock !== undefined) p.inStock = recent.inStock;
-                    }
-                });
-                dynamicProducts = incomingProds;
+                if (now - _lastReorderTime < 4500) {
+                    console.log('[Reorder Guard] Protegiendo orden local de productos recién movidos.');
+                } else {
+                    incomingProds.forEach((p, idx) => {
+                        if (!p) return;
+                        const recent = _recentProductToggles.get(idx);
+                        if (recent && (now - recent.time < 3500)) {
+                            if (recent.active !== undefined) p.active = recent.active;
+                            if (recent.inStock !== undefined) p.inStock = recent.inStock;
+                        }
+                    });
+                    dynamicProducts = incomingProds;
+                }
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
                 allClientProfiles = window.allClientProfiles;
@@ -6869,9 +6874,22 @@
 
                 const div = document.createElement('div');
                 div.className = `admin-item ${!isActive ? 'inactive' : ''}`;
+                div.setAttribute('data-index', index);
+                div.ondragover = dragOver;
+                div.ondrop = (e) => { e.preventDefault(); drop(index); };
+                div.ondragenter = (e) => {
+                    if (dragSrcIndex !== null && dragSrcIndex !== index) {
+                        div.style.borderColor = 'var(--accent-primary, #00d2d3)';
+                        div.style.background = 'rgba(0, 210, 211, 0.08)';
+                    }
+                };
+                div.ondragleave = (e) => {
+                    div.style.borderColor = '';
+                    div.style.background = '';
+                };
 
                 div.innerHTML = `
-                    <div style="cursor: move; opacity: 0.5" title="Mover (Manten presionado)" draggable="true" ondragstart="dragStart(${index})" ondragover="dragOver(event)" ondrop="drop(${index})">
+                    <div style="cursor: grab; opacity: 0.7; padding: 4px 6px;" title="Arrastrar para mover de posición" draggable="true" ondragstart="dragStart(${index}, event)">
                         <i class="fa-solid fa-grip-vertical"></i>
                     </div>
                     <div>
@@ -6907,19 +6925,31 @@
 
         // Drag and Drop ordering
         let dragSrcIndex = null;
-        function dragStart(index) {
+        function dragStart(index, e) {
             dragSrcIndex = index;
+            if (e && e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', index);
+            }
         }
         function dragOver(e) {
             e.preventDefault();
+            if (e.dataTransfer) {
+                e.dataTransfer.dropEffect = 'move';
+            }
         }
         function drop(dropIndex) {
-            if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
-            // Swap array pos
+            if (dragSrcIndex === null || dragSrcIndex === dropIndex) {
+                dragSrcIndex = null;
+                renderAdminList();
+                return;
+            }
+            _lastReorderTime = Date.now();
             const item = dynamicProducts.splice(dragSrcIndex, 1)[0];
             dynamicProducts.splice(dropIndex, 0, item);
-            saveProductsToStorage();
+            dragSrcIndex = null;
             renderAdminList();
+            saveProductsToStorage();
         }
 
         async function toggleActive(index) {
