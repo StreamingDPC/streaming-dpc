@@ -1431,22 +1431,33 @@ async function doNetflixAccountLogin(email) {
 
         // Obtener la posición física exacta de la tarjeta/botón en la pantalla
         const btnCoords = await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('*'));
-            const match = all.find(el => {
-                const t = (el.innerText || '').toLowerCase();
+            // Buscar desde los elementos hoja (más profundos) para evitar seleccionar html o body
+            const allElements = Array.from(document.querySelectorAll('*')).reverse();
+            const leaf = allElements.find(el => {
+                const t = (el.innerText || el.textContent || '').toLowerCase();
+                return (t.includes('enviar código por email') || t.includes('enviar codigo por email') || t.includes('código por email')) && el.children.length === 0;
+            }) || allElements.find(el => {
+                const t = (el.innerText || el.textContent || '').toLowerCase();
                 return t.includes('enviar código por email') || t.includes('enviar codigo por email');
             });
-            if (!match) return null;
+            if (!leaf) return null;
 
-            const target = match.closest('button') || match.closest('a') || match.closest('[role="button"]') || match.closest('div[class*="challenge"], div[class*="option"]') || match;
+            // Encontrar la tarjeta/botón interactivo envolvente
+            const target = leaf.closest('button') || leaf.closest('a') || leaf.closest('[role="button"]') || leaf.closest('li') || leaf.closest('div[class*="challenge"], div[class*="option"]') || leaf.parentElement || leaf;
             const rect = target.getBoundingClientRect();
             return {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
                 width: rect.width,
-                height: rect.height
+                height: rect.height,
+                tagName: target.tagName,
+                textSnippet: (target.innerText || '').substring(0, 40)
             };
         });
+
+        if (btnCoords) {
+            console.log(`[BOT-ADMIN-LOGIN] 🎯 Tarjeta detectada: <${btnCoords.tagName}> "${btnCoords.textSnippet}" en (${Math.round(btnCoords.x)}, ${Math.round(btnCoords.y)})`);
+        }
 
         // 1. Clic con el ratón real usando Puppeteer CDP
         if (btnCoords && btnCoords.width > 0 && btnCoords.height > 0) {
@@ -1454,33 +1465,38 @@ async function doNetflixAccountLogin(email) {
             await page.mouse.click(btnCoords.x, btnCoords.y);
         }
 
-        // 2. Disparar eventos DOM completos sobre el elemento interactivo
+        // 2. Disparar eventos DOM directos sobre el elemento interactivo y la hoja
         await page.evaluate(() => {
-            const all = Array.from(document.querySelectorAll('*'));
-            const match = all.find(el => {
-                const t = (el.innerText || '').toLowerCase();
+            const allElements = Array.from(document.querySelectorAll('*')).reverse();
+            const leaf = allElements.find(el => {
+                const t = (el.innerText || el.textContent || '').toLowerCase();
+                return (t.includes('enviar código por email') || t.includes('enviar codigo por email') || t.includes('código por email')) && el.children.length === 0;
+            }) || allElements.find(el => {
+                const t = (el.innerText || el.textContent || '').toLowerCase();
                 return t.includes('enviar código por email') || t.includes('enviar codigo por email');
             });
-            if (match) {
-                const target = match.closest('button') || match.closest('a') || match.closest('[role="button"]') || match;
+            if (leaf) {
+                const target = leaf.closest('button') || leaf.closest('a') || leaf.closest('[role="button"]') || leaf.closest('li') || leaf.parentElement || leaf;
+                target.focus();
                 target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
                 target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
                 target.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
                 target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
                 target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                 if (target.click) target.click();
+                if (leaf !== target && leaf.click) leaf.click();
             }
         });
 
         // 3. Esperar confirmación de que la pantalla cambió a las 6 casillas
         console.log('[BOT-ADMIN-LOGIN] ⏳ Esperando confirmación de que la pantalla cambió a las 6 casillas...');
         let transitionedToSixBoxes = false;
-        for (let check = 0; check < 15; check++) {
+        for (let check = 0; check < 20; check++) {
             await sleep(600);
             const status = await page.evaluate(() => {
                 const text = (document.body ? document.body.innerText : '').toLowerCase();
                 const inputs = document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"])');
-                const isSixBoxes = inputs.length >= 6 || text.includes('acabamos de enviar') || text.includes('vence 10 minutos');
+                const isSixBoxes = inputs.length >= 6 || text.includes('acabamos de enviar') || text.includes('vence 10 minutos') || text.includes('ingresa el código que');
                 return isSixBoxes;
             });
 
@@ -1490,14 +1506,23 @@ async function doNetflixAccountLogin(email) {
                 break;
             }
 
-            // Si a los 2.5 segundos aún no avanza, reintentar clic
-            if (check === 4 || check === 8) {
+            // Si a los 2 y 4 segundos aún no avanza, reintentar clic
+            if (check === 3 || check === 7 || check === 12) {
                 console.log('[BOT-ADMIN-LOGIN] 🔄 Reintentando clic físico en "Enviar código por email"...');
                 if (btnCoords && btnCoords.width > 0) {
                     await page.mouse.click(btnCoords.x, btnCoords.y);
                 }
-                const altBtn = await page.$('button[data-uia*="email"], button[data-uia*="send"], [data-uia*="challenge-action"]');
-                if (altBtn) await altBtn.click();
+                await page.evaluate(() => {
+                    const allElements = Array.from(document.querySelectorAll('*')).reverse();
+                    const leaf = allElements.find(el => {
+                        const t = (el.innerText || el.textContent || '').toLowerCase();
+                        return (t.includes('enviar código') || t.includes('enviar codigo')) && el.children.length === 0;
+                    });
+                    if (leaf) {
+                        const target = leaf.closest('button') || leaf.closest('a') || leaf.closest('[role="button"]') || leaf.parentElement || leaf;
+                        target.click();
+                    }
+                });
             }
         }
 
