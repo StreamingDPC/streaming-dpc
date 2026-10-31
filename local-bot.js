@@ -3142,7 +3142,6 @@ async function doPrimeAccountLogin(email, zoomLevel = 80) {
 
 // ── FUNCIÓN: Ingreso de Cuentas Paramount+ (Login + Dejar Abierta) ──
 async function doParamountAccountLogin(email, zoomLevel = 80) {
-    let browser = null;
     try {
         console.log(`\n[BOT-ADMIN-PARAMOUNT] ════════════════════════════════════`);
         console.log(`[BOT-ADMIN-PARAMOUNT] 🚀 Iniciando ingreso de cuenta Paramount+ para: ${email}`);
@@ -3157,278 +3156,131 @@ async function doParamountAccountLogin(email, zoomLevel = 80) {
         }
         console.log(`[BOT-ADMIN-PARAMOUNT] 🔑 Contraseña encontrada exitosamente para ${email}.`);
 
-        const chromePath = getChromePath();
-        if (!chromePath) {
+        // 2. Detectar navegador genuino (Chrome o Edge)
+        const fs = require('fs');
+        let browserPath = getChromePath();
+        let browserName = 'Google Chrome';
+        if (!browserPath) {
+            const edgePaths = [
+                'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+                'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+            ];
+            for (const ep of edgePaths) {
+                if (fs.existsSync(ep)) {
+                    browserPath = ep;
+                    browserName = 'Microsoft Edge';
+                    break;
+                }
+            }
+        }
+
+        if (!browserPath) {
             return {
                 success: false,
-                error: 'Google Chrome no está instalado en esta PC.'
+                error: 'No se encontró Google Chrome ni Microsoft Edge instalado en esta PC.'
             };
         }
 
-        // Lanzar navegador visible en el escritorio para que el usuario pueda usarlo
-        browser = await puppeteer.launch({
-            executablePath: chromePath,
-            headless: false,
-            defaultViewport: null,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-blink-features=AutomationControlled',
-                '--disable-dev-shm-usage',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-background-timer-throttling',
-                '--disable-renderer-backgrounding',
-                '--window-position=50,50',
-                '--window-size=1250,850'
-            ]
-        });
-
-        const pages = await browser.pages();
-        const page = pages.length > 0 ? pages[0] : await browser.newPage();
-
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
-
-        await page.evaluateOnNewDocument(() => {
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        });
-
-        // 1. Navegar a https://www.paramountplus.com/co/account/signin/
-        console.log('[BOT-ADMIN-PARAMOUNT] 🌐 Navegando a Paramount+ Signin...');
-        try {
-            await page.goto('https://www.paramountplus.com/co/account/signin/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-        } catch (navErr) {
-            console.warn(`[BOT-ADMIN-PARAMOUNT] ⚠️ Advertencia navegación: ${navErr.message}`);
-        }
-        await sleep(3000);
-
-        console.log(`[BOT-ADMIN-PARAMOUNT] 🔗 URL actual: ${page.url()}`);
-
-        // Aceptar banner de cookies si aparece
-        try {
-            await page.evaluate(() => {
-                const otBtn = document.querySelector('#onetrust-accept-btn-handler, #accept-all-btn, [data-testid*="cookie-accept"]');
-                if (otBtn) { otBtn.click(); return; }
-                const btns = Array.from(document.querySelectorAll('button, input[type="submit"], [role="button"]'));
-                const cBtn = btns.find(b => {
-                    const t = (b.innerText || b.value || '').toLowerCase();
-                    return t.includes('aceptar') || t.includes('accept all') || t.includes('agree');
-                });
-                if (cBtn) cBtn.click();
-            });
-        } catch (e) { }
-
-        // Si ya está logueado, pasar directo a manage-devices
-        if (page.url().includes('paramountplus.com') && !page.url().includes('/signin')) {
-            console.log('[BOT-ADMIN-PARAMOUNT] Sesión ya iniciada, pasando directo a manage-devices...');
-        } else {
-            // Esperar campo de correo
-            let emailInput = null;
-            for (let wait = 0; wait < 15; wait++) {
-                emailInput = await page.$('#email, input[type="email"], input[name="email"], input[id*="email"]');
-                if (emailInput) break;
-                await sleep(1000);
-            }
-
-            if (!emailInput) {
-                return {
-                    success: false,
-                    error: `No se encontró el campo de correo en ${page.url()}.`
-                };
-            }
-
-            console.log(`[BOT-ADMIN-PARAMOUNT] ✉️ Ingresando correo electrónico: ${email}`);
-            await page.evaluate((el, targetEmail) => {
-                el.focus();
-                el.value = '';
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                if (nativeSetter) nativeSetter.call(el, targetEmail);
-                else el.value = targetEmail;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-            }, emailInput, email);
-            await sleep(400);
-
-            // Esperar campo de contraseña
-            let passInput = null;
-            for (let wait = 0; wait < 12; wait++) {
-                passInput = await page.$('#password, input[type="password"], input[name="password"]');
-                if (passInput) break;
-                await sleep(800);
-            }
-
-            if (!passInput) {
-                return {
-                    success: false,
-                    error: 'Paramount+ no cargó el campo de contraseña.'
-                };
-            }
-
-            console.log('[BOT-ADMIN-PARAMOUNT] 🔑 Ingresando contraseña...');
-            await page.evaluate((el, targetPass) => {
-                el.focus();
-                el.value = '';
-                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                if (nativeSetter) nativeSetter.call(el, targetPass);
-                else el.value = targetPass;
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-            }, passInput, paramountPass);
-            await sleep(400);
-
-            // Clic en Continuar / Iniciar sesión
-            console.log('[BOT-ADMIN-PARAMOUNT] 🚀 Clic en Continuar...');
-            const clickedBtn = await page.evaluate(() => {
-                const btns = Array.from(document.querySelectorAll('button, input[type="submit"]'));
-                const btn = btns.find(b => {
-                    const t = (b.innerText || b.value || '').trim().toLowerCase();
-                    return t.includes('continuar') || t.includes('iniciar') || t.includes('sign in');
-                });
-                if (btn) {
-                    btn.click();
-                    return true;
-                }
-                return false;
-            });
-
-            if (!clickedBtn) {
-                await page.keyboard.press('Enter');
-            }
-            await sleep(4000);
-        }
-
-        // Paso 2: Navegar a https://www.paramountplus.com/account/manage-devices/
-        console.log('[BOT-ADMIN-PARAMOUNT] 🛡️ Navegando a https://www.paramountplus.com/account/manage-devices/...');
-        try {
-            await page.goto('https://www.paramountplus.com/account/manage-devices/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-        } catch (e) {
-            console.warn(`[BOT-ADMIN-PARAMOUNT] ⚠️ Advertencia navegación manage-devices: ${e.message}`);
-        }
-        await sleep(3500);
-
-        // Paso 3: Aplicar Zoom y Barra flotante arrastrable
+        // 3. Zoom / Factor de escala nativo para la ventana
         let targetZoom = parseInt(zoomLevel, 10);
         if (isNaN(targetZoom) || targetZoom < 30 || targetZoom > 200) targetZoom = 80;
-        console.log(`[BOT-ADMIN-PARAMOUNT] 🔍 Estableciendo zoom del navegador al ${targetZoom}%...`);
+        const scaleFactor = (targetZoom / 100).toFixed(2);
 
-        try {
-            await page.evaluate((initialZoom) => {
-                let currentZoom = initialZoom;
-                const applyZoom = (z) => {
-                    currentZoom = z;
-                    document.documentElement.style.zoom = z + '%';
-                    if (document.body) document.body.style.zoom = z + '%';
-                    const display = document.getElementById('admin-floating-zoom-text');
-                    if (display) display.innerText = z + '%';
-                };
+        console.log(`[BOT-ADMIN-PARAMOUNT] 🌐 Abriendo ${browserName} en modo genuino (sin flags de bot/CDP para evitar bloqueo 403 de Fastly/Varnish)...`);
+        console.log(`[BOT-ADMIN-PARAMOUNT] 🔍 Zoom establecido al ${targetZoom}% (factor de escala ${scaleFactor}).`);
 
-                applyZoom(initialZoom);
+        // Codificar en Base64 para prevenir caracteres especiales en contraseñas
+        const b64Email = Buffer.from(email).toString('base64');
+        const b64Pass = Buffer.from(paramountPass).toString('base64');
+        const escapedBrowserPath = browserPath.replace(/\\/g, '\\\\');
 
-                if (document.getElementById('admin-floating-zoom-bar')) return;
+        const psScript = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName Microsoft.VisualBasic
+$wshell = New-Object -ComObject WScript.Shell
 
-                const bar = document.createElement('div');
-                bar.id = 'admin-floating-zoom-bar';
-                bar.style.cssText = `
-                    position: fixed;
-                    bottom: 25px;
-                    right: 25px;
-                    z-index: 999999999;
-                    background: rgba(15, 23, 42, 0.94);
-                    color: #fff;
-                    padding: 8px 16px;
-                    border-radius: 30px;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-                    border: 1px solid rgba(255,255,255,0.25);
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                    font-size: 13px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    backdrop-filter: blur(8px);
-                    user-select: none;
-                    cursor: grab;
-                    touch-action: none;
-                `;
+$email = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${b64Email}'))
+$password = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${b64Pass}'))
 
-                bar.innerHTML = `
-                    <span id="drag-handle" style="cursor:grab; font-size:16px; color:#94a3b8; margin-right:2px; padding:0 3px;" title="Arrastrar barra">⠿</span>
-                    <span style="font-weight: bold; color: #3b82f6; margin-right: 2px;">🔍 Zoom:</span>
-                    <button id="btn-zoom-minus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">-</button>
-                    <span id="admin-floating-zoom-text" style="font-weight: bold; min-width: 46px; text-align: center; color:#3b82f6; font-size:14px;">${initialZoom}%</span>
-                    <button id="btn-zoom-plus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">+</button>
-                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
-                    <button class="quick-zoom-btn" data-z="67" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">67%</button>
-                    <button class="quick-zoom-btn" data-z="75" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">75%</button>
-                    <button class="quick-zoom-btn" data-z="80" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">80%</button>
-                    <button class="quick-zoom-btn" data-z="85" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">85%</button>
-                    <button class="quick-zoom-btn" data-z="90" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">90%</button>
-                    <button class="quick-zoom-btn" data-z="100" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">100%</button>
-                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
-                    <button id="btn-zoom-close" style="background:transparent; color:#94a3b8; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center;" title="Cerrar barra">✕</button>
-                `;
+Write-Host "[BOT-PARAMOUNT-PS] Iniciando ventana de navegador..."
+$proc = Start-Process -FilePath "${escapedBrowserPath}" -ArgumentList @(
+    "--force-device-scale-factor=${scaleFactor}",
+    "--window-size=1250,850",
+    "--window-position=50,50",
+    "https://www.paramountplus.com/co/account/signin/"
+) -PassThru
 
-                document.body.appendChild(bar);
+# Esperar a que la página cargue limpiamente
+Start-Sleep -Seconds 5
 
-                let isDragging = false;
-                let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+# Activar la ventana
+try {
+    [Microsoft.VisualBasic.Interaction]::AppActivate($proc.Id) | Out-Null
+} catch {
+    $wshell.AppActivate("Paramount") | Out-Null
+}
+Start-Sleep -Milliseconds 500
 
-                bar.onmousedown = (e) => {
-                    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-                    isDragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    const rect = bar.getBoundingClientRect();
-                    initialLeft = rect.left;
-                    initialTop = rect.top;
-                    bar.style.bottom = 'auto';
-                    bar.style.right = 'auto';
-                    bar.style.left = initialLeft + 'px';
-                    bar.style.top = initialTop + 'px';
-                    bar.style.cursor = 'grabbing';
-                    e.preventDefault();
-                };
+# Escribir correo electrónico
+Set-Clipboard -Value $email
+$wshell.SendKeys('^a')
+Start-Sleep -Milliseconds 150
+$wshell.SendKeys('{BACKSPACE}')
+Start-Sleep -Milliseconds 150
+$wshell.SendKeys('^v')
+Start-Sleep -Milliseconds 350
 
-                window.addEventListener('mousemove', (e) => {
-                    if (!isDragging) return;
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    bar.style.left = (initialLeft + dx) + 'px';
-                    bar.style.top = (initialTop + dy) + 'px';
-                });
+# Tabulación hacia campo de contraseña
+$wshell.SendKeys('{TAB}')
+Start-Sleep -Milliseconds 350
 
-                window.addEventListener('mouseup', () => {
-                    if (isDragging) {
-                        isDragging = false;
-                        bar.style.cursor = 'grab';
+# Escribir contraseña
+Set-Clipboard -Value $password
+$wshell.SendKeys('^a')
+Start-Sleep -Milliseconds 150
+$wshell.SendKeys('{BACKSPACE}')
+Start-Sleep -Milliseconds 150
+$wshell.SendKeys('^v')
+Start-Sleep -Milliseconds 400
+
+# Limpiar portapapeles por seguridad
+Set-Clipboard -Value ' '
+
+# Presionar Enter para enviar formulario
+$wshell.SendKeys('{ENTER}')
+Start-Sleep -Seconds 6
+
+# Abrir administrar dispositivos directamente en el navegador
+Start-Process -FilePath "${escapedBrowserPath}" -ArgumentList "https://www.paramountplus.com/account/manage-devices/"
+`;
+
+        const os = require('os');
+        const tmpPsPath = path.join(os.tmpdir(), `paramount_login_${Date.now()}.ps1`);
+        fs.writeFileSync(tmpPsPath, psScript, 'utf8');
+
+        console.log('[BOT-ADMIN-PARAMOUNT] ⌨️ Ejecutando ingreso seguro de credenciales...');
+        await new Promise((resolve) => {
+            exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpPsPath}"`, (err, stdout) => {
+                try { fs.unlinkSync(tmpPsPath); } catch (e) { }
+                if (err) {
+                    console.warn('[BOT-ADMIN-PARAMOUNT] ⚠️ Advertencia script:', err.message);
+                }
+                if (stdout) {
+                    const lines = stdout.trim().split('\n');
+                    for (const l of lines) {
+                        if (l.trim()) console.log(`[BOT-ADMIN-PARAMOUNT] ${l.trim()}`);
                     }
-                });
-
-                document.getElementById('btn-zoom-minus').onclick = () => {
-                    applyZoom(Math.max(30, currentZoom - 5));
-                };
-                document.getElementById('btn-zoom-plus').onclick = () => {
-                    applyZoom(Math.min(150, currentZoom + 5));
-                };
-                document.getElementById('btn-zoom-close').onclick = () => {
-                    bar.style.display = 'none';
-                };
-                bar.querySelectorAll('.quick-zoom-btn').forEach(btn => {
-                    btn.onclick = () => applyZoom(parseInt(btn.getAttribute('data-z'), 10));
-                });
-            }, targetZoom);
-
-            const client = await page.target().createCDPSession();
-            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: parseFloat((targetZoom / 100).toFixed(2)) });
-            console.log(`[BOT-ADMIN-PARAMOUNT] ✅ Zoom al ${targetZoom}% aplicado correctamente.`);
-        } catch (e) {
-            console.log('[BOT-ADMIN-PARAMOUNT] Nota aplicación zoom:', e.message);
-        }
+                }
+                resolve();
+            });
+        });
 
         console.log('[BOT-ADMIN-PARAMOUNT] 🎉 ¡Éxito! Cuenta de Paramount+ ingresada.');
         console.log(`[BOT-ADMIN-PARAMOUNT] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al ${targetZoom}%) para el administrador...`);
 
         return {
             success: true,
-            message: `¡Sesión iniciada en Paramount+! El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administrar Dispositivos para tu gestión manual.`
+            message: `¡Sesión iniciada en Paramount+! El navegador ${browserName} ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administrar Dispositivos para tu gestión manual.`
         };
 
     } catch (err) {
