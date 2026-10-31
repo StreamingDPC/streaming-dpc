@@ -20,7 +20,7 @@
 
 require('dotenv').config();
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');

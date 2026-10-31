@@ -5844,6 +5844,7 @@
             event.target.value = ''; // Reset
         }
         let dynamicProducts = [];
+        const _recentProductToggles = new Map();
         let storeConfig = {
             whatsappNumber: "573155182545",
             paymentInfo: "*Medios de pago:*\n💳 Nequi o Daviplata: 3155182545\n🔑 Llave Nequi @NEQUICEC36\n🔑 Llave Daviplata @PLATA3155182545\n🔑 Llave Nu @CMA736\n🔑 Llave Be @BE346516",
@@ -5901,7 +5902,17 @@
             const data = snap.val();
             console.log("Firebase snapshot received:", data);
             if (data) {
-                dynamicProducts = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
+                const incomingProds = Array.isArray(data.products) ? data.products : Object.values(data.products || {});
+                const now = Date.now();
+                incomingProds.forEach((p, idx) => {
+                    if (!p) return;
+                    const recent = _recentProductToggles.get(idx);
+                    if (recent && (now - recent.time < 3500)) {
+                        if (recent.active !== undefined) p.active = recent.active;
+                        if (recent.inStock !== undefined) p.inStock = recent.inStock;
+                    }
+                });
+                dynamicProducts = incomingProds;
                 storeConfig = data.storeConfig || storeConfig;
                 window.allClientProfiles = data.clientProfiles || {};
                 allClientProfiles = window.allClientProfiles;
@@ -6911,24 +6922,58 @@
             renderAdminList();
         }
 
-        function toggleActive(index) {
-            if (dynamicProducts[index].active === undefined) {
-                dynamicProducts[index].active = false;
-            } else {
-                dynamicProducts[index].active = !dynamicProducts[index].active;
-            }
-            saveProductsToStorage();
+        async function toggleActive(index) {
+            if (!dynamicProducts[index]) return;
+            const currentActive = dynamicProducts[index].active !== false;
+            const newActive = !currentActive;
+            dynamicProducts[index].active = newActive;
+            _recentProductToggles.set(index, { ...(_recentProductToggles.get(index) || {}), active: newActive, time: Date.now() });
             renderAdminList();
+
+            try {
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const token = await user.getIdToken();
+                    const url = `https://streamingdpc-7e7fa-default-rtdb.firebaseio.com/products/${index}/active.json?auth=${token}`;
+                    await fetch(url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newActive)
+                    });
+                } else {
+                    await db.ref(`products/${index}/active`).set(newActive);
+                }
+            } catch (err) {
+                console.warn('Error en toggleActive individual, usando fallback:', err);
+                saveProductsToStorage();
+            }
         }
 
-        function toggleStock(index) {
-            if (dynamicProducts[index].inStock === undefined) {
-                dynamicProducts[index].inStock = false;
-            } else {
-                dynamicProducts[index].inStock = !dynamicProducts[index].inStock;
-            }
-            saveProductsToStorage();
+        async function toggleStock(index) {
+            if (!dynamicProducts[index]) return;
+            const currentStock = dynamicProducts[index].inStock !== false;
+            const newStock = !currentStock;
+            dynamicProducts[index].inStock = newStock;
+            _recentProductToggles.set(index, { ...(_recentProductToggles.get(index) || {}), inStock: newStock, time: Date.now() });
             renderAdminList();
+
+            try {
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    const token = await user.getIdToken();
+                    const url = `https://streamingdpc-7e7fa-default-rtdb.firebaseio.com/products/${index}/inStock.json?auth=${token}`;
+                    await fetch(url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newStock)
+                    });
+                } else {
+                    await db.ref(`products/${index}/inStock`).set(newStock);
+                }
+            } catch (err) {
+                console.warn('Error en toggleStock individual, usando fallback:', err);
+                saveProductsToStorage();
+            }
         }
 
         function duplicateProduct(index) {
