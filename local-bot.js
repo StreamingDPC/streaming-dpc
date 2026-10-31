@@ -283,6 +283,10 @@ async function processQueue() {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta Netflix (MFA + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doNetflixAccountLogin(item.email, item.zoom);
                 item.resolve(result);
+            } else if (item.platform === 'disney_account_login') {
+                console.log(`\n[BOT-QUEUE] ⏳ Procesando Ingreso de Cuenta Disney+ (Código 6 Dígitos + Dejar Abierta): ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
+                const result = await doDisneyAccountLogin(item.email, item.zoom);
+                item.resolve(result);
             } else {
                 console.log(`\n[BOT-QUEUE] ⏳ Procesando turno Netflix TV: ${item.email} (Quedan en cola: ${activationQueue.length - 1})`);
                 const result = await doActivateTv(item.email, item.tvCode);
@@ -352,6 +356,31 @@ app.post('/api/netflix-account-login', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: err.message || 'Error en el ingreso de cuenta Netflix en el bot local.'
+        });
+    }
+});
+
+// ── ENDPOINT: Ingreso de Cuentas Disney+ (Login + Código 6 Dígitos - Dejar Abierta) ──────
+app.post('/api/disney-account-login', async (req, res) => {
+    const { email, zoom } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email de la cuenta es requerido.' });
+    }
+
+    const queuePromise = new Promise((resolve, reject) => {
+        activationQueue.push({ platform: 'disney_account_login', email, zoom, resolve, reject, time: Date.now() });
+    });
+
+    processQueue();
+
+    try {
+        const result = await queuePromise;
+        return res.json(result);
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta Disney+ en el bot local.'
         });
     }
 });
@@ -1079,6 +1108,17 @@ async function fetchLocalImapCode(email, platform, minTimestamp = 0) {
                         }
                     }
                 }
+            } else if (fromText.includes('disney') || subject.includes('disney')) {
+                // Buscar código de acceso único de 6 dígitos de Disney+ ("Tu código de acceso único para Disney+")
+                const isDisneySubject = subject.includes('código de acceso') || subject.includes('codigo de acceso') || subject.includes('código') || subject.includes('passcode') || textContent.includes('código de acceso') || textContent.includes('codigo de acceso') || textContent.includes('código de verificación');
+                if (isDisneySubject) {
+                    const matches = textContent.match(/\b\d{6}\b/g) || [];
+                    const valid = matches.find(m => m !== '000000');
+                    if (valid) {
+                        connection.end();
+                        return valid;
+                    }
+                }
             }
         }
         connection.end();
@@ -1741,6 +1781,366 @@ async function doNetflixAccountLogin(email, zoomLevel = 80) {
         };
     }
 }
+
+// ── FUNCIÓN: Ingreso de Cuentas Disney+ (Login + Código 6 Dígitos - Dejar Abierta) ──
+async function doDisneyAccountLogin(email, zoomLevel = 80) {
+    let browser = null;
+    try {
+        console.log(`\n[BOT-ADMIN-DISNEY] ════════════════════════════════════`);
+        console.log(`[BOT-ADMIN-DISNEY] 🚀 Iniciando ingreso de cuenta Disney+ para: ${email}`);
+
+        const chromePath = getChromePath();
+        if (!chromePath) {
+            return {
+                success: false,
+                error: 'Google Chrome no está instalado en esta PC.'
+            };
+        }
+
+        // Lanzar navegador visible en el escritorio para que el usuario pueda usarlo
+        browser = await puppeteer.launch({
+            executablePath: chromePath,
+            headless: false,
+            defaultViewport: null,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-background-timer-throttling',
+                '--disable-renderer-backgrounding',
+                '--window-position=50,50',
+                '--window-size=1250,850'
+            ]
+        });
+
+        const pages = await browser.pages();
+        const page = pages.length > 0 ? pages[0] : await browser.newPage();
+
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        });
+
+        // 1. Navegar a https://www.disneyplus.com/identity/login/enter-email
+        console.log('[BOT-ADMIN-DISNEY] 🌐 Navegando a https://www.disneyplus.com/identity/login/enter-email...');
+        try {
+            await page.goto('https://www.disneyplus.com/identity/login/enter-email', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (navErr) {
+            console.warn(`[BOT-ADMIN-DISNEY] ⚠️ Advertencia navegación: ${navErr.message}`);
+        }
+        await sleep(2500);
+
+        console.log(`[BOT-ADMIN-DISNEY] 🔗 URL actual: ${page.url()}`);
+
+        // Si ya está en pantalla de perfiles o home, pasar directo a manage-devices
+        if (page.url().includes('select-profile') || page.url().includes('/home')) {
+            console.log('[BOT-ADMIN-DISNEY] Sesión ya iniciada, pasando directo a manage-devices...');
+        } else {
+            // Localizar campo de correo
+            let emailInput = null;
+            for (let wait = 0; wait < 12; wait++) {
+                emailInput = await page.$('input[name="email"], input[type="email"], input[data-testid="email-input"], input[id*="email"]');
+                if (emailInput) break;
+                await sleep(1000);
+            }
+
+            if (!emailInput) {
+                return {
+                    success: false,
+                    error: `No se encontró el campo de correo en ${page.url()}.`
+                };
+            }
+
+            // Inyección limpia y nativa de email sin interferencias de teclado
+            await sleep(500);
+            await page.evaluate((el, targetEmail) => {
+                el.focus();
+                el.value = '';
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                if (nativeSetter) {
+                    nativeSetter.call(el, targetEmail);
+                } else {
+                    el.value = targetEmail;
+                }
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }, emailInput, email);
+            await sleep(300);
+
+            const typedVal = await page.evaluate(el => el.value, emailInput);
+            console.log(`[BOT-ADMIN-DISNEY] ✉️ Email verificado en pantalla: "${typedVal}" (Objetivo: "${email}")`);
+            if (typedVal !== email) {
+                await page.evaluate((el, targetEmail) => {
+                    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                    if (nativeSetter) nativeSetter.call(el, targetEmail);
+                    else el.value = targetEmail;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }, emailInput, email);
+                await sleep(200);
+            }
+
+            // Clic en Continuar
+            console.log('[BOT-ADMIN-DISNEY] ➡️ Clic en Continuar tras ingresar correo...');
+            const clickedContinue = await page.evaluate(() => {
+                const btn = document.querySelector('button[data-testid="continue-btn"], button[type="submit"]') ||
+                    Array.from(document.querySelectorAll('button')).find(b => (b.innerText || '').toLowerCase().includes('continu'));
+                if (btn) {
+                    btn.click();
+                    return true;
+                }
+                return false;
+            });
+            if (!clickedContinue) {
+                await page.keyboard.press('Enter');
+            }
+            await sleep(3500);
+
+            // 2. Paso 2: Si pide "Enviar correo" o "Confirmar tu identidad"
+            const disneyRequestTime = Date.now();
+            console.log('[BOT-ADMIN-DISNEY] ⏳ Verificando si requiere hacer clic en "Enviar correo"...');
+            await page.evaluate(() => {
+                const elements = Array.from(document.querySelectorAll('button, a, [role="button"]'));
+                for (const el of elements) {
+                    const txt = (el.innerText || el.textContent || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (txt.includes('enviar correo') || txt.includes('send email') || txt.includes('codigo por correo')) {
+                        el.click();
+                        return true;
+                    }
+                }
+                return false;
+            });
+            await sleep(3000);
+
+            // 3. Paso 3: Ingresar código de 6 dígitos del correo ("Tu código de acceso único para Disney+")
+            console.log(`[BOT-ADMIN-DISNEY] 📨 Buscando código de acceso único de 6 dígitos en el correo (${email})...`);
+            let disneyCode = null;
+            const BACKEND_URL = 'https://streaming-backend-ce1u.onrender.com';
+
+            for (let attempt = 1; attempt <= 15; attempt++) {
+                console.log(`[BOT-ADMIN-DISNEY] 🔍 Intento ${attempt}/15 buscando código Disney+ (después de ${new Date(disneyRequestTime).toLocaleTimeString()})...`);
+                try {
+                    disneyCode = await fetchLocalImapCode(email, 'disney', disneyRequestTime);
+                } catch (e) { }
+
+                if (!disneyCode) {
+                    try {
+                        const codeResp = await axios.post(`${BACKEND_URL}/api/get-code`, {
+                            email: email,
+                            platform: 'disney_tv'
+                        }, { timeout: 15000 });
+                        if (codeResp.data && codeResp.data.code) {
+                            const raw = codeResp.data.code.toString().replace(/\D/g, '');
+                            if (raw.length >= 6) {
+                                disneyCode = raw.substring(0, 6);
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                if (disneyCode && disneyCode.length >= 6) {
+                    console.log(`[BOT-ADMIN-DISNEY] ✅ Código de acceso único Disney+ recibido: ${disneyCode}`);
+                    break;
+                }
+                await sleep(4000);
+            }
+
+            if (!disneyCode) {
+                return {
+                    success: false,
+                    error: 'Disney+ solicitó código de 6 dígitos, pero no llegó al correo en 60 segundos.'
+                };
+            }
+
+            // Ingresar código de 6 dígitos en las casillas
+            console.log(`[BOT-ADMIN-DISNEY] ⌨️ Ingresando código de 6 dígitos: ${disneyCode}`);
+            await sleep(1000);
+
+            // Esperar que estén disponibles las casillas
+            for (let wait = 0; wait < 8; wait++) {
+                const hasInp = await page.$('input[name="otp"], input[name="passcode"], input[type="text"], input[type="tel"]');
+                if (hasInp) break;
+                await sleep(800);
+            }
+
+            await page.evaluate((code) => {
+                const inputs = Array.from(document.querySelectorAll('input')).filter(i => {
+                    const t = (i.type || '').toLowerCase();
+                    return (t === 'text' || t === 'tel' || t === 'number') && !i.disabled && i.offsetParent !== null;
+                });
+                if (inputs.length >= 6) {
+                    for (let i = 0; i < 6; i++) {
+                        inputs[i].focus();
+                        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                        if (setter) setter.call(inputs[i], code[i]);
+                        else inputs[i].value = code[i];
+                        inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+                        inputs[i].dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                } else if (inputs.length === 1) {
+                    inputs[0].focus();
+                    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                    if (setter) setter.call(inputs[0], code);
+                    else inputs[0].value = code;
+                    inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+                    inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, disneyCode);
+
+            await sleep(600);
+            await page.keyboard.press('Enter');
+            console.log('[BOT-ADMIN-DISNEY] ⏳ Esperando validación del código Disney+...');
+            await sleep(4500);
+        }
+
+        // 4. Paso 4: Navegar a https://www.disneyplus.com/identity/manage-devices y dejar abierta
+        console.log('[BOT-ADMIN-DISNEY] 🛡️ Navegando a https://www.disneyplus.com/identity/manage-devices...');
+        try {
+            await page.goto('https://www.disneyplus.com/identity/manage-devices', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        } catch (e) {
+            console.warn(`[BOT-ADMIN-DISNEY] ⚠️ Advertencia navegación manage-devices: ${e.message}`);
+        }
+        await sleep(3500);
+
+        // 5. Aplicar Zoom y Barra flotante arrastrable
+        let targetZoom = parseInt(zoomLevel, 10);
+        if (isNaN(targetZoom) || targetZoom < 30 || targetZoom > 200) targetZoom = 80;
+        console.log(`[BOT-ADMIN-DISNEY] 🔍 Estableciendo zoom del navegador al ${targetZoom}%...`);
+
+        try {
+            await page.evaluate((initialZoom) => {
+                let currentZoom = initialZoom;
+                const applyZoom = (z) => {
+                    currentZoom = z;
+                    document.documentElement.style.zoom = z + '%';
+                    if (document.body) document.body.style.zoom = z + '%';
+                    const display = document.getElementById('admin-floating-zoom-text');
+                    if (display) display.innerText = z + '%';
+                };
+
+                applyZoom(initialZoom);
+
+                if (document.getElementById('admin-floating-zoom-bar')) return;
+
+                const bar = document.createElement('div');
+                bar.id = 'admin-floating-zoom-bar';
+                bar.style.cssText = `
+                    position: fixed;
+                    bottom: 25px;
+                    right: 25px;
+                    z-index: 999999999;
+                    background: rgba(15, 23, 42, 0.94);
+                    color: #fff;
+                    padding: 8px 16px;
+                    border-radius: 30px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+                    border: 1px solid rgba(255,255,255,0.25);
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    font-size: 13px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    backdrop-filter: blur(8px);
+                    user-select: none;
+                    cursor: grab;
+                    touch-action: none;
+                `;
+
+                bar.innerHTML = `
+                    <span id="drag-handle" style="cursor:grab; font-size:16px; color:#94a3b8; margin-right:2px; padding:0 3px;" title="Arrastrar barra">⠿</span>
+                    <span style="font-weight: bold; color: #38bdf8; margin-right: 2px;">🔍 Zoom:</span>
+                    <button id="btn-zoom-minus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">-</button>
+                    <span id="admin-floating-zoom-text" style="font-weight: bold; min-width: 46px; text-align: center; color:#38bdf8; font-size:14px;">${initialZoom}%</span>
+                    <button id="btn-zoom-plus" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-weight:bold; font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;">+</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button class="quick-zoom-btn" data-z="67" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">67%</button>
+                    <button class="quick-zoom-btn" data-z="75" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">75%</button>
+                    <button class="quick-zoom-btn" data-z="80" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">80%</button>
+                    <button class="quick-zoom-btn" data-z="85" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">85%</button>
+                    <button class="quick-zoom-btn" data-z="90" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">90%</button>
+                    <button class="quick-zoom-btn" data-z="100" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer;">100%</button>
+                    <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+                    <button id="btn-zoom-close" style="background:transparent; color:#94a3b8; border:none; border-radius:50%; width:22px; height:22px; cursor:pointer; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center;" title="Cerrar barra">✕</button>
+                `;
+
+                document.body.appendChild(bar);
+
+                let isDragging = false;
+                let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+                bar.onmousedown = (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const rect = bar.getBoundingClientRect();
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
+                    bar.style.bottom = 'auto';
+                    bar.style.right = 'auto';
+                    bar.style.left = initialLeft + 'px';
+                    bar.style.top = initialTop + 'px';
+                    bar.style.cursor = 'grabbing';
+                    e.preventDefault();
+                };
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    bar.style.left = (initialLeft + dx) + 'px';
+                    bar.style.top = (initialTop + dy) + 'px';
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        bar.style.cursor = 'grab';
+                    }
+                });
+
+                document.getElementById('btn-zoom-minus').onclick = () => {
+                    applyZoom(Math.max(30, currentZoom - 5));
+                };
+                document.getElementById('btn-zoom-plus').onclick = () => {
+                    applyZoom(Math.min(150, currentZoom + 5));
+                };
+                document.getElementById('btn-zoom-close').onclick = () => {
+                    bar.style.display = 'none';
+                };
+                bar.querySelectorAll('.quick-zoom-btn').forEach(btn => {
+                    btn.onclick = () => applyZoom(parseInt(btn.getAttribute('data-z'), 10));
+                });
+            }, targetZoom);
+
+            const client = await page.target().createCDPSession();
+            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: parseFloat((targetZoom / 100).toFixed(2)) });
+            console.log(`[BOT-ADMIN-DISNEY] ✅ Zoom al ${targetZoom}% aplicado correctamente.`);
+        } catch (e) {
+            console.log('[BOT-ADMIN-DISNEY] Nota aplicación zoom:', e.message);
+        }
+
+        console.log('[BOT-ADMIN-DISNEY] 🎉 ¡Éxito! Cuenta de Disney+ ingresada.');
+        console.log(`[BOT-ADMIN-DISNEY] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al ${targetZoom}%) para el administrador...`);
+
+        return {
+            success: true,
+            code: disneyCode,
+            message: `¡Sesión iniciada en Disney+! Código de 6 dígitos (${disneyCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al ${targetZoom}%) en Administración de Dispositivos para tu gestión manual.`
+        };
+
+    } catch (err) {
+        console.error('[BOT-ADMIN-DISNEY] ❌ Error:', err);
+        return {
+            success: false,
+            error: err.message || 'Error en el ingreso de cuenta Disney+.'
+        };
+    }
+}
+
 
 // ── FUNCIÓN: Activar HBO Max TV (auth.hbomax.com/link?flow=connectDeviceSignIn) ──
 async function doActivateHboTv(email, tvCode) {

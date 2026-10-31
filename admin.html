@@ -2231,12 +2231,13 @@
                                         style="font-size:0.85rem; color:#f39c12; font-weight:bold; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
                                         <i class="fa-solid fa-user-gear"></i> Ingreso de Cuentas (Solo Admin):
                                     </div>
-                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                    <!-- BOTÓN NETFLIX -->
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
                                         <button type="button" onclick="adminExecuteAction('netflix_account_login')"
-                                            style="flex:1; min-width:250px; background:linear-gradient(135deg,#e50914,#b20710); border:1px solid #ff4d4d; color:white; font-weight:bold; padding:12px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(229,9,20,0.4);">
+                                            style="flex:1; min-width:250px; background:linear-gradient(135deg,#e50914,#b20710); border:1px solid #ff4d4d; color:white; font-weight:bold; padding:11px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(229,9,20,0.4);">
                                             <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar Sesión Netflix (Login + MFA 6 Dígitos - Dejar Abierta)
                                         </button>
-                                        <div style="display:flex; align-items:center; gap:6px; background:#1e293b; border:1px solid #475569; padding:8px 12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+                                        <div style="display:flex; align-items:center; gap:6px; background:#1e293b; border:1px solid #475569; padding:7px 12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
                                             <label for="admin-netflix-zoom-select" style="color:#e2e8f0; font-size:0.83rem; font-weight:bold; white-space:nowrap; margin:0; display:flex; align-items:center; gap:5px;">
                                                 <i class="fa-solid fa-magnifying-glass-plus" style="color:#f39c12;"></i> Zoom:
                                             </label>
@@ -2246,7 +2247,30 @@
                                                 <option value="67">67%</option>
                                                 <option value="70">70%</option>
                                                 <option value="75">75%</option>
-                                                <option value="80" selected>80% (Recomendado)</option>
+                                                <option value="80" selected>80%</option>
+                                                <option value="85">85%</option>
+                                                <option value="90">90%</option>
+                                                <option value="100">100%</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <!-- BOTÓN DISNEY+ -->
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                        <button type="button" onclick="adminExecuteAction('disney_account_login')"
+                                            style="flex:1; min-width:250px; background:linear-gradient(135deg,#0275d8,#002d62); border:1px solid #38bdf8; color:white; font-weight:bold; padding:11px 18px; border-radius:8px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(2,117,216,0.4);">
+                                            <i class="fa-solid fa-play"></i> Iniciar Sesión Disney+ (Login + Código 6 Dígitos - Dejar Abierta)
+                                        </button>
+                                        <div style="display:flex; align-items:center; gap:6px; background:#1e293b; border:1px solid #475569; padding:7px 12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+                                            <label for="admin-disney-zoom-select" style="color:#e2e8f0; font-size:0.83rem; font-weight:bold; white-space:nowrap; margin:0; display:flex; align-items:center; gap:5px;">
+                                                <i class="fa-solid fa-magnifying-glass-plus" style="color:#38bdf8;"></i> Zoom:
+                                            </label>
+                                            <select id="admin-disney-zoom-select" onchange="localStorage.setItem('admin_disney_zoom', this.value)" style="background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; border-radius:6px; padding:4px 8px; font-size:0.85rem; font-weight:bold; cursor:pointer; outline:none;">
+                                                <option value="50">50%</option>
+                                                <option value="60">60%</option>
+                                                <option value="67">67%</option>
+                                                <option value="70">70%</option>
+                                                <option value="75">75%</option>
+                                                <option value="80" selected>80%</option>
                                                 <option value="85">85%</option>
                                                 <option value="90">90%</option>
                                                 <option value="100">100%</option>
@@ -2254,7 +2278,7 @@
                                         </div>
                                     </div>
                                     <small style="color:#aaa; font-size:0.78rem; display:block; margin-top:6px; line-height:1.3;">
-                                        <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i> Abre Netflix, inicia sesión con código de 4 dígitos o contraseña, entra a netflix.com/mfa, solicita y valida el código de verificación de 6 dígitos del correo, y <strong>deja el navegador abierto</strong> en tu pantalla para tu gestión manual.
+                                        <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i> Inicia sesión automáticamente con código de correo en Netflix o Disney+, navega a la sección de administración de dispositivos y <strong>deja el navegador abierto</strong> con barra de zoom ajustable para tu gestión manual.
                                     </small>
                                 </div>
                             </div>
@@ -3914,11 +3938,16 @@
             if (prodEl) prodEl.innerText = product || 'Streaming';
             if (resultBox) resultBox.style.display = 'none';
 
-            // Restaurar preferencia de zoom de Netflix
+            // Restaurar preferencia de zoom de Netflix y Disney
             const netflixZoomSelect = document.getElementById('admin-netflix-zoom-select');
             if (netflixZoomSelect) {
                 const savedZoom = localStorage.getItem('admin_netflix_zoom') || '80';
                 netflixZoomSelect.value = savedZoom;
+            }
+            const disneyZoomSelect = document.getElementById('admin-disney-zoom-select');
+            if (disneyZoomSelect) {
+                const savedDisneyZoom = localStorage.getItem('admin_disney_zoom') || '80';
+                disneyZoomSelect.value = savedDisneyZoom;
             }
 
             // Resetear buscador de correo
@@ -4015,7 +4044,7 @@
                 return;
             }
 
-            if (!window.adminActiveClient && platform !== 'netflix_account_login') {
+            if (!window.adminActiveClient && platform !== 'netflix_account_login' && platform !== 'disney_account_login') {
                 alert('No hay cliente seleccionado. Por favor busca un cliente primero.');
                 return;
             }
@@ -4034,6 +4063,77 @@
             resultBox.style.display = 'block';
             spinner.style.display = 'block';
             content.style.display = 'none';
+
+            // CASO ESPECIAL: Ingreso de Cuentas Disney+ (Solo Admin - Login + Código 6 Dígitos - Dejar Abierta)
+            if (platform === 'disney_account_login') {
+                if (statusText) statusText.innerText = 'Conectando con el bot e iniciando sesión en Disney+ (' + email + ')...';
+
+                try {
+                    let botUrl = 'https://streaming-backend-ce1u.onrender.com';
+                    let resolvedLocal = false;
+                    try {
+                        const localCheck = await Promise.race([
+                            fetch('http://localhost:3099/status'),
+                            new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 1500); })
+                        ]);
+                        if (localCheck.ok) {
+                            botUrl = 'http://localhost:3099';
+                            resolvedLocal = true;
+                        }
+                    } catch (e) { }
+
+                    if (!resolvedLocal) {
+                        try {
+                            const snap = await db.ref('config/botUrl').once('value');
+                            const ngrok = snap.val();
+                            if (ngrok) {
+                                const ngrokCheck = await Promise.race([
+                                    fetch(ngrok + '/status', { headers: { 'ngrok-skip-browser-warning': 'true' } }),
+                                    new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, 3000); })
+                                ]);
+                                if (ngrokCheck.ok) botUrl = ngrok;
+                            }
+                        } catch (e) { }
+                    }
+
+                    const zoomSelect = document.getElementById('admin-disney-zoom-select');
+                    const chosenZoom = zoomSelect ? parseInt(zoomSelect.value, 10) : (parseInt(localStorage.getItem('admin_disney_zoom'), 10) || 80);
+
+                    const response = await fetch(botUrl + '/api/disney-account-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                        body: JSON.stringify({ email: email, zoom: chosenZoom })
+                    });
+                    const data = await response.json();
+
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+
+                    if (data.success) {
+                        badgeEl.innerHTML = '<span style="color:#38bdf8; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> INGRESO DE CUENTA DISNEY+ EXITOSO</span>';
+                        codeEl.style.color = '#38bdf8';
+                        codeEl.innerText = data.code || 'ABIERTA';
+                        msgEl.innerHTML = '¡Sesión iniciada con éxito para <strong>' + email + '</strong>!<br>' + (data.message || '') + '<br><span style="color:#38bdf8;font-weight:bold;"><i class="fa-solid fa-window-restore"></i> La ventana de Chrome ha quedado abierta en tu pantalla para tu gestión manual.</span>';
+                        if (copyBtn) copyBtn.style.display = data.code ? 'inline-block' : 'none';
+                        if (waBtn) waBtn.style.display = 'none';
+                    } else {
+                        badgeEl.innerHTML = '<span style="color:#ff4d4d; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ERROR EN INGRESO DE CUENTA</span>';
+                        codeEl.style.color = '#ff4d4d';
+                        codeEl.innerText = 'ERROR';
+                        msgEl.innerHTML = '<span style="color:#ff4d4d;">' + (data.error || 'No se pudo completar el ingreso de la cuenta Disney+.') + '</span>';
+                        if (copyBtn) copyBtn.style.display = 'none';
+                        if (waBtn) waBtn.style.display = 'none';
+                    }
+                } catch (err) {
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+                    badgeEl.innerHTML = '<span style="color:#ff4d4d; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> ERROR DE CONEXIÓN</span>';
+                    codeEl.style.color = '#ff4d4d';
+                    codeEl.innerText = 'DESCONECTADO';
+                    msgEl.innerHTML = '<span style="color:#ff4d4d;">Error al comunicar con el bot: ' + err.message + '. Asegúrate de que Iniciar_Bot_Local.bat esté abierto.</span>';
+                }
+                return;
+            }
 
             // CASO ESPECIAL: Ingreso de Cuentas (Solo Admin - Login + MFA 6 Dígitos - Dejar Abierta)
             if (platform === 'netflix_account_login') {
