@@ -1604,14 +1604,33 @@ async function doNetflixAccountLogin(email) {
         }
         await sleep(5000);
 
+        // 7. Establecer el zoom al 67% solicitado por el usuario
+        console.log('[BOT-ADMIN-LOGIN] 🔍 Estableciendo zoom del navegador al 67%...');
+        try {
+            await page.evaluate(() => {
+                document.documentElement.style.zoom = '67%';
+                if (document.body) document.body.style.zoom = '67%';
+                const style = document.createElement('style');
+                style.id = 'custom-zoom-67';
+                style.textContent = 'html, body { zoom: 67% !important; }';
+                (document.head || document.documentElement).appendChild(style);
+            });
+
+            const client = await page.target().createCDPSession();
+            await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 0.67 });
+            console.log('[BOT-ADMIN-LOGIN] ✅ Zoom al 67% aplicado correctamente.');
+        } catch (e) {
+            console.log('[BOT-ADMIN-LOGIN] Nota aplicación zoom:', e.message);
+        }
+
         console.log('[BOT-ADMIN-LOGIN] 🎉 ¡Éxito! Cuenta de Netflix ingresada y verificada.');
-        console.log('[BOT-ADMIN-LOGIN] 🔓 MANTENIENDO NAVEGADOR ABIERTO para el administrador...');
+        console.log('[BOT-ADMIN-LOGIN] 🔓 MANTENIENDO NAVEGADOR ABIERTO (Zoom al 67%) para el administrador...');
 
         // ¡NO CERRAR EL NAVEGADOR! Se mantiene abierto para uso manual del administrador
         return {
             success: true,
             code: mfaCode,
-            message: `¡Sesión iniciada y verificada! Código MFA de 6 dígitos (${mfaCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla para tu uso manual.`
+            message: `¡Sesión iniciada y verificada! Código MFA de 6 dígitos (${mfaCode}) ingresado correctamente. El navegador Chrome ha quedado abierto en pantalla (Zoom al 67%) para tu uso manual.`
         };
 
     } catch (err) {
