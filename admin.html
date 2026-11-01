@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.50 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.51 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -8901,8 +8901,69 @@
                     return h;
                 }
 
+                let adminTestHtml = '';
+                if (window.adminNavTestActive) {
+                    const testRole = window.adminNavTestRole || 'reseller';
+                    const testPos = window.adminNavTestPos || 1;
+                    const testName = window.adminNavTestName || 'Cuenta de Pruebas';
+                    const testPrizes = prizeConfig[testRole] || prizeConfig.reseller;
+                    const prize = testPrizes[testPos] || 'Premio de Prueba';
+                    const catTitle = testRole === 'reseller' ? 'Vendedores' : (testRole === 'admin_client' ? 'Clientes Directos (Admin)' : 'Clientes de Vendedores');
+                    const text = encodeURIComponent(
+                        `🎄 ¡Hola Streaming DPC! Quiero redimir mis premios navideños 🎁\n\n` +
+                        `👤 Nombre: ${testName}\n` +
+                        `🏆 Puesto: #${testPos} Lugar\n` +
+                        `🏅 Categoría: ${catTitle}\n` +
+                        `📺 Pantallas acumuladas en 2026: 45 pantallas\n` +
+                        `🎁 Premio ganado: ${prize}\n\n` +
+                        `¡Muchas gracias por premiar mi fidelidad! 🎉`
+                    );
+                    const waLink = `https://wa.me/?text=${text}`;
+
+                    adminTestHtml = `
+                        <div style="background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(251,191,36,0.15)); border:1.5px solid #22c55e; border-radius:10px; padding:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <span style="background:#22c55e; color:#000; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:4px;">PRUEBA ACTIVA</span>
+                                <h4 style="margin:4px 0 2px 0; color:#fff; font-size:1.1rem;">🎁 #${testPos} Lugar: <span style="color:#fbbf24;">${testName}</span> (${catTitle})</h4>
+                                <small style="color:#cbd5e1;">Premio asignado: <strong style="color:#4ade80;">${prize}</strong></small>
+                            </div>
+                            <a href="${waLink}" target="_blank" style="background:#22c55e; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-brands fa-whatsapp"></i> Probar Mensaje WhatsApp
+                            </a>
+                        </div>
+                    `;
+                }
+
                 container.innerHTML = `
                     <div style="padding:10px 0;">
+                        <!-- Barra de Pruebas de Redención Admin -->
+                        <div style="background:rgba(255,255,255,0.03); border:1px dashed rgba(168,85,247,0.5); border-radius:10px; padding:10px 14px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-flask" style="color:#a855f7;"></i>
+                                <strong style="color:#fff; font-size:0.88rem;">Simulador de Redención:</strong>
+                                <label style="color:#fbbf24; font-size:0.85rem; font-weight:700; cursor:pointer; background:rgba(251,191,36,0.15); padding:3px 8px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">
+                                    <input type="checkbox" id="admin-nav-test-chk" ${window.adminNavTestActive ? 'checked' : ''} onchange="window.adminNavTestActive = this.checked; renderRankingTab();">
+                                    ⚡ Activar Redimir
+                                </label>
+                            </div>
+                            <div style="display:${window.adminNavTestActive ? 'flex' : 'none'}; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-size:0.8rem; color:#cbd5e1;">Cuenta de prueba:</span>
+                                <select id="admin-nav-test-sel" onchange="const val = this.value; const parts = val.split('_'); window.adminNavTestRole = parts[0] === 'reseller' ? (parts[1] === 'client' ? 'reseller_client' : 'reseller') : 'admin_client'; window.adminNavTestPos = parseInt(parts[parts.length-1]); window.adminNavTestName = this.options[this.selectedIndex].text.split('(')[0].trim(); renderRankingTab();" style="background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:4px 8px; font-size:0.8rem;">
+                                    <option value="reseller_1" ${(window.adminNavTestRole === 'reseller' && window.adminNavTestPos === 1) ? 'selected' : ''}>Vendedor Estrella (Puesto #1)</option>
+                                    <option value="reseller_2" ${(window.adminNavTestRole === 'reseller' && window.adminNavTestPos === 2) ? 'selected' : ''}>Vendedor Plata (Puesto #2)</option>
+                                    <option value="reseller_3" ${(window.adminNavTestRole === 'reseller' && window.adminNavTestPos === 3) ? 'selected' : ''}>Vendedor Bronce (Puesto #3)</option>
+                                    <option value="admin_client_1" ${(window.adminNavTestRole === 'admin_client' && window.adminNavTestPos === 1) ? 'selected' : ''}>Cliente Admin Oro (Puesto #1)</option>
+                                    <option value="admin_client_2" ${(window.adminNavTestRole === 'admin_client' && window.adminNavTestPos === 2) ? 'selected' : ''}>Cliente Admin Plata (Puesto #2)</option>
+                                    <option value="admin_client_3" ${(window.adminNavTestRole === 'admin_client' && window.adminNavTestPos === 3) ? 'selected' : ''}>Cliente Admin Bronce (Puesto #3)</option>
+                                    <option value="reseller_client_1" ${(window.adminNavTestRole === 'reseller_client' && window.adminNavTestPos === 1) ? 'selected' : ''}>Cliente Vendedor Oro (Puesto #1)</option>
+                                    <option value="reseller_client_2" ${(window.adminNavTestRole === 'reseller_client' && window.adminNavTestPos === 2) ? 'selected' : ''}>Cliente Vendedor Plata (Puesto #2)</option>
+                                    <option value="reseller_client_3" ${(window.adminNavTestRole === 'reseller_client' && window.adminNavTestPos === 3) ? 'selected' : ''}>Cliente Vendedor Bronce (Puesto #3)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        ${adminTestHtml}
+
                         ${renderAdminPodiumTier("1. Clientes Directos del Admin", "fa-user-shield", sortedAdmin, prizeConfig.admin_client, false)}
                         ${renderAdminPodiumTier("2. Vendedores (Mayoristas / Resellers)", "fa-user-tie", sortedSellers, prizeConfig.reseller, true)}
                         ${renderAdminPodiumTier("3. Clientes de Vendedores", "fa-users", sortedSellerClients, prizeConfig.reseller_client, false)}

@@ -5914,12 +5914,80 @@ function buildNavWhatsAppLink(userName, position, screens, prize, categoryTitle)
     return `https://wa.me/${adminPhone}?text=${text}`;
 }
 
+let navTestConfig = {
+    active: false,
+    preset: 'reseller_1',
+    role: 'reseller',
+    position: 1,
+    name: 'Vendedor Estrella (Prueba)',
+    screens: 220
+};
+
+try {
+    const saved = localStorage.getItem('nav_test_config');
+    if (saved) navTestConfig = Object.assign(navTestConfig, JSON.parse(saved));
+} catch(e) {}
+
+const NAV_TEST_PRESETS = {
+    reseller_1: { role: 'reseller', position: 1, name: 'Vendedor Estrella (Prueba)', screens: 220, catTitle: 'Vendedores' },
+    reseller_2: { role: 'reseller', position: 2, name: 'Vendedor Plata (Prueba)', screens: 185, catTitle: 'Vendedores' },
+    reseller_3: { role: 'reseller', position: 3, name: 'Vendedor Bronce (Prueba)', screens: 140, catTitle: 'Vendedores' },
+    admin_client_1: { role: 'admin_client', position: 1, name: 'Cliente Directo Oro (Prueba)', screens: 48, catTitle: 'Clientes Directos (Admin)' },
+    admin_client_2: { role: 'admin_client', position: 2, name: 'Cliente Directo Plata (Prueba)', screens: 34, catTitle: 'Clientes Directos (Admin)' },
+    admin_client_3: { role: 'admin_client', position: 3, name: 'Cliente Directo Bronce (Prueba)', screens: 29, catTitle: 'Clientes Directos (Admin)' },
+    reseller_client_1: { role: 'reseller_client', position: 1, name: 'Cliente Red Oro (Prueba)', screens: 28, catTitle: 'Clientes de Vendedores' },
+    reseller_client_2: { role: 'reseller_client', position: 2, name: 'Cliente Red Plata (Prueba)', screens: 22, catTitle: 'Clientes de Vendedores' },
+    reseller_client_3: { role: 'reseller_client', position: 3, name: 'Cliente Red Bronce (Prueba)', screens: 16, catTitle: 'Clientes de Vendedores' }
+};
+
+window.toggleNavTestMode = function(isActive) {
+    navTestConfig.active = isActive;
+    localStorage.setItem('nav_test_config', JSON.stringify(navTestConfig));
+    if (window.renderPremioNavideno) window.renderPremioNavideno();
+};
+
+window.changeNavTestAccount = function(presetKey) {
+    const customDiv = document.getElementById('nav-test-custom-inputs');
+    if (presetKey === 'custom') {
+        if (customDiv) customDiv.style.display = 'flex';
+        return;
+    }
+    if (customDiv) customDiv.style.display = 'none';
+
+    const p = NAV_TEST_PRESETS[presetKey];
+    if (p) {
+        navTestConfig.preset = presetKey;
+        navTestConfig.role = p.role;
+        navTestConfig.position = p.position;
+        navTestConfig.name = p.name;
+        navTestConfig.screens = p.screens;
+        localStorage.setItem('nav_test_config', JSON.stringify(navTestConfig));
+        if (window.renderPremioNavideno) window.renderPremioNavideno();
+    }
+};
+
+window.applyCustomNavTest = function() {
+    const input = document.getElementById('nav-test-custom-name');
+    const posSelect = document.getElementById('nav-test-custom-pos');
+    const roleSelect = document.getElementById('nav-test-custom-role');
+    const name = input ? input.value.trim() : '';
+    if (!name) return alert('Por favor ingresa un nombre para la cuenta de prueba.');
+    
+    navTestConfig.preset = 'custom';
+    navTestConfig.name = name;
+    navTestConfig.position = posSelect ? parseInt(posSelect.value) : 1;
+    navTestConfig.role = roleSelect ? roleSelect.value : 'admin_client';
+    navTestConfig.screens = 55;
+    localStorage.setItem('nav_test_config', JSON.stringify(navTestConfig));
+    if (window.renderPremioNavideno) window.renderPremioNavideno();
+};
+
 function updateNavCountdown() {
     const el = document.getElementById('nav-countdown-timer-val');
     if (!el) return;
 
     const now = Date.now();
-    const isTestMode = window.location.href.includes('test_navidad=true');
+    const isTestMode = (typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
     const start = NAV_PROMO_CONFIG.startDate;
     const end = NAV_PROMO_CONFIG.endDate;
 
@@ -5960,7 +6028,7 @@ window.renderPremioNavideno = async function () {
     const currentUser = detectNavUserRole(rankings);
 
     const now = Date.now();
-    const isTestMode = window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
+    const isTestMode = (typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
     const isWindowOpen = (now >= NAV_PROMO_CONFIG.startDate && now <= NAV_PROMO_CONFIG.endDate) || isTestMode;
     const isBeforeStart = now < NAV_PROMO_CONFIG.startDate && !isTestMode;
 
@@ -6002,10 +6070,92 @@ window.renderPremioNavideno = async function () {
                     </span>
                 </div>
             </div>
+
+            <!-- Barra de Pruebas de Redención -->
+            <div class="promo-nav-test-bar">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-flask" style="color:#a855f7; font-size:1.15rem;"></i>
+                        <strong style="color:#e2e8f0; font-size:0.9rem;">Pruebas de Redención:</strong>
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:#fbbf24; font-size:0.85rem; font-weight:700; background:rgba(251,191,36,0.15); padding:4px 10px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">
+                            <input type="checkbox" id="nav-test-toggle" ${navTestConfig.active ? 'checked' : ''} onchange="toggleNavTestMode(this.checked)">
+                            ⚡ Activar Redimir
+                        </label>
+                    </div>
+                    <div id="nav-test-account-controls" style="display:${navTestConfig.active ? 'flex' : 'none'}; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-size:0.8rem; color:#cbd5e1;"><i class="fa-solid fa-user-gear"></i> Cuenta de Pruebas:</span>
+                        <select id="nav-test-account-select" onchange="changeNavTestAccount(this.value)" style="background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:5px 8px; font-size:0.8rem;">
+                            <option value="reseller_1" ${navTestConfig.preset === 'reseller_1' ? 'selected' : ''}>👑 Vendedor #1 (Netflix + Crunchyroll + ViX)</option>
+                            <option value="reseller_2" ${navTestConfig.preset === 'reseller_2' ? 'selected' : ''}>🥈 Vendedor #2 (Crunchyroll + ViX)</option>
+                            <option value="reseller_3" ${navTestConfig.preset === 'reseller_3' ? 'selected' : ''}>🥉 Vendedor #3 (ViX)</option>
+                            <option value="admin_client_1" ${navTestConfig.preset === 'admin_client_1' ? 'selected' : ''}>👑 Cliente Admin #1 (Netflix + Crunchyroll + ViX)</option>
+                            <option value="admin_client_2" ${navTestConfig.preset === 'admin_client_2' ? 'selected' : ''}>🥈 Cliente Admin #2 (Crunchyroll + ViX)</option>
+                            <option value="admin_client_3" ${navTestConfig.preset === 'admin_client_3' ? 'selected' : ''}>🥉 Cliente Admin #3 (ViX)</option>
+                            <option value="reseller_client_1" ${navTestConfig.preset === 'reseller_client_1' ? 'selected' : ''}>👑 Cliente Vendedor #1 (Crunchyroll + ViX)</option>
+                            <option value="reseller_client_2" ${navTestConfig.preset === 'reseller_client_2' ? 'selected' : ''}>🥈 Cliente Vendedor #2 (Crunchyroll)</option>
+                            <option value="reseller_client_3" ${navTestConfig.preset === 'reseller_client_3' ? 'selected' : ''}>🥉 Cliente Vendedor #3 (ViX)</option>
+                            <option value="custom" ${navTestConfig.preset === 'custom' ? 'selected' : ''}>✏️ Personalizada (Escribir datos)...</option>
+                        </select>
+                        <div id="nav-test-custom-inputs" style="display:${navTestConfig.preset === 'custom' ? 'flex' : 'none'}; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <input type="text" id="nav-test-custom-name" placeholder="Nombre..." value="${navTestConfig.name || ''}" style="background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:4px 8px; font-size:0.8rem; width:120px;">
+                            <select id="nav-test-custom-role" style="background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:4px 6px; font-size:0.8rem;">
+                                <option value="admin_client" ${navTestConfig.role === 'admin_client' ? 'selected' : ''}>Cliente Admin</option>
+                                <option value="reseller" ${navTestConfig.role === 'reseller' ? 'selected' : ''}>Vendedor</option>
+                                <option value="reseller_client" ${navTestConfig.role === 'reseller_client' ? 'selected' : ''}>Cliente Vendedor</option>
+                            </select>
+                            <select id="nav-test-custom-pos" style="background:#1e293b; color:#fff; border:1px solid #475569; border-radius:6px; padding:4px 6px; font-size:0.8rem;">
+                                <option value="1" ${navTestConfig.position === 1 ? 'selected' : ''}>#1 Puesto</option>
+                                <option value="2" ${navTestConfig.position === 2 ? 'selected' : ''}>#2 Puesto</option>
+                                <option value="3" ${navTestConfig.position === 3 ? 'selected' : ''}>#3 Puesto</option>
+                            </select>
+                            <button onclick="applyCustomNavTest()" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.8rem; cursor:pointer; font-weight:700;">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
     `;
 
+    // Si Modo Pruebas está activo: mostrar tarjeta de redención de prueba directa
+    if (navTestConfig.active) {
+        const testRole = navTestConfig.role || 'reseller';
+        const testPos = navTestConfig.position || 1;
+        const testName = navTestConfig.name || 'Usuario de Pruebas';
+        const testScreens = navTestConfig.screens || 50;
+        const testPrizesList = NAV_PROMO_CONFIG.premios[testRole] || NAV_PROMO_CONFIG.premios['reseller'];
+        const testPrize = testPrizesList[testPos] || 'Premio de Prueba';
+        const testMedal = testPos === 1 ? '🥇' : (testPos === 2 ? '🥈' : '🥉');
+        const catTitle = testRole === 'reseller' ? 'Vendedores' : (testRole === 'admin_client' ? 'Clientes Directos (Admin)' : 'Clientes de Vendedores');
+        const testWaLink = buildNavWhatsAppLink(testName, testPos, testScreens, testPrize, catTitle);
+
+        html += `
+            <div class="promo-nav-test-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; text-transform:uppercase; font-weight:800; color:#4ade80; margin-bottom:4px;">
+                            <i class="fa-solid fa-circle-check"></i> CUENTA DE PRUEBA LISTA PARA REDIMIR (${catTitle})
+                        </div>
+                        <h3 style="margin:0; font-size:1.25rem; color:#fff;">
+                            ${testMedal} #${testPos} Lugar: <span style="color:#fbbf24;">${testName}</span>
+                        </h3>
+                        <div style="color:#cbd5e1; font-size:0.85rem; margin-top:4px;">
+                            📺 <strong>${testScreens}</strong> pantallas de prueba | Premio: <span style="color:#4ade80; font-weight:700;">${testPrize}</span>
+                        </div>
+                        <div style="margin-top:6px;">
+                            ${formatNavPrizeBadges(testPrize)}
+                        </div>
+                    </div>
+                    <div>
+                        <a href="${testWaLink}" target="_blank" class="promo-nav-btn active" style="font-size:0.95rem; padding:12px 20px; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fa-brands fa-whatsapp" style="font-size:1.3rem;"></i> 🎁 Reclamar Mis Premios Navideños
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     // Si no ha iniciado sesión, mostrar banner informativo
-    if (currentUser.role === 'guest') {
+    if (currentUser.role === 'guest' && !navTestConfig.active) {
         html += `
             <div class="promo-nav-login-prompt">
                 <h4 style="margin:0 0 6px 0; color:#fbbf24; font-size:1.1rem;">
@@ -6059,7 +6209,7 @@ window.renderPremioNavideno = async function () {
                 isWinner = (item.phone && currentUser.phone && item.phone === currentUser.phone) || (item.name.toLowerCase() === (currentUser.name || '').toLowerCase());
             }
 
-            if (window.location.href.includes('test_winner=true')) isWinner = true;
+            if (isTestMode) isWinner = true;
 
             let actionBtn = '';
             if (isWindowOpen && isWinner) {
