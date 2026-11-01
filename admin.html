@@ -1230,26 +1230,102 @@
                         }
                         .rank-table {
                             width: 100%;
-                            border-collapse: collapse;
-                            margin-top: 10px;
+                            min-width: 820px;
+                            border-collapse: separate;
+                            border-spacing: 0;
+                            margin-top: 5px;
                         }
                         .rank-table th {
-                            background: rgba(255, 255, 255, 0.04);
-                            color: #aaa;
-                            font-size: 0.75rem;
+                            background: #171a21;
+                            color: #8e9bb0;
+                            font-size: 0.74rem;
+                            font-weight: 700;
                             text-transform: uppercase;
                             letter-spacing: 0.5px;
-                            padding: 10px 14px;
-                            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                            padding: 11px 14px;
+                            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+                            position: sticky;
+                            top: 0;
+                            z-index: 5;
                         }
                         .rank-table td {
-                            padding: 12px 14px;
-                            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                            padding: 11px 14px;
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
                             font-size: 0.85rem;
                             vertical-align: middle;
+                            background: rgba(255, 255, 255, 0.01);
                         }
                         .rank-table tr:hover td {
-                            background: rgba(255, 255, 255, 0.02);
+                            background: rgba(255, 255, 255, 0.04);
+                        }
+                        .rank-table th.col-puesto, .rank-table td.col-puesto {
+                            width: 75px;
+                            min-width: 75px;
+                            text-align: center;
+                        }
+                        .rank-table th.col-client, .rank-table td.col-client {
+                            min-width: 170px;
+                        }
+                        .rank-table th.col-seller, .rank-table td.col-seller {
+                            min-width: 130px;
+                        }
+                        .rank-table th.col-platforms, .rank-table td.col-platforms {
+                            min-width: 220px;
+                            max-width: 320px;
+                        }
+                        .rank-table th.col-compras, .rank-table td.col-compras {
+                            width: 130px;
+                            min-width: 130px;
+                            text-align: center;
+                        }
+                        .rank-table th.col-total, .rank-table td.col-total {
+                            width: 155px;
+                            min-width: 155px;
+                            text-align: right;
+                            padding-right: 22px;
+                            white-space: nowrap;
+                        }
+                        .rank-total-val {
+                            color: #4cd137;
+                            font-weight: 800;
+                            font-size: 1.05rem;
+                            display: inline-block;
+                            white-space: nowrap;
+                            letter-spacing: 0.3px;
+                        }
+                        .rank-platforms-wrapper {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 4px;
+                            align-items: center;
+                            max-width: 300px;
+                        }
+                        .rank-chip {
+                            max-width: 210px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                            display: inline-block;
+                            padding: 2px 8px;
+                            border-radius: 10px;
+                            font-size: 0.72rem;
+                            font-weight: 600;
+                            vertical-align: middle;
+                        }
+                        #ranking-content-area::-webkit-scrollbar {
+                            width: 6px;
+                            height: 6px;
+                        }
+                        #ranking-content-area::-webkit-scrollbar-track {
+                            background: rgba(0, 0, 0, 0.2);
+                            border-radius: 4px;
+                        }
+                        #ranking-content-area::-webkit-scrollbar-thumb {
+                            background: rgba(255, 255, 255, 0.18);
+                            border-radius: 4px;
+                        }
+                        #ranking-content-area::-webkit-scrollbar-thumb:hover {
+                            background: rgba(255, 255, 255, 0.35);
                         }
                     </style>
 
@@ -1296,7 +1372,7 @@
                     </div>
 
                     <!-- Contenido dinámico del ranking -->
-                    <div id="ranking-content-area" style="overflow-x:auto;">
+                    <div id="ranking-content-area" style="overflow-x:auto; max-height:650px; overflow-y:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
                         <!-- JS Render -->
                     </div>
                 </div>
@@ -8677,18 +8753,24 @@
 
         function formatPlatformChips(platSet) {
             const list = Array.from(platSet || []);
-            if (list.length === 0) return '<span style="color:#666; font-size:0.75rem;">Sin especificar</span>';
-            return list.slice(0, 3).map(p => {
+            if (list.length === 0) return '<span style="color:#666; font-size:0.75rem;">Sin compras</span>';
+            const chips = list.slice(0, 3).map(p => {
                 let pColor = '#3498db';
-                const pLower = p.toLowerCase();
+                const pLower = (p || '').toLowerCase();
                 if (pLower.includes('netflix')) pColor = '#e50914';
                 else if (pLower.includes('disney')) pColor = '#113ccf';
                 else if (pLower.includes('prime')) pColor = '#00a8e1';
                 else if (pLower.includes('max') || pLower.includes('hbo')) pColor = '#9b59b6';
                 else if (pLower.includes('crunchy')) pColor = '#f39c12';
                 else if (pLower.includes('iptv') || pLower.includes('magis')) pColor = '#2ecc71';
-                return `<span style="background:${pColor}20; color:${pColor}; border:1px solid ${pColor}55; padding:2px 7px; border-radius:10px; font-size:0.72rem; font-weight:600; white-space:nowrap; margin-right:4px; display:inline-block; margin-bottom:2px;">${p}</span>`;
-            }).join('') + (list.length > 3 ? `<span style="color:#888; font-size:0.72rem; margin-left:3px;">+${list.length - 3}</span>` : '');
+                else if (pLower.includes('spotify') || pLower.includes('music')) pColor = '#1db954';
+                else if (pLower.includes('youtube')) pColor = '#ff0000';
+                
+                const safeP = (p || '').replace(/"/g, '&quot;');
+                return `<span class="rank-chip" title="${safeP}" style="background:${pColor}20; color:${pColor}; border:1px solid ${pColor}55;">${safeP}</span>`;
+            }).join('');
+            const moreBadge = list.length > 3 ? `<span style="color:#888; font-size:0.72rem; align-self:center; font-weight:600;">+${list.length - 3}</span>` : '';
+            return `<div class="rank-platforms-wrapper">${chips}${moreBadge}</div>`;
         }
 
         function getRankBadge(idx) {
@@ -8751,11 +8833,11 @@
 
             if (tab === 'admin') {
                 html += `
-                    <th style="width:70px; text-align:center;">Puesto</th>
-                    <th>Cliente</th>
-                    <th>Plataformas Compradas</th>
-                    <th style="text-align:center;">Compras / Pantallas</th>
-                    <th style="text-align:right;">Total Invertido</th>
+                    <th class="col-puesto">Puesto</th>
+                    <th class="col-client">Cliente</th>
+                    <th class="col-platforms">Plataformas Compradas</th>
+                    <th class="col-compras">Compras / Pantallas</th>
+                    <th class="col-total">Total Invertido</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
@@ -8764,32 +8846,32 @@
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td style="text-align:center;">${getRankBadge(idx)}</td>
-                            <td>
+                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-client">
                                 <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
                             </td>
-                            <td>${formatPlatformChips(r.platforms)}</td>
-                            <td style="text-align:center;">
+                            <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
+                            <td class="col-compras">
                                 <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
                                     ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
                                 </span>
                                 <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
                             </td>
-                            <td style="text-align:right;">
-                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.spent.toLocaleString()}</span>
+                            <td class="col-total">
+                                <span class="rank-total-val">$${r.spent.toLocaleString()}</span>
                             </td>
                         </tr>
                     `;
                 });
             } else if (tab === 'sellers') {
                 html += `
-                    <th style="width:70px; text-align:center;">Puesto</th>
-                    <th>Vendedor</th>
-                    <th style="text-align:center;">Clientes Únicos</th>
-                    <th>Plataformas Vendidas</th>
-                    <th style="text-align:center;">Ventas / Pantallas</th>
-                    <th style="text-align:right;">Total Facturado</th>
+                    <th class="col-puesto">Puesto</th>
+                    <th class="col-client">Vendedor</th>
+                    <th style="width:120px; min-width:120px; text-align:center;">Clientes Únicos</th>
+                    <th class="col-platforms">Plataformas Vendidas</th>
+                    <th class="col-compras">Ventas / Pantallas</th>
+                    <th class="col-total">Total Facturado</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
@@ -8798,8 +8880,8 @@
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td style="text-align:center;">${getRankBadge(idx)}</td>
-                            <td>
+                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-client">
                                 <strong style="color:#3498db; font-size:0.95rem; display:block;"><i class="fa-solid fa-briefcase"></i> ${r.name}</strong>
                                 ${waBtn}
                             </td>
@@ -8808,27 +8890,27 @@
                                     👥 ${r.clientPhones.size} clientes
                                 </span>
                             </td>
-                            <td>${formatPlatformChips(r.platforms)}</td>
-                            <td style="text-align:center;">
+                            <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
+                            <td class="col-compras">
                                 <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
                                     ${r.salesCount} ventas
                                 </span>
                                 <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
                             </td>
-                            <td style="text-align:right;">
-                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.totalSold.toLocaleString()}</span>
+                            <td class="col-total">
+                                <span class="rank-total-val">$${r.totalSold.toLocaleString()}</span>
                             </td>
                         </tr>
                     `;
                 });
             } else if (tab === 'seller-clients') {
                 html += `
-                    <th style="width:70px; text-align:center;">Puesto</th>
-                    <th>Cliente</th>
-                    <th>Vendedor</th>
-                    <th>Plataformas Compradas</th>
-                    <th style="text-align:center;">Compras / Pantallas</th>
-                    <th style="text-align:right;">Total Invertido</th>
+                    <th class="col-puesto">Puesto</th>
+                    <th class="col-client">Cliente</th>
+                    <th class="col-seller">Vendedor</th>
+                    <th class="col-platforms">Plataformas Compradas</th>
+                    <th class="col-compras">Compras / Pantallas</th>
+                    <th class="col-total">Total Invertido</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
@@ -8837,25 +8919,25 @@
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td style="text-align:center;">${getRankBadge(idx)}</td>
-                            <td>
+                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-client">
                                 <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
                             </td>
-                            <td>
-                                <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 8px; border-radius:8px; font-size:0.8rem; font-weight:600;">
+                            <td class="col-seller">
+                                <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 8px; border-radius:8px; font-size:0.8rem; font-weight:600; display:inline-block; white-space:nowrap;">
                                     <i class="fa-solid fa-user-tie"></i> ${r.seller}
                                 </span>
                             </td>
-                            <td>${formatPlatformChips(r.platforms)}</td>
-                            <td style="text-align:center;">
+                            <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
+                            <td class="col-compras">
                                 <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
                                     ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
                                 </span>
                                 <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
                             </td>
-                            <td style="text-align:right;">
-                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.spent.toLocaleString()}</span>
+                            <td class="col-total">
+                                <span class="rank-total-val">$${r.spent.toLocaleString()}</span>
                             </td>
                         </tr>
                     `;
