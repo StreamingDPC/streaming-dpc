@@ -781,6 +781,11 @@
                         <input type="text" id="search-ventas-vendedores" placeholder="🔍 Buscar vendedor o cliente..."
                             class="input-modern" style="margin-bottom:0; min-width: 250px;"
                             oninput="renderSellerSalesStats()">
+                        <button type="button" class="save-btn" onclick="openSyncPricesModal()"
+                            style="background:rgba(46, 204, 113, 0.15); border: 1px solid #2ecc71; color: #2ecc71; margin:0; width:auto; padding: 8px 15px; font-size:0.9rem;"
+                            title="Sincronizar precios de ventas con el catálogo actual">
+                            <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Precios
+                        </button>
                         <button class="save-btn" onclick="deleteSelectedSellerSales()"
                             style="background:#ff4d4d; margin:0; width:auto; padding: 8px 15px; font-size:0.9rem;"><i
                                 class="fa-solid fa-trash"></i> Eliminar Selección</button>
@@ -1069,7 +1074,13 @@
                 </div>
             </div>
             <div class="admin-form">
-                <h3>Lista de Todos los Clientes Registrados</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem;">
+                    <h3 style="margin:0;">Lista de Todos los Clientes Registrados</h3>
+                    <button type="button" class="btn-icon" onclick="openSyncPricesModal()" title="Sincronizar precios de clientes registrados con la lista de precios actual"
+                        style="width: auto; padding: 0.5rem 1rem; border-radius: 10px; background: rgba(46, 204, 113, 0.15); border: 1px solid #2ecc71; color: #2ecc71; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Nuevos Precios
+                    </button>
+                </div>
                 <div style="display:flex; gap: 1rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
                     <input type="text" id="filter-clients-text" placeholder="Buscar por número o nombre..."
                         class="input-modern" style="margin-bottom:0; flex:1; min-width: 200px;"
@@ -3492,6 +3503,52 @@
 
             <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
                 <button type="button" onclick="closeSmartSortModal()" 
+                    style="background:rgba(255,255,255,0.08); border:1px solid #666; color:#ccc; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA SINCRONIZAR PRECIOS EN CLIENTES REGISTRADOS -->
+    <div id="modal-sync-prices"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px);">
+        <div style="background:var(--bg-secondary); border: 1.5px solid #2ecc71; max-width:540px; width:100%; border-radius:16px; padding:2rem; position:relative; box-shadow:0 12px 35px rgba(0,0,0,0.7);">
+            <button onclick="closeSyncPricesModal()"
+                style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 style="color:#2ecc71; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.6rem; font-size:1.35rem;">
+                <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Precios de Clientes
+            </h2>
+            <p style="color:#ccc; font-size:0.85rem; line-height:1.4; margin-bottom:1.5rem;">
+                Actualiza los valores de las ventas de tus clientes registrados para que coincidan exactamente con tu nueva lista de precios del catálogo.
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <button type="button" onclick="executeSyncPrices('active')" 
+                    style="background:rgba(46, 204, 113, 0.12); border:1.5px solid #2ecc71; color:white; padding:12px 16px; border-radius:12px; text-align:left; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; gap:4px;"
+                    onmouseover="this.style.background='rgba(46, 204, 113, 0.22)'" onmouseout="this.style.background='rgba(46, 204, 113, 0.12)'">
+                    <strong style="color:#2ecc71; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-bolt"></i> 1. Sincronizar Ventas Activas y Próximas a Renovar (Recomendado)
+                    </strong>
+                    <span style="color:#bbb; font-size:0.8rem; line-height:1.3;">
+                        Actualiza únicamente las cuentas vigentes de clientes y vendedores para que los recordatorios de WhatsApp envíen el valor nuevo (ej. Netflix $17.000).
+                    </span>
+                </button>
+
+                <button type="button" onclick="executeSyncPrices('all')" 
+                    style="background:rgba(52, 152, 219, 0.12); border:1.5px solid #3498db; color:white; padding:12px 16px; border-radius:12px; text-align:left; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; gap:4px;"
+                    onmouseover="this.style.background='rgba(52, 152, 219, 0.22)'" onmouseout="this.style.background='rgba(52, 152, 219, 0.12)'">
+                    <strong style="color:#3498db; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-database"></i> 2. Sincronizar Todo el Historial (Activas y Vencidas)
+                    </strong>
+                    <span style="color:#bbb; font-size:0.8rem; line-height:1.3;">
+                        Actualiza el valor de todas las ventas históricas de la base de datos para homologar todo el registro.
+                    </span>
+                </button>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" onclick="closeSyncPricesModal()" 
                     style="background:rgba(255,255,255,0.08); border:1px solid #666; color:#ccc; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">
                     Cerrar
                 </button>
@@ -7121,6 +7178,209 @@
             renderAdminList();
             await saveProductsToStorage();
             alert(`✅ ¡Ordenador Inteligente aplicado con éxito!\n\nSe organizaron ${totalSorted} productos por orden estricto de Combo y Meses (1M → 2M → 3M).`);
+        };
+
+        // ── Sincronizador de Precios para Clientes Registrados ──
+        window.openSyncPricesModal = function () {
+            const modal = document.getElementById('modal-sync-prices');
+            if (modal) modal.style.display = 'flex';
+        };
+
+        window.closeSyncPricesModal = function () {
+            const modal = document.getElementById('modal-sync-prices');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.executeSyncPrices = async function (mode = 'active') {
+            if (!dynamicProducts || dynamicProducts.length === 0) return alert('No hay productos cargados en el catálogo.');
+
+            // Construir mapa de búsqueda de productos
+            const productCatalog = dynamicProducts.filter(p => p && p.name && p.active !== false).map(p => {
+                const rawName = p.name;
+                let months = 1;
+                if (/\b3\s*mes/i.test(rawName)) months = 3;
+                else if (/\b2\s*mes/i.test(rawName)) months = 2;
+                else if (p.months) months = Number(p.months);
+
+                const clean = rawName.replace(/\s*\([123]\s*mes(?:es)?\)/i, '').trim();
+                const parts = clean.split('+').map(s => s.trim().toLowerCase()).sort();
+                const signature = parts.join(':::') + `___${months}m`;
+
+                return {
+                    name: rawName,
+                    category: p.category,
+                    signature,
+                    price: Number(p.price || 0),
+                    sellerPrice: Number(p.sellerPrice !== undefined && p.sellerPrice > 0 ? p.sellerPrice : p.price),
+                    months
+                };
+            });
+
+            const sigMap = new Map();
+            productCatalog.forEach(p => sigMap.set(p.signature, p));
+
+            function matchProduct(itemName, saleMonths) {
+                if (!itemName) return null;
+                let n = itemName.trim();
+                n = n.replace(/^🎬\s*\*\s*|\*\s*\(combo prediseñado\)/gi, '').trim();
+                n = n.replace(/Max\s*\(\s*HBO\s*\)/gi, 'Hbo Max');
+                n = n.replace(/\bHBO\b(?! Max)/gi, 'Hbo Max');
+
+                let months = saleMonths || 1;
+                if (/\b3\s*mes/i.test(n)) months = 3;
+                else if (/\b2\s*mes/i.test(n)) months = 2;
+
+                const clean = n.replace(/\s*\([123]\s*mes(?:es)?\)/i, '').trim();
+                let parts = [];
+                if (clean.includes('+')) {
+                    parts = clean.split('+').map(s => s.trim().toLowerCase()).sort();
+                } else {
+                    const known = ['netflix privada', 'netflix', 'disney privada', 'disney', 'hbo max', 'prime video', 'paramount', 'crunchyroll', 'apple tv', 'vix', 'spotify', 'iptv'];
+                    let temp = clean.toLowerCase();
+                    known.forEach(k => {
+                        if (temp.includes(k)) {
+                            parts.push(k);
+                            temp = temp.replace(k, ' ');
+                        }
+                    });
+                    parts.sort();
+                }
+
+                if (parts.length === 0) parts = [clean.toLowerCase()];
+
+                const sig = parts.join(':::') + `___${months}m`;
+                return sigMap.get(sig) || null;
+            }
+
+            try {
+                const snapRoot = await db.ref('/').once('value');
+                const rootData = snapRoot.val() || {};
+                const clientSales = rootData.clientSales || {};
+                const sellerSales = rootData.sellerSales || {};
+
+                const now = Date.now();
+                const activeCutoff = now - (3 * 24 * 60 * 60 * 1000);
+                const updates = {};
+                let updatedClients = 0;
+                let updatedSellers = 0;
+
+                // 1. clientSales
+                Object.keys(clientSales).forEach(phone => {
+                    const sales = clientSales[phone] || {};
+                    Object.keys(sales).forEach(sid => {
+                        const s = sales[sid];
+                        if (!s) return;
+                        const expDate = Number(s.expirationDate) || 0;
+                        if (mode === 'active' && expDate < activeCutoff) return;
+
+                        const isSellerSale = s.sellerName && s.sellerName !== 'Página Web Oficial' && s.sellerName !== 'Admin';
+                        let items = s.items || [];
+                        const isArray = Array.isArray(items);
+                        const itemsList = isArray ? items : Object.values(items);
+
+                        let individualCount = 0;
+                        itemsList.forEach(it => {
+                            const m = matchProduct(it.name, s.months);
+                            if (m && (m.category || '').toLowerCase().includes('individual')) individualCount++;
+                        });
+
+                        let newTotal = 0;
+                        let itemsChanged = false;
+                        const updatedItems = itemsList.map(it => {
+                            const m = matchProduct(it.name, s.months);
+                            if (m) {
+                                let p = isSellerSale ? m.sellerPrice : m.price;
+                                if (individualCount >= 2 && (m.category || '').toLowerCase().includes('individual')) {
+                                    let disc = 1000;
+                                    if (isSellerSale && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
+                                    else if (!isSellerSale && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
+                                    p -= disc;
+                                }
+                                newTotal += p;
+                                if (it.finalPrice !== p) itemsChanged = true;
+                                return { ...it, finalPrice: p };
+                            } else {
+                                const fallback = Number(it.finalPrice || (itemsList.length === 1 ? s.total : 0) || 0);
+                                newTotal += fallback;
+                                return it;
+                            }
+                        });
+
+                        if (newTotal > 0 && (newTotal !== s.total || itemsChanged)) {
+                            updatedClients++;
+                            updates[`clientSales/${phone}/${sid}/total`] = newTotal;
+                            updates[`clientSales/${phone}/${sid}/items`] = updatedItems;
+                        }
+                    });
+                });
+
+                // 2. sellerSales
+                Object.keys(sellerSales).forEach(seller => {
+                    const sales = sellerSales[seller] || {};
+                    Object.keys(sales).forEach(sid => {
+                        const s = sales[sid];
+                        if (!s) return;
+                        const expDate = Number(s.expirationDate) || 0;
+                        if (mode === 'active' && expDate < activeCutoff) return;
+
+                        const isSellerSale = seller !== 'Página Web Oficial' && seller !== 'Admin';
+                        let items = s.items || [];
+                        const isArray = Array.isArray(items);
+                        const itemsList = isArray ? items : Object.values(items);
+
+                        let individualCount = 0;
+                        itemsList.forEach(it => {
+                            const m = matchProduct(it.name, s.months);
+                            if (m && (m.category || '').toLowerCase().includes('individual')) individualCount++;
+                        });
+
+                        let newTotal = 0;
+                        let itemsChanged = false;
+                        const updatedItems = itemsList.map(it => {
+                            const m = matchProduct(it.name, s.months);
+                            if (m) {
+                                let p = isSellerSale ? m.sellerPrice : m.price;
+                                if (individualCount >= 2 && (m.category || '').toLowerCase().includes('individual')) {
+                                    let disc = 1000;
+                                    if (isSellerSale && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
+                                    else if (!isSellerSale && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
+                                    p -= disc;
+                                }
+                                newTotal += p;
+                                if (it.finalPrice !== p) itemsChanged = true;
+                                return { ...it, finalPrice: p };
+                            } else {
+                                const fallback = Number(it.finalPrice || (itemsList.length === 1 ? s.total : 0) || 0);
+                                newTotal += fallback;
+                                return it;
+                            }
+                        });
+
+                        if (newTotal > 0 && (newTotal !== s.total || itemsChanged)) {
+                            updatedSellers++;
+                            updates[`sellerSales/${seller}/${sid}/total`] = newTotal;
+                            updates[`sellerSales/${seller}/${sid}/items`] = updatedItems;
+                        }
+                    });
+                });
+
+                const totalUpdates = Object.keys(updates).length;
+                if (totalUpdates === 0) {
+                    closeSyncPricesModal();
+                    return alert('✅ Todos los precios de los clientes ya están 100% sincronizados con el catálogo.');
+                }
+
+                await db.ref('/').update(updates);
+                closeSyncPricesModal();
+
+                if (window.renderAllClientsList) renderAllClientsList();
+                if (window.renderSellerSalesStats) renderSellerSalesStats();
+
+                alert(`🎉 ¡Sincronización Exitosa!\n\nSe actualizaron los precios en:\n• ${updatedClients} ventas de clientes directos.\n• ${updatedSellers} ventas de vendedores.\n\nLos valores ahora reflejan exactamente la nueva lista de precios.`);
+            } catch (err) {
+                console.error(err);
+                alert('Error al sincronizar precios: ' + err.message);
+            }
         };
 
         async function toggleActive(index) {
