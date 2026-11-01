@@ -6084,6 +6084,94 @@ window.renderPremioNavideno = async function () {
 
         html += `
                 </div>
+        `;
+
+        // Puestos adicionales:
+        // Si es Vendedores ('reseller') -> TODOS los demás vendedores en competencia
+        // Si es Clientes ('admin_client' o 'reseller_client') -> 7 clientes más (hasta el puesto 10)
+        const fullCatList = rankings[cat.key] || [];
+        let runnersUp = [];
+        if (cat.key === 'reseller') {
+            runnersUp = fullCatList.slice(3); // Todos los demás
+        } else {
+            runnersUp = fullCatList.slice(3, 10); // 7 clientes más (puestos 4 al 10)
+        }
+
+        if (runnersUp.length > 0) {
+            const thirdScreens = data[2] ? (data[2].screens || 0) : 0;
+            const titleText = cat.key === 'reseller' 
+                ? '🔥 Todos los Vendedores en Competencia' 
+                : '🚀 Clientes Cerca del Podio Navideño';
+            const subtitleText = cat.key === 'reseller'
+                ? `Mostrando todos los <strong>${runnersUp.length}</strong> vendedores que buscan alcanzar el Top 3`
+                : `Mostrando los siguientes <strong>${runnersUp.length}</strong> clientes con mayores compras`;
+
+            html += `
+                <div class="promo-nav-runners-box">
+                    <div class="promo-nav-runners-header">
+                        <h4>
+                            <i class="fa-solid fa-trophy" style="color:#fbbf24;"></i> ${titleText}
+                        </h4>
+                        <small style="color:#94a3b8;">${subtitleText}</small>
+                    </div>
+                    <div class="promo-nav-runners-table-wrap">
+                        <table class="promo-nav-runners-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:70px; text-align:center;">Puesto</th>
+                                    <th>Nombre</th>
+                                    ${cat.key === 'reseller_client' ? '<th>Vendedor</th>' : ''}
+                                    <th style="text-align:center;">Pantallas 2026</th>
+                                    <th>Distancia al Podio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            runnersUp.forEach((item, rIdx) => {
+                const pos = rIdx + 4;
+                let isMe = false;
+                if (currentUser.role === 'reseller' && cat.key === 'reseller') {
+                    isMe = (item.name.toLowerCase() === (currentUser.name || '').toLowerCase());
+                } else if ((currentUser.role === 'admin_client' || currentUser.role === 'reseller_client') && item.phone && currentUser.phone) {
+                    isMe = (item.phone === currentUser.phone);
+                }
+
+                let diffText = '';
+                if (thirdScreens > 0) {
+                    const needed = Math.max(1, thirdScreens - (item.screens || 0) + 1);
+                    diffText = `<span class="promo-nav-dist-pill"><i class="fa-solid fa-arrow-trend-up"></i> A <strong>${needed}</strong> pant. del 3er puesto</span>`;
+                } else {
+                    diffText = `<span class="promo-nav-dist-pill" style="border-color:#22c55e; color:#4ade80;">¡Suma ventas para liderar!</span>`;
+                }
+
+                html += `
+                    <tr class="${isMe ? 'my-row' : ''}">
+                        <td style="text-align:center;">
+                            <span class="promo-nav-pos-badge">#${pos}</span>
+                        </td>
+                        <td>
+                            <strong style="color:${isMe ? '#fbbf24' : '#fff'};">${item.name}</strong>
+                            ${isMe ? '<span style="background:#fbbf24; color:#0f172a; font-size:0.68rem; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px;">TÚ</span>' : ''}
+                        </td>
+                        ${cat.key === 'reseller_client' ? `<td style="color:#38bdf8; font-size:0.82rem;">${item.seller || 'Red'}</td>` : ''}
+                        <td style="text-align:center; font-weight:700; color:#38bdf8;">
+                            📺 ${item.screens}
+                        </td>
+                        <td>${diffText}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
             </div>
         `;
     });

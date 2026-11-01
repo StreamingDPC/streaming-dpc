@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.48 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.49 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -8805,9 +8805,9 @@
             if (tab === 'navidad') {
                 if (badgeEl) badgeEl.innerHTML = '<span style="color:#fbbf24; font-weight:700;">🎄 Redención: 25 Dic (08:00 AM) al 31 Dic (11:59 PM)</span>';
                 
-                const topAdmin = [...(dataStore.adminClients || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
-                const topSellers = [...(dataStore.sellers || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
-                const topSellerClients = [...(dataStore.sellerClients || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
+                const sortedAdmin = [...(dataStore.adminClients || [])].sort((a,b) => b.screens - a.screens);
+                const sortedSellers = [...(dataStore.sellers || [])].sort((a,b) => b.screens - a.screens);
+                const sortedSellerClients = [...(dataStore.sellerClients || [])].sort((a,b) => b.screens - a.screens);
 
                 const prizeConfig = {
                     admin_client: { 1: "Netflix + Crunchyroll + ViX", 2: "Crunchyroll + ViX", 3: "ViX" },
@@ -8815,7 +8815,8 @@
                     reseller_client: { 1: "Crunchyroll + ViX", 2: "Crunchyroll", 3: "ViX" }
                 };
 
-                function renderAdminPodiumTier(title, icon, list, prizes) {
+                function renderAdminPodiumTier(title, icon, fullList, prizes, isSellerTier) {
+                    const top3 = fullList.slice(0, 3);
                     let h = `
                         <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(251,191,36,0.25); border-radius:12px; padding:16px; margin-bottom:18px;">
                             <h4 style="margin:0 0 12px 0; color:#fbbf24; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
@@ -8824,7 +8825,7 @@
                             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
                     `;
                     for (let pos = 1; pos <= 3; pos++) {
-                        const item = list[pos - 1] || { name: 'Por definir...', screens: 0, phone: '' };
+                        const item = top3[pos - 1] || { name: 'Por definir...', screens: 0, phone: '' };
                         const prize = prizes[pos] || '';
                         const medal = pos === 1 ? '🥇' : (pos === 2 ? '🥈' : '🥉');
                         const borderColor = pos === 1 ? '#facc15' : (pos === 2 ? '#cbd5e1' : '#f97316');
@@ -8844,15 +8845,67 @@
                             </div>
                         `;
                     }
-                    h += `</div></div>`;
+                    h += `</div>`;
+
+                    // Puestos adicionales:
+                    // Si es Vendedores -> TODOS los demás
+                    // Si es Clientes -> 7 clientes más (puestos 4 al 10)
+                    let runners = [];
+                    if (isSellerTier) {
+                        runners = fullList.slice(3); // Todos los demás
+                    } else {
+                        runners = fullList.slice(3, 10); // 7 más
+                    }
+
+                    if (runners.length > 0) {
+                        const thirdScreens = top3[2] ? (top3[2].screens || 0) : 0;
+                        h += `
+                            <div style="margin-top:14px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px; overflow-x:auto;">
+                                <div style="font-weight:700; color:#fbbf24; font-size:0.9rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                                    <i class="fa-solid fa-fire" style="color:#f97316;"></i> ${isSellerTier ? `Todos los Vendedores en Competencia (${runners.length} adicionales)` : `Próximos Clientes al Podio (${runners.length} adicionales)`}
+                                </div>
+                                <table style="width:100%; border-collapse:collapse; font-size:0.82rem; text-align:left;">
+                                    <thead>
+                                        <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94a3b8; font-size:0.75rem; text-transform:uppercase;">
+                                            <th style="padding:6px 10px; text-align:center; width:60px;">Puesto</th>
+                                            <th style="padding:6px 10px;">Nombre</th>
+                                            ${!isSellerTier ? '<th style="padding:6px 10px;">Vendedor</th>' : ''}
+                                            <th style="padding:6px 10px; text-align:center;">Pantallas</th>
+                                            <th style="padding:6px 10px;">Distancia al Podio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        runners.forEach((r, idx) => {
+                            const pos = idx + 4;
+                            const diff = Math.max(1, thirdScreens - (r.screens || 0) + 1);
+                            h += `
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <td style="padding:7px 10px; text-align:center;"><span style="background:rgba(255,255,255,0.08); color:#cbd5e1; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">#${pos}</span></td>
+                                    <td style="padding:7px 10px; color:#fff; font-weight:600;">
+                                        ${r.name}
+                                        ${r.phone ? `<small style="color:#25d366; display:block; font-size:0.7rem;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</small>` : ''}
+                                    </td>
+                                    ${!isSellerTier ? `<td style="padding:7px 10px; color:#38bdf8;">${r.seller || 'Directo Admin'}</td>` : ''}
+                                    <td style="padding:7px 10px; text-align:center; color:#38bdf8; font-weight:700;">📺 ${r.screens}</td>
+                                    <td style="padding:7px 10px; color:#facc15; font-size:0.78rem;">
+                                        ${thirdScreens > 0 ? `<i class="fa-solid fa-arrow-trend-up"></i> A <strong>${diff}</strong> pant. del 3er puesto` : 'En competencia'}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        h += `</tbody></table></div>`;
+                    }
+
+                    h += `</div>`;
                     return h;
                 }
 
                 container.innerHTML = `
                     <div style="padding:10px 0;">
-                        ${renderAdminPodiumTier("1. Clientes Directos del Admin", "fa-user-shield", topAdmin, prizeConfig.admin_client)}
-                        ${renderAdminPodiumTier("2. Vendedores (Mayoristas / Resellers)", "fa-user-tie", topSellers, prizeConfig.reseller)}
-                        ${renderAdminPodiumTier("3. Clientes de Vendedores", "fa-users", topSellerClients, prizeConfig.reseller_client)}
+                        ${renderAdminPodiumTier("1. Clientes Directos del Admin", "fa-user-shield", sortedAdmin, prizeConfig.admin_client, false)}
+                        ${renderAdminPodiumTier("2. Vendedores (Mayoristas / Resellers)", "fa-user-tie", sortedSellers, prizeConfig.reseller, true)}
+                        ${renderAdminPodiumTier("3. Clientes de Vendedores", "fa-users", sortedSellerClients, prizeConfig.reseller_client, false)}
                     </div>
                 `;
                 return;

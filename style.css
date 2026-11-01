@@ -1068,3 +1068,99 @@ footer {
     text-align: center;
     margin-top: 20px;
 }
+
+/* Runners-up / Cerca del podio navideño */
+.promo-nav-runners-box {
+    margin-top: 18px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.promo-nav-runners-header {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.promo-nav-runners-header h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.promo-nav-runners-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.promo-nav-runners-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    background: rgba(15, 23, 42, 0.4);
+}
+
+.promo-nav-runners-table th {
+    background: rgba(30, 41, 59, 0.85);
+    color: #94a3b8;
+    padding: 10px 14px;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.promo-nav-runners-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+}
+
+.promo-nav-runners-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.promo-nav-runners-table tr.my-row td {
+    background: rgba(250, 204, 21, 0.12) !important;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.35);
+    color: #fff;
+    font-weight: 700;
+}
+
+.promo-nav-pos-badge {
+    display: inline-block;
+    min-width: 28px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+.promo-nav-dist-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    color: #fbbf24;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
