@@ -7341,16 +7341,21 @@
                 if (/\b3\s*mes/i.test(n)) months = 3;
                 else if (/\b2\s*mes/i.test(n)) months = 2;
 
-                const clean = n.replace(/\s*\([123]\s*mes(?:es)?\)/i, '').trim();
+                let clean = n.replace(/\s*\([123]\s*mes(?:es)?\)/i, '').trim();
+                clean = clean.replace(/\s*\([^)]*\)/g, '').trim();
                 let parts = [];
                 if (clean.includes('+')) {
                     parts = clean.split('+').map(s => s.trim().toLowerCase()).sort();
                 } else {
-                    const known = ['netflix privada', 'netflix', 'disney privada', 'disney', 'hbo max', 'prime video', 'paramount', 'crunchyroll', 'apple tv', 'vix', 'spotify', 'iptv'];
+                    const known = [
+                        'netflix privada', 'netflix', 'disney privada', 'dixney privada', 'disney',
+                        'hbo max', 'prime video', 'paramount', 'crunchyroll', 'apple tv', 'vix', 'spotify', 'iptv',
+                        'youtube premium', 'youtube'
+                    ];
                     let temp = clean.toLowerCase();
                     known.forEach(k => {
                         if (temp.includes(k)) {
-                            parts.push(k);
+                            parts.push(k === 'dixney privada' ? 'disney privada' : (k === 'youtube' ? 'youtube premium' : k));
                             temp = temp.replace(k, ' ');
                         }
                     });
