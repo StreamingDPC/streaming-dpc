@@ -1353,6 +1353,9 @@
                             <button id="btn-rank-seller-clients" class="rank-tab-btn" onclick="switchRankingTab('seller-clients')">
                                 <i class="fa-solid fa-users"></i> Clientes del Vendedor
                             </button>
+                            <button id="btn-rank-navidad" class="rank-tab-btn" onclick="switchRankingTab('navidad')" style="color:#fbbf24; border-color:rgba(251,191,36,0.35);">
+                                <i class="fa-solid fa-gift" style="color:#ef4444;"></i> 🎄 Premio Navideño
+                            </button>
                         </div>
                     </div>
 
@@ -8731,7 +8734,8 @@
             const btnMap = {
                 'admin': 'btn-rank-admin',
                 'sellers': 'btn-rank-sellers',
-                'seller-clients': 'btn-rank-seller-clients'
+                'seller-clients': 'btn-rank-seller-clients',
+                'navidad': 'btn-rank-navidad'
             };
             const btn = document.getElementById(btnMap[tab]);
             if (btn) btn.classList.add('active');
@@ -8795,8 +8799,65 @@
             if (!container) return;
 
             const tab = window.currentRankingTab || 'admin';
-            const q = (document.getElementById('ranking-search')?.value || '').trim().toLowerCase();
             const dataStore = window.currentStatsRankingData || { adminClients: [], sellers: [], sellerClients: [] };
+
+            // Caso especial: Podio Navideño
+            if (tab === 'navidad') {
+                if (badgeEl) badgeEl.innerHTML = '<span style="color:#fbbf24; font-weight:700;">🎄 Redención: 25 Dic (08:00 AM) al 31 Dic (11:59 PM)</span>';
+                
+                const topAdmin = [...(dataStore.adminClients || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
+                const topSellers = [...(dataStore.sellers || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
+                const topSellerClients = [...(dataStore.sellerClients || [])].sort((a,b) => b.screens - a.screens).slice(0, 3);
+
+                const prizeConfig = {
+                    admin_client: { 1: "Netflix + Crunchyroll + ViX", 2: "Crunchyroll + ViX", 3: "ViX" },
+                    reseller: { 1: "Netflix + Crunchyroll + ViX", 2: "Crunchyroll + ViX", 3: "ViX" },
+                    reseller_client: { 1: "Crunchyroll + ViX", 2: "Crunchyroll", 3: "ViX" }
+                };
+
+                function renderAdminPodiumTier(title, icon, list, prizes) {
+                    let h = `
+                        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(251,191,36,0.25); border-radius:12px; padding:16px; margin-bottom:18px;">
+                            <h4 style="margin:0 0 12px 0; color:#fbbf24; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid ${icon}"></i> ${title}
+                            </h4>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+                    `;
+                    for (let pos = 1; pos <= 3; pos++) {
+                        const item = list[pos - 1] || { name: 'Por definir...', screens: 0, phone: '' };
+                        const prize = prizes[pos] || '';
+                        const medal = pos === 1 ? '🥇' : (pos === 2 ? '🥈' : '🥉');
+                        const borderColor = pos === 1 ? '#facc15' : (pos === 2 ? '#cbd5e1' : '#f97316');
+                        h += `
+                            <div style="background:rgba(0,0,0,0.3); border:1.5px solid ${borderColor}; border-radius:10px; padding:12px; text-align:center;">
+                                <div style="font-size:1.8rem;">${medal}</div>
+                                <strong style="color:${borderColor}; font-size:0.85rem; text-transform:uppercase;">#${pos} Lugar</strong>
+                                <h4 style="margin:6px 0 2px 0; color:#fff; font-size:1rem;">${item.name}</h4>
+                                ${item.seller ? `<small style="color:#3498db; display:block;">Vendedor: ${item.seller}</small>` : ''}
+                                ${item.phone ? `<small style="color:#25d366; display:block;"><i class="fa-brands fa-whatsapp"></i> ${item.phone}</small>` : ''}
+                                <div style="margin:8px 0; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); border-radius:6px; padding:4px 8px; font-size:0.8rem; color:#38bdf8; font-weight:700;">
+                                    📺 ${item.screens} pantallas
+                                </div>
+                                <div style="background:rgba(76,209,55,0.1); border:1px solid rgba(76,209,55,0.25); border-radius:6px; padding:4px 8px; font-size:0.8rem; color:#4cd137; font-weight:700;">
+                                    🎁 ${prize}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    h += `</div></div>`;
+                    return h;
+                }
+
+                container.innerHTML = `
+                    <div style="padding:10px 0;">
+                        ${renderAdminPodiumTier("1. Clientes Directos del Admin", "fa-user-shield", topAdmin, prizeConfig.admin_client)}
+                        ${renderAdminPodiumTier("2. Vendedores (Mayoristas / Resellers)", "fa-user-tie", topSellers, prizeConfig.reseller)}
+                        ${renderAdminPodiumTier("3. Clientes de Vendedores", "fa-users", topSellerClients, prizeConfig.reseller_client)}
+                    </div>
+                `;
+                return;
+            }
+            const q = (document.getElementById('ranking-search')?.value || '').trim().toLowerCase();
 
             let list = [];
             let itemType = 'clientes';

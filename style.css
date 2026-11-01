@@ -857,3 +857,214 @@ footer {
         font-size: 1rem;
     }
 }
+
+
+/* =====================================================
+   PREMIO NAVIDEÑO - STREAMING DPC
+   ===================================================== */
+.promo-nav-container {
+    background: radial-gradient(circle at top, rgba(220, 38, 38, 0.12), rgba(15, 23, 42, 0.95) 70%), #0f172a;
+    color: #f8fafc;
+    padding: 28px 22px;
+    border-radius: 18px;
+    max-width: 1000px;
+    margin: 0 auto;
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(220, 38, 38, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+.promo-nav-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.promo-nav-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 9999px;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+}
+.promo-nav-title {
+    font-size: 1.8rem;
+    margin: 6px 0;
+    color: #fbbf24;
+    font-weight: 800;
+    text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+}
+.promo-nav-desc {
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    line-height: 1.55;
+    max-width: 680px;
+    margin: 0 auto 18px;
+}
+.promo-nav-timer-box {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 12px;
+    padding: 10px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto 20px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.promo-nav-timer-val {
+    color: #fbbf24;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.promo-nav-podium-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.promo-nav-card {
+    background: rgba(30, 41, 59, 0.7);
+    border-radius: 14px;
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+    border: 2px solid transparent;
+    transition: transform 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(10px);
+}
+.promo-nav-card:hover {
+    transform: translateY(-3px);
+}
+.promo-nav-card.rank-1 {
+    border-color: #facc15;
+    background: linear-gradient(180deg, rgba(250, 204, 21, 0.12), rgba(30, 41, 59, 0.8));
+    box-shadow: 0 6px 25px rgba(250, 204, 21, 0.2);
+}
+.promo-nav-card.rank-2 {
+    border-color: #cbd5e1;
+    background: linear-gradient(180deg, rgba(203, 213, 225, 0.12), rgba(30, 41, 59, 0.8));
+    box-shadow: 0 6px 20px rgba(203, 213, 225, 0.15);
+}
+.promo-nav-card.rank-3 {
+    border-color: #f97316;
+    background: linear-gradient(180deg, rgba(249, 115, 22, 0.12), rgba(30, 41, 59, 0.8));
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.15);
+}
+.promo-nav-card-medal {
+    font-size: 2.2rem;
+    margin-bottom: 4px;
+}
+.promo-nav-card-pos {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.promo-nav-card.rank-1 .promo-nav-card-pos { color: #facc15; }
+.promo-nav-card.rank-2 .promo-nav-card-pos { color: #cbd5e1; }
+.promo-nav-card.rank-3 .promo-nav-card-pos { color: #f97316; }
+.promo-nav-card-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+.promo-nav-card-screens {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+.promo-nav-card-screens strong {
+    color: #38bdf8;
+    font-size: 0.95rem;
+}
+.promo-nav-prizes-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+.promo-badge-netflix {
+    background: rgba(229, 9, 20, 0.18);
+    color: #ff4d4d;
+    border: 1px solid rgba(229, 9, 20, 0.4);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+.promo-badge-crunchy {
+    background: rgba(243, 156, 18, 0.18);
+    color: #f39c12;
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+.promo-badge-vix {
+    background: rgba(155, 89, 182, 0.18);
+    color: #c39bd3;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+.promo-nav-btn {
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+.promo-nav-btn.active {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    animation: pulse 1.8s infinite;
+}
+.promo-nav-btn.active:hover {
+    background: #15803d;
+    transform: scale(1.02);
+}
+.promo-nav-btn.locked {
+    background: rgba(71, 85, 105, 0.5);
+    color: #94a3b8;
+    cursor: not-allowed;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.promo-nav-btn.other {
+    background: rgba(255, 255, 255, 0.04);
+    color: #64748b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: default;
+    font-size: 0.75rem;
+}
+.promo-nav-login-prompt {
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 14px;
+    padding: 22px;
+    text-align: center;
+    margin-top: 20px;
+}

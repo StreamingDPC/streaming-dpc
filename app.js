@@ -523,13 +523,25 @@ function getPrice(product) {
 
 function renderProducts(category) {
     const pollaGrid = document.getElementById('polla-grid');
+    const navGrid = document.getElementById('premio-navideno-grid');
+
     if (category === 'polla') {
         productsGrid.style.display = 'none';
+        if (navGrid) navGrid.style.display = 'none';
         if (pollaGrid) pollaGrid.style.display = 'block';
+        return;
+    } else if (category === 'premio_navideno') {
+        productsGrid.style.display = 'none';
+        if (pollaGrid) pollaGrid.style.display = 'none';
+        if (navGrid) {
+            navGrid.style.display = 'block';
+            window.renderPremioNavideno();
+        }
         return;
     } else {
         productsGrid.style.display = 'grid';
         if (pollaGrid) pollaGrid.style.display = 'none';
+        if (navGrid) navGrid.style.display = 'none';
     }
 
     productsGrid.innerHTML = '';
@@ -5699,3 +5711,372 @@ db.ref('products').on('value', (snap) => {
     const activeTabBtn = document.querySelector('.tab-btn.active');
     if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
 });
+
+
+// =====================================================
+// PREMIO NAVIDEÑO - STREAMING DPC
+// =====================================================
+const NAV_PROMO_CONFIG = {
+    // Rango de redención: 25 Dic 2026 08:00 AM a 31 Dic 2026 11:59:59 PM (UTC-5)
+    startDate: new Date("2026-12-25T08:00:00-05:00").getTime(),
+    endDate: new Date("2026-12-31T23:59:59-05:00").getTime(),
+    premios: {
+        admin_client: {
+            1: "Netflix + Crunchyroll + ViX",
+            2: "Crunchyroll + ViX",
+            3: "ViX"
+        },
+        reseller: {
+            1: "Netflix + Crunchyroll + ViX",
+            2: "Crunchyroll + ViX",
+            3: "ViX"
+        },
+        reseller_client: {
+            1: "Crunchyroll + ViX",
+            2: "Crunchyroll",
+            3: "ViX"
+        }
+    }
+};
+
+let _cachedNavRankings = null;
+let _cachedNavTimestamp = 0;
+let _navTimerInterval = null;
+
+async function loadNavRankings() {
+    if (_cachedNavRankings && (Date.now() - _cachedNavTimestamp < 90000)) {
+        return _cachedNavRankings;
+    }
+
+    let cSnap = null;
+    let sSnap = null;
+    try { cSnap = await db.ref('clientSales').once('value'); } catch (e) { console.warn('clientSales read warn', e); }
+    try { sSnap = await db.ref('sellerSales').once('value'); } catch (e) { console.warn('sellerSales read warn', e); }
+
+    const clientSales = (cSnap && cSnap.val()) || {};
+    const sellerSales = (sSnap && sSnap.val()) || {};
+
+    const adminClients = {};
+    const sellers = {};
+    const sellerClients = {};
+    const currentYear = new Date().getFullYear();
+
+    function processSale(s, defaultSeller) {
+        if (!s) return;
+        const d = new Date(s.date || 0);
+        if (d.getFullYear() !== currentYear) return;
+
+        const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
+        const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');
+
+        let cName = (s.clientName || '').trim();
+        const cleanPhone = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+        if (!cName || cName.toLowerCase() === 'cliente') {
+            cName = cleanPhone ? `Cliente (${cleanPhone.slice(-4)})` : 'Cliente';
+        }
+
+        const items = s.items ? (Array.isArray(s.items) ? s.items : Object.values(s.items)) : [];
+        const screens = Math.max(1, items.length);
+
+        if (isAdmin) {
+            const key = cleanPhone || cName.toLowerCase();
+            if (!adminClients[key]) {
+                adminClients[key] = { id: key, name: cName, phone: cleanPhone, screens: 0, purchases: 0 };
+            }
+            adminClients[key].screens += screens;
+            adminClients[key].purchases += 1;
+        } else {
+            // Seller
+            if (!sellers[sName]) {
+                sellers[sName] = { id: sName, name: sName, phone: s.sellerPhone || '', screens: 0, sales: 0 };
+            }
+            sellers[sName].screens += screens;
+            sellers[sName].sales += 1;
+
+            // Seller client
+            const cKey = `${sName}___${cName.toLowerCase() || cleanPhone}`;
+            if (!sellerClients[cKey]) {
+                sellerClients[cKey] = { id: cKey, name: cName, seller: sName, phone: cleanPhone, screens: 0, purchases: 0 };
+            }
+            sellerClients[cKey].screens += screens;
+            sellerClients[cKey].purchases += 1;
+            if (!sellerClients[cKey].phone && cleanPhone) {
+                sellerClients[cKey].phone = cleanPhone;
+            }
+        }
+    }
+
+    Object.keys(clientSales).forEach(phone => {
+        const sales = clientSales[phone] || {};
+        Object.keys(sales).forEach(id => processSale(sales[id], ''));
+    });
+
+    Object.keys(sellerSales).forEach(sName => {
+        const sales = sellerSales[sName] || {};
+        Object.keys(sales).forEach(id => processSale(sales[id], sName));
+    });
+
+    _cachedNavRankings = {
+        admin_client: Object.values(adminClients).sort((a, b) => b.screens - a.screens),
+        reseller: Object.values(sellers).sort((a, b) => b.screens - a.screens),
+        reseller_client: Object.values(sellerClients).sort((a, b) => b.screens - a.screens)
+    };
+    _cachedNavTimestamp = Date.now();
+    return _cachedNavRankings;
+}
+
+function detectNavUserRole(rankings) {
+    // 1. Vendedor logueado
+    if (isSellerMode && currentSellerName) {
+        return {
+            role: 'reseller',
+            id: currentSellerName,
+            name: currentSellerName
+        };
+    }
+    // 2. Cliente logueado por teléfono
+    if (clientPhoneLoggedIn) {
+        const cleanP = String(clientPhoneLoggedIn).replace(/\D/g, '').replace(/^57/, '');
+        const resMatch = (rankings.reseller_client || []).find(c => c.phone === cleanP);
+        if (resMatch) {
+            return {
+                role: 'reseller_client',
+                id: resMatch.id,
+                name: resMatch.name,
+                phone: cleanP
+            };
+        }
+        const admMatch = (rankings.admin_client || []).find(c => c.phone === cleanP);
+        return {
+            role: 'admin_client',
+            id: cleanP,
+            name: (admMatch && admMatch.name) || 'Cliente',
+            phone: cleanP
+        };
+    }
+    return {
+        role: 'guest',
+        id: null,
+        name: null
+    };
+}
+
+function formatNavPrizeBadges(prizeText) {
+    if (!prizeText) return '';
+    return prizeText.split(' + ').map(p => {
+        const pClean = p.trim();
+        const pLower = pClean.toLowerCase();
+        if (pLower.includes('netflix')) {
+            return `<span class="promo-badge-netflix"><i class="fa-solid fa-play"></i> ${pClean}</span>`;
+        } else if (pLower.includes('crunchy')) {
+            return `<span class="promo-badge-crunchy"><i class="fa-solid fa-bolt"></i> ${pClean}</span>`;
+        } else if (pLower.includes('vix')) {
+            return `<span class="promo-badge-vix"><i class="fa-solid fa-tv"></i> ${pClean}</span>`;
+        }
+        return `<span style="background:rgba(255,255,255,0.1); color:#fff; padding:3px 8px; border-radius:8px; font-size:0.72rem; font-weight:700;">${pClean}</span>`;
+    }).join(' ');
+}
+
+function buildNavWhatsAppLink(userName, position, screens, prize, categoryTitle) {
+    const adminPhone = (storeConfig.whatsappNumber || '573155182545').replace(/\D/g, '');
+    const text = encodeURIComponent(
+        `🎄 ¡Hola Streaming DPC! Quiero redimir mis premios navideños 🎁\n\n` +
+        `👤 Nombre: ${userName}\n` +
+        `🏆 Puesto: #${position} Lugar\n` +
+        `🏅 Categoría: ${categoryTitle}\n` +
+        `📺 Pantallas acumuladas en 2026: ${screens} pantallas\n` +
+        `🎁 Premio ganado: ${prize}\n\n` +
+        `¡Muchas gracias por premiar mi fidelidad! 🎉`
+    );
+    return `https://wa.me/${adminPhone}?text=${text}`;
+}
+
+function updateNavCountdown() {
+    const el = document.getElementById('nav-countdown-timer-val');
+    if (!el) return;
+
+    const now = Date.now();
+    const isTestMode = window.location.href.includes('test_navidad=true');
+    const start = NAV_PROMO_CONFIG.startDate;
+    const end = NAV_PROMO_CONFIG.endDate;
+
+    if (now < start && !isTestMode) {
+        const diff = start - now;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        el.innerHTML = `<span style="color:#fbbf24;">⏳ Se activa en:</span> <strong>${days}d ${hours}h ${mins}m ${secs}s</strong> (25 Dic, 08:00 AM)`;
+    } else if ((now >= start && now <= end) || isTestMode) {
+        const diff = end - now;
+        const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+        const hours = Math.max(0, Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+        const mins = Math.max(0, Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)));
+        const secs = Math.max(0, Math.floor((diff % (1000 * 60)) / 1000));
+        el.innerHTML = `<span style="color:#4ade80;">🎁 ¡REDENCIÓN ACTIVA!</span> Tiempo restante: <strong>${days}d ${hours}h ${mins}m ${secs}s</strong>`;
+    } else {
+        el.innerHTML = `<span style="color:#94a3b8;">🚫 Campaña Navideña 2026 Finalizada</span>`;
+    }
+}
+
+window.renderPremioNavideno = async function () {
+    const container = document.getElementById('premio-navideno-grid');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="promo-nav-container">
+            <div style="text-align:center; padding: 40px 10px; color:#cbd5e1;">
+                <i class="fa-solid fa-gift fa-spin" style="font-size:2.5rem; color:#ef4444; margin-bottom:12px;"></i>
+                <h3 style="color:#fbbf24; margin:0 0 6px 0;">Cargando Podio Navideño 2026...</h3>
+                <small style="color:#94a3b8;">Calculando las mayores compras acumuladas del año...</small>
+            </div>
+        </div>
+    `;
+
+    const rankings = await loadNavRankings();
+    const currentUser = detectNavUserRole(rankings);
+
+    const now = Date.now();
+    const isTestMode = window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
+    const isWindowOpen = (now >= NAV_PROMO_CONFIG.startDate && now <= NAV_PROMO_CONFIG.endDate) || isTestMode;
+    const isBeforeStart = now < NAV_PROMO_CONFIG.startDate && !isTestMode;
+
+    // Categorías a mostrar según el Rol
+    let categoriesToDisplay = [];
+    if (currentUser.role === 'admin_client') {
+        categoriesToDisplay = [{ key: 'admin_client', title: 'Top Clientes Directos (Admin)', icon: 'fa-user-tag' }];
+    } else if (currentUser.role === 'reseller') {
+        categoriesToDisplay = [
+            { key: 'reseller', title: 'Top Vendedores', icon: 'fa-briefcase' },
+            { key: 'reseller_client', title: 'Top Clientes de Vendedores', icon: 'fa-users' }
+        ];
+    } else if (currentUser.role === 'reseller_client') {
+        categoriesToDisplay = [{ key: 'reseller_client', title: 'Top Clientes de Vendedores', icon: 'fa-users' }];
+    } else {
+        // Invitado: vista general de los 3 rankings para motivar el registro
+        categoriesToDisplay = [
+            { key: 'admin_client', title: 'Clientes Directos (Admin)', icon: 'fa-user-tag' },
+            { key: 'reseller', title: 'Vendedores', icon: 'fa-briefcase' },
+            { key: 'reseller_client', title: 'Clientes de Vendedores', icon: 'fa-users' }
+        ];
+    }
+
+    let html = `
+        <div class="promo-nav-container">
+            <div class="promo-nav-header">
+                <div class="promo-nav-badge">🎄 Campaña Fin de Año 2026</div>
+                <h2 class="promo-nav-title">🏆 Premios Navideños Streaming DPC</h2>
+                <p class="promo-nav-desc">
+                    Premios otorgados a quienes realizaron <strong>mayores compras en el año</strong>.
+                    Podrás redimir tu premio a partir del <strong>25 de diciembre (08:00 AM)</strong> 
+                    hasta el <strong>31 de diciembre (11:59 PM)</strong>. 
+                    <br><em style="color:#fbbf24;">¡Solo serán premiados los 3 primeros lugares!</em>
+                </p>
+
+                <div class="promo-nav-timer-box">
+                    <span id="nav-countdown-timer-val" class="promo-nav-timer-val">
+                        ⏳ Calculando cuenta regresiva...
+                    </span>
+                </div>
+            </div>
+    `;
+
+    // Si no ha iniciado sesión, mostrar banner informativo
+    if (currentUser.role === 'guest') {
+        html += `
+            <div class="promo-nav-login-prompt">
+                <h4 style="margin:0 0 6px 0; color:#fbbf24; font-size:1.1rem;">
+                    <i class="fa-solid fa-lock"></i> ¿Quieres saber tu posición o redimir tu premio?
+                </h4>
+                <p style="margin:0 0 14px 0; color:#cbd5e1; font-size:0.85rem;">
+                    Inicia sesión con tu número de celular o como vendedor para verificar tu posición exacta en el ranking y reclamar tu premio si quedas en el podio.
+                </p>
+                <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    <button onclick="document.getElementById('open-client-btn')?.click();" class="promo-nav-btn active" style="width:auto; padding:8px 18px;">
+                        <i class="fa-solid fa-address-card"></i> Iniciar Sesión Cliente (Mis Compras)
+                    </button>
+                    <button onclick="document.getElementById('open-vendedores-btn')?.click();" class="promo-nav-btn" style="width:auto; padding:8px 18px; background:rgba(138,43,226,0.3); border:1px solid #c48dfc; color:#fff;">
+                        <i class="fa-solid fa-user-tie"></i> Iniciar Sesión Vendedor
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Renderizar categorías
+    categoriesToDisplay.forEach(cat => {
+        const data = (rankings[cat.key] || []).slice(0, 3);
+        const prizeList = NAV_PROMO_CONFIG.premios[cat.key] || {};
+
+        html += `
+            <div style="margin-top:28px;">
+                <div style="display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(251,191,36,0.3); padding-bottom:8px; margin-bottom:16px;">
+                    <i class="fa-solid ${cat.icon}" style="color:#fbbf24; font-size:1.2rem;"></i>
+                    <h3 style="margin:0; font-size:1.25rem; color:#fff;">${cat.title}</h3>
+                </div>
+
+                <!-- Tarjetas del Podio Top 3 -->
+                <div class="promo-nav-podium-grid">
+        `;
+
+        // Llenar al menos 3 puestos si no hay suficientes
+        for (let pos = 1; pos <= 3; pos++) {
+            const item = data[pos - 1] || { name: 'Por definir...', screens: 0, phone: '' };
+            const prize = prizeList[pos] || 'Premio Sorpresa';
+            const medal = pos === 1 ? '🥇' : (pos === 2 ? '🥈' : '🥉');
+            const posClass = `rank-${pos}`;
+
+            // Verificar si el usuario actual es ganador de este puesto
+            let isWinner = false;
+            if (currentUser.role === 'admin_client' && cat.key === 'admin_client') {
+                isWinner = (item.phone && currentUser.phone && item.phone === currentUser.phone) || (item.name.toLowerCase() === (currentUser.name || '').toLowerCase());
+            } else if (currentUser.role === 'reseller' && cat.key === 'reseller') {
+                isWinner = (item.name.toLowerCase() === (currentUser.name || '').toLowerCase());
+            } else if (currentUser.role === 'reseller_client' && cat.key === 'reseller_client') {
+                isWinner = (item.phone && currentUser.phone && item.phone === currentUser.phone) || (item.name.toLowerCase() === (currentUser.name || '').toLowerCase());
+            }
+
+            if (window.location.href.includes('test_winner=true')) isWinner = true;
+
+            let actionBtn = '';
+            if (isWindowOpen && isWinner) {
+                const link = buildNavWhatsAppLink(item.name, pos, item.screens, prize, cat.title);
+                actionBtn = `<a href="${link}" target="_blank" class="promo-nav-btn active">🎁 ¡Reclamar Premio!</a>`;
+            } else if (isBeforeStart && isWinner) {
+                actionBtn = `<button class="promo-nav-btn locked" title="Se activa el 25 Dic a las 8:00 AM">🔒 Disponible 25 Dic (08:00 AM)</button>`;
+            } else if (!isWindowOpen && isWinner) {
+                actionBtn = `<button class="promo-nav-btn locked">🚫 Finalizada</button>`;
+            } else {
+                actionBtn = `<button class="promo-nav-btn other" disabled>Solo Ganador</button>`;
+            }
+
+            html += `
+                <div class="promo-nav-card ${posClass}">
+                    <div class="promo-nav-card-medal">${medal}</div>
+                    <div class="promo-nav-card-pos">#${pos} Lugar</div>
+                    <div class="promo-nav-card-name">${item.name}</div>
+                    <div class="promo-nav-card-screens">
+                        <strong>${item.screens}</strong> pantallas acumuladas en 2026
+                    </div>
+                    <div class="promo-nav-prizes-box">
+                        ${formatNavPrizeBadges(prize)}
+                    </div>
+                    ${actionBtn}
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    // Iniciar cuenta regresiva en vivo
+    if (_navTimerInterval) clearInterval(_navTimerInterval);
+    updateNavCountdown();
+    _navTimerInterval = setInterval(updateNavCountdown, 1000);
+};
