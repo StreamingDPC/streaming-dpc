@@ -8547,6 +8547,9 @@
                         const sellerClean = sName;
                         allSellersSet.add(sellerClean);
 
+                        const cNameNorm = (cName || '').trim().toLowerCase();
+                        const clientIdent = cNameNorm || cleanPhone || 'cliente';
+
                         // 2. Vendedores
                         if (!rankingSellers[sellerClean]) {
                             const sellerPhone = s.sellerPhone || (window.storeConfig?.sellers?.find(sel => sel.name === sellerClean)?.phone || '');
@@ -8563,15 +8566,15 @@
                         rankingSellers[sellerClean].totalSold += saleTotal;
                         rankingSellers[sellerClean].salesCount += 1;
                         rankingSellers[sellerClean].screens += saleScreens;
-                        if (cleanPhone) rankingSellers[sellerClean].clientPhones.add(cleanPhone);
+                        rankingSellers[sellerClean].clientPhones.add(clientIdent);
                         itemNames.forEach(n => rankingSellers[sellerClean].platforms.add(n));
 
-                        // 3. Clientes del Vendedor
-                        const scKey = `${sellerClean}___${cleanPhone || cName}`;
+                        // 3. Clientes del Vendedor (Agrupados por NOMBRE del cliente, ya que los revendedores suelen usar un solo teléfono)
+                        const scKey = `${sellerClean}___${clientIdent}`;
                         if (!rankingSellerClients[scKey]) {
                             rankingSellerClients[scKey] = {
                                 phone: cleanPhone,
-                                name: cName,
+                                name: cName || (cleanPhone ? `Cliente (${cleanPhone.slice(-4)})` : 'Cliente'),
                                 seller: sellerClean,
                                 spent: 0,
                                 purchases: 0,
@@ -8579,6 +8582,9 @@
                                 platforms: new Set(),
                                 lastDate: sDate.getTime()
                             };
+                        }
+                        if (!rankingSellerClients[scKey].phone && cleanPhone) {
+                            rankingSellerClients[scKey].phone = cleanPhone;
                         }
                         rankingSellerClients[scKey].spent += saleTotal;
                         rankingSellerClients[scKey].purchases += 1;
