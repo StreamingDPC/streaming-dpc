@@ -1230,28 +1230,29 @@
                         }
                         .rank-table {
                             width: 100%;
-                            min-width: 820px;
+                            table-layout: auto;
                             border-collapse: separate;
                             border-spacing: 0;
                             margin-top: 5px;
+                            box-sizing: border-box;
                         }
                         .rank-table th {
                             background: #171a21;
                             color: #8e9bb0;
-                            font-size: 0.74rem;
+                            font-size: 0.68rem;
                             font-weight: 700;
                             text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                            padding: 11px 14px;
+                            letter-spacing: 0.3px;
+                            padding: 8px 6px;
                             border-bottom: 2px solid rgba(255, 255, 255, 0.08);
                             position: sticky;
                             top: 0;
                             z-index: 5;
                         }
                         .rank-table td {
-                            padding: 11px 14px;
+                            padding: 7px 6px;
                             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                            font-size: 0.85rem;
+                            font-size: 0.80rem;
                             vertical-align: middle;
                             background: rgba(255, 255, 255, 0.01);
                         }
@@ -1259,62 +1260,64 @@
                             background: rgba(255, 255, 255, 0.04);
                         }
                         .rank-table th.col-puesto, .rank-table td.col-puesto {
-                            width: 75px;
-                            min-width: 75px;
+                            width: 38px;
+                            min-width: 34px;
                             text-align: center;
+                            padding: 6px 2px;
                         }
                         .rank-table th.col-client, .rank-table td.col-client {
-                            min-width: 170px;
+                            min-width: 95px;
                         }
                         .rank-table th.col-seller, .rank-table td.col-seller {
-                            min-width: 130px;
+                            width: 85px;
+                            min-width: 75px;
                         }
                         .rank-table th.col-platforms, .rank-table td.col-platforms {
-                            min-width: 220px;
-                            max-width: 320px;
+                            min-width: 110px;
                         }
                         .rank-table th.col-compras, .rank-table td.col-compras {
-                            width: 130px;
-                            min-width: 130px;
+                            width: 75px;
+                            min-width: 65px;
                             text-align: center;
+                            padding: 6px 2px;
                         }
                         .rank-table th.col-total, .rank-table td.col-total {
-                            width: 155px;
-                            min-width: 155px;
+                            width: 100px;
+                            min-width: 90px;
                             text-align: right;
-                            padding-right: 22px;
+                            padding-right: 12px;
                             white-space: nowrap;
                         }
                         .rank-total-val {
                             color: #4cd137;
                             font-weight: 800;
-                            font-size: 1.05rem;
+                            font-size: 0.90rem;
                             display: inline-block;
                             white-space: nowrap;
-                            letter-spacing: 0.3px;
+                            letter-spacing: -0.3px;
                         }
                         .rank-platforms-wrapper {
                             display: flex;
                             flex-wrap: wrap;
-                            gap: 4px;
+                            gap: 2px;
                             align-items: center;
-                            max-width: 300px;
+                            max-width: 155px;
                         }
                         .rank-chip {
-                            max-width: 210px;
+                            max-width: 95px;
                             overflow: hidden;
                             text-overflow: ellipsis;
                             white-space: nowrap;
                             display: inline-block;
-                            padding: 2px 8px;
-                            border-radius: 10px;
-                            font-size: 0.72rem;
+                            padding: 1px 5px;
+                            border-radius: 5px;
+                            font-size: 0.67rem;
                             font-weight: 600;
                             vertical-align: middle;
                         }
                         #ranking-content-area::-webkit-scrollbar {
-                            width: 6px;
-                            height: 6px;
+                            width: 5px;
+                            height: 5px;
                         }
                         #ranking-content-area::-webkit-scrollbar-track {
                             background: rgba(0, 0, 0, 0.2);
@@ -8753,7 +8756,7 @@
 
         function formatPlatformChips(platSet) {
             const list = Array.from(platSet || []);
-            if (list.length === 0) return '<span style="color:#666; font-size:0.75rem;">Sin compras</span>';
+            if (list.length === 0) return '<span style="color:#666; font-size:0.70rem;">Sin compras</span>';
             const chips = list.slice(0, 3).map(p => {
                 let pColor = '#3498db';
                 const pLower = (p || '').toLowerCase();
@@ -8769,15 +8772,15 @@
                 const safeP = (p || '').replace(/"/g, '&quot;');
                 return `<span class="rank-chip" title="${safeP}" style="background:${pColor}20; color:${pColor}; border:1px solid ${pColor}55;">${safeP}</span>`;
             }).join('');
-            const moreBadge = list.length > 3 ? `<span style="color:#888; font-size:0.72rem; align-self:center; font-weight:600;">+${list.length - 3}</span>` : '';
+            const moreBadge = list.length > 3 ? `<span style="color:#888; font-size:0.68rem; align-self:center; font-weight:600;">+${list.length - 3}</span>` : '';
             return `<div class="rank-platforms-wrapper">${chips}${moreBadge}</div>`;
         }
 
         function getRankBadge(idx) {
-            if (idx === 0) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(241,196,15,0.7));">🥇</span> <strong style="color:#f1c40f; font-size:0.95rem; margin-left:4px;">#1</strong>`;
-            if (idx === 1) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(189,195,199,0.7));">🥈</span> <strong style="color:#bdc3c7; font-size:0.95rem; margin-left:4px;">#2</strong>`;
-            if (idx === 2) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(230,126,34,0.7));">🥉</span> <strong style="color:#e67e22; font-size:0.95rem; margin-left:4px;">#3</strong>`;
-            return `<span style="display:inline-block; min-width:28px; height:28px; line-height:28px; text-align:center; background:rgba(255,255,255,0.06); border-radius:50%; color:#aaa; font-size:0.8rem; font-weight:bold;">#${idx + 1}</span>`;
+            if (idx === 0) return `<span style="font-size:1.05rem; filter:drop-shadow(0 0 3px rgba(241,196,15,0.7));">🥇</span><br><strong style="color:#f1c40f; font-size:0.75rem;">#1</strong>`;
+            if (idx === 1) return `<span style="font-size:1.05rem; filter:drop-shadow(0 0 3px rgba(189,195,199,0.7));">🥈</span><br><strong style="color:#bdc3c7; font-size:0.75rem;">#2</strong>`;
+            if (idx === 2) return `<span style="font-size:1.05rem; filter:drop-shadow(0 0 3px rgba(230,126,34,0.7));">🥉</span><br><strong style="color:#e67e22; font-size:0.75rem;">#3</strong>`;
+            return `<span style="display:inline-block; min-width:20px; height:20px; line-height:20px; text-align:center; background:rgba(255,255,255,0.06); border-radius:50%; color:#aaa; font-size:0.70rem; font-weight:bold;">#${idx + 1}</span>`;
         }
 
         window.renderRankingTab = function () {
@@ -8835,28 +8838,28 @@
                 html += `
                     <th class="col-puesto">Puesto</th>
                     <th class="col-client">Cliente</th>
-                    <th class="col-platforms">Plataformas Compradas</th>
-                    <th class="col-compras">Compras / Pantallas</th>
-                    <th class="col-total">Total Invertido</th>
+                    <th class="col-platforms">Plataformas</th>
+                    <th class="col-compras">Compras</th>
+                    <th class="col-total">Invertido</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
                     const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
-                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.75rem;">Sin teléfono</span>';
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.70rem;">Sin teléfono</span>';
 
                     html += `
                         <tr style="${rowBorder}">
                             <td class="col-puesto">${getRankBadge(idx)}</td>
                             <td class="col-client">
-                                <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
+                                <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
                             </td>
                             <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
                             <td class="col-compras">
-                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
-                                    ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
+                                <span style="background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:4px; color:#ddd; font-weight:600; font-size:0.75rem; white-space:nowrap;">
+                                    ${r.purchases} comp.
                                 </span>
-                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                                <span style="display:block; font-size:0.68rem; color:#888; margin-top:2px; white-space:nowrap;">${r.screens} pant.</span>
                             </td>
                             <td class="col-total">
                                 <span class="rank-total-val">$${r.spent.toLocaleString()}</span>
@@ -8868,34 +8871,34 @@
                 html += `
                     <th class="col-puesto">Puesto</th>
                     <th class="col-client">Vendedor</th>
-                    <th style="width:120px; min-width:120px; text-align:center;">Clientes Únicos</th>
-                    <th class="col-platforms">Plataformas Vendidas</th>
-                    <th class="col-compras">Ventas / Pantallas</th>
-                    <th class="col-total">Total Facturado</th>
+                    <th style="width:75px; min-width:65px; text-align:center; padding:6px 2px;">Clientes</th>
+                    <th class="col-platforms">Plataformas</th>
+                    <th class="col-compras">Ventas</th>
+                    <th class="col-total">Facturado</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
                     const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
-                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '';
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '';
 
                     html += `
                         <tr style="${rowBorder}">
                             <td class="col-puesto">${getRankBadge(idx)}</td>
                             <td class="col-client">
-                                <strong style="color:#3498db; font-size:0.95rem; display:block;"><i class="fa-solid fa-briefcase"></i> ${r.name}</strong>
+                                <strong style="color:#3498db; font-size:0.88rem; display:block;"><i class="fa-solid fa-briefcase"></i> ${r.name}</strong>
                                 ${waBtn}
                             </td>
-                            <td style="text-align:center;">
-                                <span style="background:rgba(52,152,219,0.15); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 9px; border-radius:12px; font-weight:700; font-size:0.8rem;">
-                                    👥 ${r.clientPhones.size} clientes
+                            <td style="text-align:center; padding:6px 2px;">
+                                <span style="background:rgba(52,152,219,0.15); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:2px 6px; border-radius:6px; font-weight:700; font-size:0.75rem; white-space:nowrap;">
+                                    👥 ${r.clientPhones.size}
                                 </span>
                             </td>
                             <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
                             <td class="col-compras">
-                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
-                                    ${r.salesCount} ventas
+                                <span style="background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:4px; color:#ddd; font-weight:600; font-size:0.75rem; white-space:nowrap;">
+                                    ${r.salesCount} vent.
                                 </span>
-                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                                <span style="display:block; font-size:0.68rem; color:#888; margin-top:2px; white-space:nowrap;">${r.screens} pant.</span>
                             </td>
                             <td class="col-total">
                                 <span class="rank-total-val">$${r.totalSold.toLocaleString()}</span>
@@ -8908,33 +8911,33 @@
                     <th class="col-puesto">Puesto</th>
                     <th class="col-client">Cliente</th>
                     <th class="col-seller">Vendedor</th>
-                    <th class="col-platforms">Plataformas Compradas</th>
-                    <th class="col-compras">Compras / Pantallas</th>
-                    <th class="col-total">Total Invertido</th>
+                    <th class="col-platforms">Plataformas</th>
+                    <th class="col-compras">Compras</th>
+                    <th class="col-total">Invertido</th>
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
                     const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
-                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.75rem;">Sin teléfono</span>';
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.70rem;">Sin teléfono</span>';
 
                     html += `
                         <tr style="${rowBorder}">
                             <td class="col-puesto">${getRankBadge(idx)}</td>
                             <td class="col-client">
-                                <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
+                                <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
                             </td>
                             <td class="col-seller">
-                                <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 8px; border-radius:8px; font-size:0.8rem; font-weight:600; display:inline-block; white-space:nowrap;">
+                                <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:2px 6px; border-radius:6px; font-size:0.75rem; font-weight:600; display:inline-block; max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle;" title="${r.seller}">
                                     <i class="fa-solid fa-user-tie"></i> ${r.seller}
                                 </span>
                             </td>
                             <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
                             <td class="col-compras">
-                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
-                                    ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
+                                <span style="background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:4px; color:#ddd; font-weight:600; font-size:0.75rem; white-space:nowrap;">
+                                    ${r.purchases} comp.
                                 </span>
-                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                                <span style="display:block; font-size:0.68rem; color:#888; margin-top:2px; white-space:nowrap;">${r.screens} pant.</span>
                             </td>
                             <td class="col-total">
                                 <span class="rank-total-val">$${r.spent.toLocaleString()}</span>
