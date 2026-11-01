@@ -3086,7 +3086,7 @@
 
                     <div class="form-col"
                         style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top:1rem;">
-                        <label>Mensaje Recordatorio Renovación (Usa {cliente} y {pantallas} para autocompletar)</label>
+                        <label>Mensaje Recordatorio Renovación (Usa {cliente}, {pantallas}, {total}, {descuento_meses}, {celular}, {pin}, {pago} para autocompletar)</label>
                         <div style="display:flex; gap:0.5rem; align-items:flex-start;">
                             <textarea id="conf-reminderTemplate"
                                 style="height: 150px; padding: 10px; flex:1;"></textarea>
@@ -6215,7 +6215,15 @@
                     document.getElementById('conf-capMonthPolicyTemplate').value = storeConfig.capMonthPolicyTemplate || "Hola *{cliente}*, 📢 *Actualización de Servicio*:\n\nHemos unificado las fechas de corte. *Tu día de pago ya no se moverá mes a mes*; ahora se renovará el mismo día de tu fecha de compra original.\n\nEn meses cortos (de 30 días o febrero), el sistema pondrá el vencimiento el último día del mes de forma automática y lo recuperará al mes siguiente.\n\nGracias por tu confianza.";
                 }
                 if (document.getElementById('conf-reminderTemplate')) {
-                    document.getElementById('conf-reminderTemplate').value = storeConfig.reminderTemplate || "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*";
+                    let curTpl = storeConfig.reminderTemplate || "Hola *{cliente}* 😊 Buen dia\n\nTU *{pantallas}* \n\n👉 *FINALIZA HOY* 👈\n\n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾\n\n⚠️*Te recomendamos renovar a tiempo y no pierdas tu perfil ni tu historial.*\n\n💰 *Total a Renovar:* ${total}\n{descuento_meses}\n\n{pago}\n\nLink para Compras y Renovaciones\n\nhttps://streamingdpc.onrender.com/\n\nCelular: *{celular}* y Pin: *{pin}*";
+                    if (!curTpl.includes('{descuento_meses}')) {
+                        if (curTpl.includes('${total}')) {
+                            curTpl = curTpl.replace('${total}', '${total}\n{descuento_meses}');
+                            storeConfig.reminderTemplate = curTpl;
+                            if (typeof db !== 'undefined') db.ref('storeConfig/reminderTemplate').set(curTpl).catch(console.error);
+                        }
+                    }
+                    document.getElementById('conf-reminderTemplate').value = curTpl;
                 }
 
                 if (document.getElementById('conf-netflixEnabled')) document.getElementById('conf-netflixEnabled').value = storeConfig.netflixEnabled !== false ? 'true' : 'false';
@@ -10644,6 +10652,69 @@
             }
         }
 
+        window.getMultiMonthPromoText = function (itemsStr, isSeller = false) {
+            if (!itemsStr) return '';
+            let clean = itemsStr.replace(/^🎬\s*\*\s*|\*\s*\(combo prediseñado\)/gi, '').trim();
+            clean = clean.replace(/\s*\([123]\s*mes(?:es)?\)/gi, '').trim();
+            clean = clean.replace(/Max\s*\(\s*HBO\s*\)/gi, 'Hbo Max').replace(/\bHBO\b(?! Max)/gi, 'Hbo Max');
+
+            const pCatalog = (typeof dynamicProducts !== 'undefined' ? dynamicProducts : []).filter(x => x && x.active !== false);
+
+            const p2Name = clean + ' (2 Meses)';
+            const p3Name = clean + ' (3 Meses)';
+
+            let p2 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === p2Name.toLowerCase());
+            let p3 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === p3Name.toLowerCase());
+
+            if (!p2 || !p3) {
+                const parts = clean.split(/[,+]/).map(s => s.trim().toLowerCase()).filter(Boolean).sort();
+                if (parts.length > 0) {
+                    p2 = pCatalog.find(x => {
+                        if (!x || !x.name || !/\b2\s*mes/i.test(x.name)) return false;
+                        const xClean = x.name.replace(/\s*\(2\s*mes(?:es)?\)/gi, '').trim().toLowerCase();
+                        const xParts = xClean.split(/[,+]/).map(s => s.trim()).filter(Boolean).sort();
+                        return parts.length === xParts.length && parts.every((v, i) => v === xParts[i]);
+                    });
+                    p3 = pCatalog.find(x => {
+                        if (!x || !x.name || !/\b3\s*mes/i.test(x.name)) return false;
+                        const xClean = x.name.replace(/\s*\(3\s*mes(?:es)?\)/gi, '').trim().toLowerCase();
+                        const xParts = xClean.split(/[,+]/).map(s => s.trim()).filter(Boolean).sort();
+                        return parts.length === xParts.length && parts.every((v, i) => v === xParts[i]);
+                    });
+                }
+            }
+
+            let price2 = p2 ? (isSeller ? (p2.sellerPrice || p2.price) : p2.price) : null;
+            let price3 = p3 ? (isSeller ? (p3.sellerPrice || p3.price) : p3.price) : null;
+
+            if (!price2 || !price3) {
+                const parts = clean.split(/[,+]/).map(s => s.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    let sum2 = 0, sum3 = 0, allFound = true;
+                    parts.forEach(part => {
+                        const normPart = part.replace(/Max\s*\(\s*HBO\s*\)/gi, 'Hbo Max').replace(/\bHBO\b(?! Max)/gi, 'Hbo Max');
+                        const part2 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === (normPart + ' (2 Meses)').toLowerCase());
+                        const part3 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === (normPart + ' (3 Meses)').toLowerCase());
+                        if (part2 && part3) {
+                            sum2 += isSeller ? (part2.sellerPrice || part2.price) : part2.price;
+                            sum3 += isSeller ? (part3.sellerPrice || part3.price) : part3.price;
+                        } else {
+                            allFound = false;
+                        }
+                    });
+                    if (allFound && sum2 > 0 && sum3 > 0) {
+                        price2 = sum2;
+                        price3 = sum3;
+                    }
+                }
+            }
+
+            if (price2 && price3) {
+                return `✨ *Si deseas mejor descuento por meses:*\n👉 *2 Meses:* $${price2.toLocaleString()}\n👉 *3 Meses:* $${price3.toLocaleString()}`;
+            }
+            return '';
+        };
+
         async function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
             const itemsStr = safeDecode(itemsEncoded);
             const cName = safeDecode(clientName);
@@ -10661,9 +10732,21 @@
                 } catch (e) { }
             }
 
-            // Reemplazar variables del template (igual que seller reminder - sin concatenacion extra)
-            // Variables: {cliente}, {pantallas}, {total}, {celular}, {pin}, {pago}
-            let template = storeConfig.reminderTemplate || "Hola *{cliente}* \uD83D\uDE0A Buen dia\n\nTU *{pantallas}* \n\n\uD83D\uDC49 *FINALIZA HOY* \uD83D\uDC48\n\n\u26A0\uFE0F Si deseas continuar, realiza el pago y me env\u00EDas la foto del comprobante\uD83E\uDDFE (sin comprobante no cuenta como pago v\u00E1lido) \u26A0\uFE0F\n\n\uD83D\uDCB0 *Total a Renovar:* ${total}\n\n{pago}\n\nCelular: *{celular}* y Pin: *{pin}*";
+            // Calcular descuentos de 2 y 3 meses dinámicamente según lo que compró el cliente
+            const promoMonthsText = window.getMultiMonthPromoText(itemsStr, false);
+
+            let template = storeConfig.reminderTemplate || "Hola *{cliente}* \uD83D\uDE0A Buen dia\n\nTU *{pantallas}* \n\n\uD83D\uDC49 *FINALIZA HOY* \uD83D\uDC48\n\n\u26A0\uFE0F Si deseas continuar, realiza el pago y me env\u00EDas la foto del comprobante\uD83E\uDDFE (sin comprobante no cuenta como pago v\u00E1lido) \u26A0\uFE0F\n\n\uD83D\uDCB0 *Total a Renovar:* ${total}\n{descuento_meses}\n\n{pago}\n\nCelular: *{celular}* y Pin: *{pin}*";
+
+            if (template.includes("{descuento_meses}")) {
+                template = template.replace(/{descuento_meses}/g, promoMonthsText ? ('\n' + promoMonthsText) : '');
+            } else if (promoMonthsText) {
+                // Si la plantilla no tiene la etiqueta explícita, insertarlo justo debajo de Total a Renovar
+                if (template.includes("${total}")) {
+                    template = template.replace("${total}", `\${total}\n\n${promoMonthsText}`);
+                } else if (/Total a Renovar:[^\n]*/i.test(template)) {
+                    template = template.replace(/(Total a Renovar:[^\n]*)/i, `$1\n\n${promoMonthsText}`);
+                }
+            }
 
             let msg = template
                 .replace(/{cliente}/g, cName)
@@ -11464,7 +11547,19 @@
                             }
                         } catch (e) { }
                     }
-                    let msgDirect = templateText
+                    const promoMonthsText = (typeof window.getMultiMonthPromoText === 'function') ? window.getMultiMonthPromoText(itemsStr, false) : '';
+                    let templateUsed = templateText;
+                    if (templateUsed.includes("{descuento_meses}")) {
+                        templateUsed = templateUsed.replace(/{descuento_meses}/g, promoMonthsText ? ('\n' + promoMonthsText) : '');
+                    } else if (promoMonthsText) {
+                        if (templateUsed.includes("${total}")) {
+                            templateUsed = templateUsed.replace("${total}", `\${total}\n\n${promoMonthsText}`);
+                        } else if (/Total a Renovar:[^\n]*/i.test(templateUsed)) {
+                            templateUsed = templateUsed.replace(/(Total a Renovar:[^\n]*)/i, `$1\n\n${promoMonthsText}`);
+                        }
+                    }
+
+                    let msgDirect = templateUsed
                         .replace(/{cliente}/g, r.name)
                         .replace(/{pantallas}/g, itemsStr)
                         .replace(/{celular}/g, r.phone || "N/A")
