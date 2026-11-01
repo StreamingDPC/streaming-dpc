@@ -1143,6 +1143,7 @@
                             <option value="2024">2024</option>
                             <option value="2025">2025</option>
                             <option value="2026">2026</option>
+                            <option value="2027">2027</option>
                         </select>
                     </div>
                 </div>
@@ -1195,6 +1196,108 @@
                     <h4 style="margin-top:0;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Mensual (Últimos 6
                         meses)</h4>
                     <canvas id="stats-history-chart" style="max-height: 250px;"></canvas>
+                </div>
+
+                <!-- RANKING DE COMPRADORES Y VENDEDORES (3 MENÚS) -->
+                <div class="admin-form"
+                    style="margin-top:20px; padding:1.5rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    
+                    <style>
+                        .rank-tab-btn {
+                            background: transparent;
+                            border: 1px solid transparent;
+                            color: #bbb;
+                            padding: 8px 16px;
+                            border-radius: 8px;
+                            font-size: 0.85rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 8px;
+                        }
+                        .rank-tab-btn:hover {
+                            color: #fff;
+                            background: rgba(255, 255, 255, 0.08);
+                        }
+                        .rank-tab-btn.active {
+                            background: linear-gradient(135deg, #ff4d4d, #e74c3c);
+                            color: #fff;
+                            border-color: rgba(255, 77, 77, 0.5);
+                            box-shadow: 0 2px 10px rgba(255, 77, 77, 0.4);
+                        }
+                        .rank-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10px;
+                        }
+                        .rank-table th {
+                            background: rgba(255, 255, 255, 0.04);
+                            color: #aaa;
+                            font-size: 0.75rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            padding: 10px 14px;
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                        }
+                        .rank-table td {
+                            padding: 12px 14px;
+                            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                            font-size: 0.85rem;
+                            vertical-align: middle;
+                        }
+                        .rank-table tr:hover td {
+                            background: rgba(255, 255, 255, 0.02);
+                        }
+                    </style>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.2rem;">
+                        <div>
+                            <h4 style="margin:0; font-size:1.15rem; display:flex; align-items:center; gap:8px; color:#f1c40f;">
+                                <i class="fa-solid fa-trophy"></i> Ranking de Compradores y Ventas
+                            </h4>
+                            <p style="margin:4px 0 0 0; font-size:0.8rem; color:#aaa;">
+                                Identifica qué clientes compran más y el rendimiento de tus vendedores según el periodo seleccionado.
+                            </p>
+                        </div>
+                        
+                        <!-- 3 Menús de Selección -->
+                        <div style="display:flex; gap:6px; background:rgba(0,0,0,0.4); padding:4px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); flex-wrap:wrap;">
+                            <button id="btn-rank-admin" class="rank-tab-btn active" onclick="switchRankingTab('admin')">
+                                <i class="fa-solid fa-user-shield"></i> Clientes del Admin
+                            </button>
+                            <button id="btn-rank-sellers" class="rank-tab-btn" onclick="switchRankingTab('sellers')">
+                                <i class="fa-solid fa-user-tie"></i> Vendedores
+                            </button>
+                            <button id="btn-rank-seller-clients" class="rank-tab-btn" onclick="switchRankingTab('seller-clients')">
+                                <i class="fa-solid fa-users"></i> Clientes del Vendedor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Subfiltro: Solo para Clientes del Vendedor -->
+                    <div id="seller-clients-subfilter-box" style="display:none; margin-bottom:1rem; align-items:center; gap:10px; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); flex-wrap:wrap;">
+                        <span style="font-size:0.82rem; color:#f1c40f; font-weight:600;"><i class="fa-solid fa-filter"></i> Filtrar por Vendedor:</span>
+                        <select id="rank-seller-select" onchange="renderRankingTab()" style="width:auto; padding:5px 12px; border-radius:8px; background:#1e272e; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem;">
+                            <option value="ALL">🌟 Todos los Vendedores</option>
+                        </select>
+                    </div>
+
+                    <!-- Buscador y Contador -->
+                    <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="position:relative; flex:1; min-width:240px; max-width:380px;">
+                            <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#777; font-size:0.85rem;"></i>
+                            <input type="text" id="ranking-search" placeholder="Buscar por nombre o teléfono..." oninput="renderRankingTab()"
+                                style="width:100%; padding:7px 12px 7px 34px; border-radius:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); color:white; font-size:0.85rem;">
+                        </div>
+                        <span id="ranking-count-badge" style="font-size:0.82rem; color:#bbb; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.05);"></span>
+                    </div>
+
+                    <!-- Contenido dinámico del ranking -->
+                    <div id="ranking-content-area" style="overflow-x:auto;">
+                        <!-- JS Render -->
+                    </div>
                 </div>
 
                 <!-- AUDITORIA DE TRANSACCIONES -->
@@ -8196,16 +8299,37 @@
         let categoryChart = null;
         let historyChart = null;
 
-        window.renderStats = function () {
-            const filterMonth = parseInt(document.getElementById('stats-month-filter').value);
-            const filterYear = parseInt(document.getElementById('stats-year-filter').value);
+        // Estado global para rankings
+        window.currentRankingTab = 'admin'; // 'admin' | 'sellers' | 'seller-clients'
+        window.currentStatsRankingData = {
+            adminClients: [],
+            sellers: [],
+            sellerClients: [],
+            allSellers: []
+        };
 
-            if (isNaN(filterMonth)) {
-                // Initialize filters with current date
+        window.renderStats = function () {
+            const mEl = document.getElementById('stats-month-filter');
+            const yEl = document.getElementById('stats-year-filter');
+
+            if (!window._statsFiltersInitialized) {
                 const now = new Date();
-                document.getElementById('stats-month-filter').value = now.getMonth();
-                document.getElementById('stats-year-filter').value = now.getFullYear();
+                if (mEl) mEl.value = String(now.getMonth());
+                if (yEl) {
+                    const yStr = String(now.getFullYear());
+                    if (![...yEl.options].some(o => o.value === yStr)) {
+                        const opt = document.createElement('option');
+                        opt.value = yStr;
+                        opt.textContent = yStr;
+                        yEl.appendChild(opt);
+                    }
+                    yEl.value = yStr;
+                }
+                window._statsFiltersInitialized = true;
             }
+
+            const filterMonth = parseInt(mEl ? mEl.value : 0);
+            const filterYear = parseInt(yEl ? yEl.value : 2026);
 
             let totalIncome = 0;
             let totalCost = 0;
@@ -8213,6 +8337,12 @@
             const productStats = {}; // { name: { count: 0, income: 0, cost: 0 } }
             const categoryStats = {}; // { cat: count }
             const monthlyHistory = {}; // { "YYYY-MM": income }
+
+            // Acumuladores de los 3 rankings
+            const rankingAdminClients = {};  // phone -> { phone, name, spent, purchases, screens, platforms: Set, lastDate }
+            const rankingSellers = {};       // sellerName -> { name, phone, totalSold, salesCount, screens, clientPhones: Set, platforms: Set }
+            const rankingSellerClients = {}; // `${sellerName}___${cleanPhone}` -> { phone, name, seller, spent, purchases, screens, platforms: Set, lastDate }
+            const allSellersSet = new Set();
 
             const processedSignatures = new Set();
 
@@ -8230,10 +8360,9 @@
 
                 monthlyHistory[monthKey] = (monthlyHistory[monthKey] || 0) + (s.total || 0);
 
-                if (month === parseInt(document.getElementById('stats-month-filter').value) &&
-                    year === parseInt(document.getElementById('stats-year-filter').value)) {
-
-                    totalIncome += (s.total || 0);
+                if (month === filterMonth && year === filterYear) {
+                    const saleTotal = Number(s.total) || 0;
+                    totalIncome += saleTotal;
                     totalSalesCount++;
 
                     let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
@@ -8250,20 +8379,107 @@
                         items.push(it);
                     });
 
+                    const itemNames = [];
                     items.forEach(it => {
                         const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
                         const cost = (prod && prod.purchasePrice) ? prod.purchasePrice : (window.calculateComboCost ? window.calculateComboCost(it.name, it.months || 1).totalCost : 0);
                         totalCost += cost;
 
                         const itName = it.name || 'Pantalla Streaming';
+                        itemNames.push(itName);
                         if (!productStats[itName]) productStats[itName] = { count: 0, income: 0, cost: 0 };
                         productStats[itName].count++;
-                        productStats[itName].income += (it.finalPrice || (s.total / Math.max(1, items.length)));
+                        productStats[itName].income += (it.finalPrice || (saleTotal / Math.max(1, items.length)));
                         productStats[itName].cost += cost;
 
                         const cat = it.category || 'Otros';
                         categoryStats[cat] = (categoryStats[cat] || 0) + 1;
                     });
+
+                    // --- CLASIFICACIÓN Y AGREGACIÓN PARA LOS 3 RANKINGS ---
+                    const sName = (s.sellerName || '').trim();
+                    const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase() === 'admin' || sName.toLowerCase().includes('oficial') || sName.toLowerCase().includes('admin');
+
+                    // Obtener nombre del cliente
+                    let cName = (s.clientName || '').trim();
+                    if (!cName || cName.toLowerCase() === 'cliente' || cName.toLowerCase() === 'sin nombre') {
+                        const prof = (window.allClientProfiles && (window.allClientProfiles[s.clientPhone] || window.allClientProfiles['57' + cleanPhone] || window.allClientProfiles[cleanPhone])) || {};
+                        if (prof.name && prof.name.trim() !== '') {
+                            cName = prof.name.trim();
+                        } else {
+                            cName = cleanPhone ? `Cliente (${cleanPhone.slice(-4)})` : 'Cliente';
+                        }
+                    }
+
+                    const saleScreens = Math.max(1, items.length);
+
+                    if (isAdmin) {
+                        // 1. Clientes del Admin
+                        const cKey = cleanPhone || cName;
+                        if (!rankingAdminClients[cKey]) {
+                            rankingAdminClients[cKey] = {
+                                phone: cleanPhone,
+                                name: cName,
+                                spent: 0,
+                                purchases: 0,
+                                screens: 0,
+                                platforms: new Set(),
+                                lastDate: sDate.getTime()
+                            };
+                        }
+                        rankingAdminClients[cKey].spent += saleTotal;
+                        rankingAdminClients[cKey].purchases += 1;
+                        rankingAdminClients[cKey].screens += saleScreens;
+                        itemNames.forEach(n => rankingAdminClients[cKey].platforms.add(n));
+                        if (sDate.getTime() > rankingAdminClients[cKey].lastDate) {
+                            rankingAdminClients[cKey].lastDate = sDate.getTime();
+                        }
+                    } else {
+                        // Es venta de Vendedor
+                        const sellerClean = sName;
+                        allSellersSet.add(sellerClean);
+
+                        // 2. Vendedores
+                        if (!rankingSellers[sellerClean]) {
+                            const sellerPhone = s.sellerPhone || (window.storeConfig?.sellers?.find(sel => sel.name === sellerClean)?.phone || '');
+                            rankingSellers[sellerClean] = {
+                                name: sellerClean,
+                                phone: String(sellerPhone).replace(/\D/g, '').replace(/^57/, ''),
+                                totalSold: 0,
+                                salesCount: 0,
+                                screens: 0,
+                                clientPhones: new Set(),
+                                platforms: new Set()
+                            };
+                        }
+                        rankingSellers[sellerClean].totalSold += saleTotal;
+                        rankingSellers[sellerClean].salesCount += 1;
+                        rankingSellers[sellerClean].screens += saleScreens;
+                        if (cleanPhone) rankingSellers[sellerClean].clientPhones.add(cleanPhone);
+                        itemNames.forEach(n => rankingSellers[sellerClean].platforms.add(n));
+
+                        // 3. Clientes del Vendedor
+                        const scKey = `${sellerClean}___${cleanPhone || cName}`;
+                        if (!rankingSellerClients[scKey]) {
+                            rankingSellerClients[scKey] = {
+                                phone: cleanPhone,
+                                name: cName,
+                                seller: sellerClean,
+                                spent: 0,
+                                purchases: 0,
+                                screens: 0,
+                                platforms: new Set(),
+                                lastDate: sDate.getTime()
+                            };
+                        }
+                        rankingSellerClients[scKey].spent += saleTotal;
+                        rankingSellerClients[scKey].purchases += 1;
+                        rankingSellerClients[scKey].screens += saleScreens;
+                        itemNames.forEach(n => rankingSellerClients[scKey].platforms.add(n));
+                        if (sDate.getTime() > rankingSellerClients[scKey].lastDate) {
+                            rankingSellerClients[scKey].lastDate = sDate.getTime();
+                        }
+                    }
                 }
             }
 
@@ -8282,6 +8498,14 @@
                     processStatSale(sales[key]);
                 });
             });
+
+            // Guardar datos listos para los 3 rankings
+            window.currentStatsRankingData = {
+                adminClients: Object.values(rankingAdminClients).sort((a, b) => b.spent - a.spent),
+                sellers: Object.values(rankingSellers).sort((a, b) => b.totalSold - a.totalSold),
+                sellerClients: Object.values(rankingSellerClients).sort((a, b) => b.spent - a.spent),
+                allSellers: Array.from(allSellersSet).sort()
+            };
 
             // Update UI Cards
             document.getElementById('stats-total-income').innerText = `$${totalIncome.toLocaleString()}`;
@@ -8342,7 +8566,7 @@
                 }
             });
 
-            // Render History Chart (Bares)
+            // Render History Chart (Barras)
             const histCtx = document.getElementById('stats-history-chart').getContext('2d');
             if (historyChart) historyChart.destroy();
 
@@ -8371,6 +8595,239 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
+            // Actualizar selector de vendedores y renderizar ranking
+            updateRankSellerDropdown(window.currentStatsRankingData.allSellers);
+            renderRankingTab();
+        };
+
+        // =====================================================
+        // CONTROL DE LOS 3 MENÚS DE RANKING
+        // =====================================================
+        window.switchRankingTab = function (tab) {
+            window.currentRankingTab = tab;
+            document.querySelectorAll('.rank-tab-btn').forEach(b => b.classList.remove('active'));
+            const btnMap = {
+                'admin': 'btn-rank-admin',
+                'sellers': 'btn-rank-sellers',
+                'seller-clients': 'btn-rank-seller-clients'
+            };
+            const btn = document.getElementById(btnMap[tab]);
+            if (btn) btn.classList.add('active');
+
+            const subfilterBox = document.getElementById('seller-clients-subfilter-box');
+            if (subfilterBox) {
+                subfilterBox.style.display = (tab === 'seller-clients') ? 'flex' : 'none';
+            }
+
+            renderRankingTab();
+        };
+
+        window.updateRankSellerDropdown = function (sellersList) {
+            const selEl = document.getElementById('rank-seller-select');
+            if (!selEl) return;
+            const currentVal = selEl.value || 'ALL';
+            let html = '<option value="ALL">🌟 Todos los Vendedores</option>';
+            sellersList.forEach(s => {
+                html += `<option value="${s}">${s}</option>`;
+            });
+            selEl.innerHTML = html;
+            if (sellersList.includes(currentVal)) {
+                selEl.value = currentVal;
+            } else {
+                selEl.value = 'ALL';
+            }
+        };
+
+        function formatPlatformChips(platSet) {
+            const list = Array.from(platSet || []);
+            if (list.length === 0) return '<span style="color:#666; font-size:0.75rem;">Sin especificar</span>';
+            return list.slice(0, 3).map(p => {
+                let pColor = '#3498db';
+                const pLower = p.toLowerCase();
+                if (pLower.includes('netflix')) pColor = '#e50914';
+                else if (pLower.includes('disney')) pColor = '#113ccf';
+                else if (pLower.includes('prime')) pColor = '#00a8e1';
+                else if (pLower.includes('max') || pLower.includes('hbo')) pColor = '#9b59b6';
+                else if (pLower.includes('crunchy')) pColor = '#f39c12';
+                else if (pLower.includes('iptv') || pLower.includes('magis')) pColor = '#2ecc71';
+                return `<span style="background:${pColor}20; color:${pColor}; border:1px solid ${pColor}55; padding:2px 7px; border-radius:10px; font-size:0.72rem; font-weight:600; white-space:nowrap; margin-right:4px; display:inline-block; margin-bottom:2px;">${p}</span>`;
+            }).join('') + (list.length > 3 ? `<span style="color:#888; font-size:0.72rem; margin-left:3px;">+${list.length - 3}</span>` : '');
+        }
+
+        function getRankBadge(idx) {
+            if (idx === 0) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(241,196,15,0.7));">🥇</span> <strong style="color:#f1c40f; font-size:0.95rem; margin-left:4px;">#1</strong>`;
+            if (idx === 1) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(189,195,199,0.7));">🥈</span> <strong style="color:#bdc3c7; font-size:0.95rem; margin-left:4px;">#2</strong>`;
+            if (idx === 2) return `<span style="font-size:1.25rem; filter:drop-shadow(0 0 6px rgba(230,126,34,0.7));">🥉</span> <strong style="color:#e67e22; font-size:0.95rem; margin-left:4px;">#3</strong>`;
+            return `<span style="display:inline-block; min-width:28px; height:28px; line-height:28px; text-align:center; background:rgba(255,255,255,0.06); border-radius:50%; color:#aaa; font-size:0.8rem; font-weight:bold;">#${idx + 1}</span>`;
+        }
+
+        window.renderRankingTab = function () {
+            const container = document.getElementById('ranking-content-area');
+            const badgeEl = document.getElementById('ranking-count-badge');
+            if (!container) return;
+
+            const tab = window.currentRankingTab || 'admin';
+            const q = (document.getElementById('ranking-search')?.value || '').trim().toLowerCase();
+            const dataStore = window.currentStatsRankingData || { adminClients: [], sellers: [], sellerClients: [] };
+
+            let list = [];
+            let itemType = 'clientes';
+
+            if (tab === 'admin') {
+                itemType = 'clientes del Admin';
+                list = (dataStore.adminClients || []).filter(r => {
+                    if (!q) return true;
+                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q);
+                });
+            } else if (tab === 'sellers') {
+                itemType = 'vendedores';
+                list = (dataStore.sellers || []).filter(r => {
+                    if (!q) return true;
+                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q);
+                });
+            } else if (tab === 'seller-clients') {
+                itemType = 'clientes de vendedores';
+                const selectedSeller = document.getElementById('rank-seller-select')?.value || 'ALL';
+                list = (dataStore.sellerClients || []).filter(r => {
+                    if (selectedSeller !== 'ALL' && r.seller !== selectedSeller) return false;
+                    if (!q) return true;
+                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.seller || '').toLowerCase().includes(q);
+                });
+            }
+
+            if (badgeEl) {
+                badgeEl.innerHTML = `Mostrando: <strong style="color:#f1c40f;">${list.length}</strong> ${itemType}`;
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:3rem 1rem; color:#777;">
+                        <i class="fa-solid fa-users-slash" style="font-size:2.4rem; margin-bottom:10px; opacity:0.35;"></i>
+                        <p style="margin:0; font-size:0.95rem; color:#bbb;">No hay datos en esta categoría para el periodo seleccionado.</p>
+                        <small style="color:#777;">Intenta cambiando el mes o año arriba, o el término de búsqueda.</small>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<table class="rank-table"><thead><tr>';
+
+            if (tab === 'admin') {
+                html += `
+                    <th style="width:70px; text-align:center;">Puesto</th>
+                    <th>Cliente</th>
+                    <th>Plataformas Compradas</th>
+                    <th style="text-align:center;">Compras / Pantallas</th>
+                    <th style="text-align:right;">Total Invertido</th>
+                </tr></thead><tbody>`;
+
+                list.forEach((r, idx) => {
+                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.75rem;">Sin teléfono</span>';
+
+                    html += `
+                        <tr style="${rowBorder}">
+                            <td style="text-align:center;">${getRankBadge(idx)}</td>
+                            <td>
+                                <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
+                                ${waBtn}
+                            </td>
+                            <td>${formatPlatformChips(r.platforms)}</td>
+                            <td style="text-align:center;">
+                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
+                                    ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
+                                </span>
+                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.spent.toLocaleString()}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else if (tab === 'sellers') {
+                html += `
+                    <th style="width:70px; text-align:center;">Puesto</th>
+                    <th>Vendedor</th>
+                    <th style="text-align:center;">Clientes Únicos</th>
+                    <th>Plataformas Vendidas</th>
+                    <th style="text-align:center;">Ventas / Pantallas</th>
+                    <th style="text-align:right;">Total Facturado</th>
+                </tr></thead><tbody>`;
+
+                list.forEach((r, idx) => {
+                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '';
+
+                    html += `
+                        <tr style="${rowBorder}">
+                            <td style="text-align:center;">${getRankBadge(idx)}</td>
+                            <td>
+                                <strong style="color:#3498db; font-size:0.95rem; display:block;"><i class="fa-solid fa-briefcase"></i> ${r.name}</strong>
+                                ${waBtn}
+                            </td>
+                            <td style="text-align:center;">
+                                <span style="background:rgba(52,152,219,0.15); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 9px; border-radius:12px; font-weight:700; font-size:0.8rem;">
+                                    👥 ${r.clientPhones.size} clientes
+                                </span>
+                            </td>
+                            <td>${formatPlatformChips(r.platforms)}</td>
+                            <td style="text-align:center;">
+                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
+                                    ${r.salesCount} ventas
+                                </span>
+                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.totalSold.toLocaleString()}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else if (tab === 'seller-clients') {
+                html += `
+                    <th style="width:70px; text-align:center;">Puesto</th>
+                    <th>Cliente</th>
+                    <th>Vendedor</th>
+                    <th>Plataformas Compradas</th>
+                    <th style="text-align:center;">Compras / Pantallas</th>
+                    <th style="text-align:right;">Total Invertido</th>
+                </tr></thead><tbody>`;
+
+                list.forEach((r, idx) => {
+                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#25d366; text-decoration:none; font-size:0.78rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:2px 7px; border-radius:6px; margin-top:3px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.75rem;">Sin teléfono</span>';
+
+                    html += `
+                        <tr style="${rowBorder}">
+                            <td style="text-align:center;">${getRankBadge(idx)}</td>
+                            <td>
+                                <strong style="color:white; font-size:0.92rem; display:block;">${r.name || 'Cliente'}</strong>
+                                ${waBtn}
+                            </td>
+                            <td>
+                                <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:3px 8px; border-radius:8px; font-size:0.8rem; font-weight:600;">
+                                    <i class="fa-solid fa-user-tie"></i> ${r.seller}
+                                </span>
+                            </td>
+                            <td>${formatPlatformChips(r.platforms)}</td>
+                            <td style="text-align:center;">
+                                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; color:#ddd; font-weight:600; font-size:0.8rem;">
+                                    ${r.purchases} ${r.purchases === 1 ? 'compra' : 'compras'}
+                                </span>
+                                <span style="display:block; font-size:0.72rem; color:#888; margin-top:2px;">${r.screens} pantallas</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <span style="color:#4cd137; font-weight:800; font-size:1.05rem;">$${r.spent.toLocaleString()}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
         };
 
         // =====================================================
