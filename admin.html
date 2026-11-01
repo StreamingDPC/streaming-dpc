@@ -7394,9 +7394,16 @@
                             if (m) {
                                 let p = isSellerSale ? m.sellerPrice : m.price;
                                 if (individualCount >= 2 && (m.category || '').toLowerCase().includes('individual')) {
-                                    let disc = 1000;
-                                    if (isSellerSale && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
-                                    else if (!isSellerSale && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
+                                    let disc = 0;
+                                    if (isSellerSale) {
+                                        if (storeConfig.sellerDiscountEnabled && storeConfig.sellerDiscountAmount > 0) {
+                                            disc = storeConfig.sellerDiscountAmount;
+                                        }
+                                    } else {
+                                        if (storeConfig.discountEnabled !== false) {
+                                            disc = storeConfig.discountAmount > 0 ? storeConfig.discountAmount : 1000;
+                                        }
+                                    }
                                     p -= disc;
                                 }
                                 newTotal += p;
@@ -7444,9 +7451,16 @@
                             if (m) {
                                 let p = isSellerSale ? m.sellerPrice : m.price;
                                 if (individualCount >= 2 && (m.category || '').toLowerCase().includes('individual')) {
-                                    let disc = 1000;
-                                    if (isSellerSale && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
-                                    else if (!isSellerSale && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
+                                    let disc = 0;
+                                    if (isSellerSale) {
+                                        if (storeConfig.sellerDiscountEnabled && storeConfig.sellerDiscountAmount > 0) {
+                                            disc = storeConfig.sellerDiscountAmount;
+                                        }
+                                    } else {
+                                        if (storeConfig.discountEnabled !== false) {
+                                            disc = storeConfig.discountAmount > 0 ? storeConfig.discountAmount : 1000;
+                                        }
+                                    }
                                     p -= disc;
                                 }
                                 newTotal += p;
@@ -11928,9 +11942,16 @@
                     let finalPrice = (isSellerSale && hasSellerPrice) ? p.sellerPrice : p.price;
                     console.log(`[DEBUG] Price for ${p.name}:`, { isSellerSale, hasSellerPrice, sellerPrice: p.sellerPrice, adminPrice: p.price, chosen: finalPrice });
                     if (individualCount >= 2 && (p.category || '').toLowerCase().includes('individual')) {
-                        let disc = 1000;
-                        if (saleData.sellerName !== 'Página Web Oficial' && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
-                        else if (saleData.sellerName === 'Página Web Oficial' && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
+                        let disc = 0;
+                        if (isSellerSale) {
+                            if (storeConfig.sellerDiscountEnabled && storeConfig.sellerDiscountAmount > 0) {
+                                disc = storeConfig.sellerDiscountAmount;
+                            }
+                        } else {
+                            if (storeConfig.discountEnabled !== false) {
+                                disc = storeConfig.discountAmount > 0 ? storeConfig.discountAmount : 1000;
+                            }
+                        }
                         finalPrice -= disc;
                     }
 
@@ -12102,10 +12123,16 @@
                             let finalPrice = (isSellerSale && hasSellerPrice) ? p.sellerPrice : p.price;
                             console.log(`[DEBUG] Manual Price for ${p.name}:`, { isSellerSale, hasSellerPrice, sellerPrice: p.sellerPrice, adminPrice: p.price, chosen: finalPrice });
                             if (individualCount >= 2 && (p.category || '').toLowerCase().includes('individual')) {
-                                let disc = 1000;
-                                if (saleData.sellerName !== 'Página Web Oficial' && storeConfig.sellerDiscountAmount > 0) disc = storeConfig.sellerDiscountAmount;
-                                else if (saleData.sellerName === 'Página Web Oficial' && storeConfig.discountAmount > 0) disc = storeConfig.discountAmount;
-
+                                let disc = 0;
+                                if (isSellerSale) {
+                                    if (storeConfig.sellerDiscountEnabled && storeConfig.sellerDiscountAmount > 0) {
+                                        disc = storeConfig.sellerDiscountAmount;
+                                    }
+                                } else {
+                                    if (storeConfig.discountEnabled !== false) {
+                                        disc = storeConfig.discountAmount > 0 ? storeConfig.discountAmount : 1000;
+                                    }
+                                }
                                 finalPrice -= disc;
                                 console.log(`[DEBUG DISCOUNT] Applied ${disc} discount to ${p.name}. Final: ${finalPrice}`);
                             }

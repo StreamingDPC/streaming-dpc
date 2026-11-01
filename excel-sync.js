@@ -34,8 +34,8 @@ const SHEET_MAP = [
 ];
 
 const PLATFORM_PRICE_CATALOG = {
-    'Netflix Privada': { id: 1772292868921, clientPrice: 17000, sellerPrice: 14000 },
-    'Netflix':         { id: 1772292903394, clientPrice: 16000, sellerPrice: 13000 },
+    'Netflix Privada': { id: 1772292868921, clientPrice: 18000, sellerPrice: 15000 },
+    'Netflix':         { id: 1772292903394, clientPrice: 17000, sellerPrice: 14000 },
     'Disney Privada':  { id: 1776951379850, clientPrice: 37000, sellerPrice: 34000 },
     'Dixney Privada':  { id: 1776951379850, clientPrice: 37000, sellerPrice: 34000 },
     'Disney':          { id: 1772292389962, clientPrice: 13000, sellerPrice: 10000 },
