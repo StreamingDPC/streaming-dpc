@@ -265,10 +265,25 @@ function setupConfigUI() {
     if (storeConfig.tabOrder && Array.isArray(storeConfig.tabOrder)) {
         const tabsContainer = document.querySelector('.tabs');
         if (tabsContainer) {
+            let order = [...storeConfig.tabOrder];
+            if (!order.includes('premio_navideno')) {
+                // Ensure Christmas tab stays highly visible near promotional tabs
+                const promoIdx = order.indexOf('promociones');
+                if (promoIdx !== -1) {
+                    order.splice(promoIdx + 1, 0, 'premio_navideno');
+                } else {
+                    const findeIdx = order.indexOf('promociones_finde');
+                    if (findeIdx !== -1) {
+                        order.splice(findeIdx + 1, 0, 'premio_navideno');
+                    } else {
+                        order.splice(Math.min(2, order.length), 0, 'premio_navideno');
+                    }
+                }
+            }
             const tabsArray = Array.from(tabsContainer.querySelectorAll('.tab-btn'));
             tabsArray.sort((a, b) => {
-                const idxA = storeConfig.tabOrder.indexOf(a.dataset.tab);
-                const idxB = storeConfig.tabOrder.indexOf(b.dataset.tab);
+                const idxA = order.indexOf(a.dataset.tab);
+                const idxB = order.indexOf(b.dataset.tab);
                 if (idxA === -1 && idxB === -1) return 0;
                 if (idxA === -1) return 1;
                 if (idxB === -1) return -1;
@@ -864,9 +879,10 @@ function setupEventListeners() {
     }
 
     // Tabs
-    tabBtns.forEach(btn => {
+    const allTabButtons = document.querySelectorAll('.tab-btn');
+    allTabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderProducts(btn.dataset.tab);
             if (categoryTabs) categoryTabs.classList.remove('show-menu');

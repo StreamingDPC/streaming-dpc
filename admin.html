@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.47 (Sincronización de Fechas Excel y Búsqueda de Clientes)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.48 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3047,7 +3047,7 @@
                             <p style="font-size:0.85rem; color:#a0a0a0; margin-bottom:1rem;">Define el orden en el que
                                 quieres
                                 que aparezcan las pestañas. Separa cada una por comas. (Valores:
-                                individual,ventas_extras,combos2,combos3,combos4,combos5,promociones_finde,promociones,all)
+                                promociones_finde,promociones,premio_navideno,individual,combos2,combos3,combos4,combos5,ventas_extras,estrenos,all)
                             </p>
                             <div style="display:flex; gap:0.5rem; align-items:center;">
                                 <input type="text" id="conf-tabOrder" style="flex:1;"
@@ -6375,7 +6375,7 @@
                 if (document.getElementById('conf-incentiveMes')) document.getElementById('conf-incentiveMes').value = storeConfig.incentiveMes || 0;
 
                 if (document.getElementById('conf-tabOrder')) {
-                    document.getElementById('conf-tabOrder').value = (storeConfig && storeConfig.tabOrder) ? storeConfig.tabOrder.join(',') : 'individual,ventas_extras,combos2,combos3,combos4,combos5,promociones_finde,promociones,all';
+                    document.getElementById('conf-tabOrder').value = (storeConfig && storeConfig.tabOrder) ? storeConfig.tabOrder.join(',') : 'promociones_finde,promociones,premio_navideno,individual,combos2,combos3,combos4,combos5,ventas_extras,estrenos,all';
                 }
                 if (document.getElementById('conf-paymentMethodsEnabled')) {
                     document.getElementById('conf-paymentMethodsEnabled').value = (storeConfig && storeConfig.paymentMethodsEnabled !== false) ? 'true' : 'false';
