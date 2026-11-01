@@ -189,12 +189,10 @@ function init() {
     renderProducts('individual');
     setupEventListeners();
     setupConfigUI();
-    // Si el cliente ya tiene sesión persistida, mostrar botón "Obtener Código" y ocultar "Vendedores"
+    // Si el cliente ya tiene sesión persistida, mostrar botón "Obtener Código"
     if (clientPhoneLoggedIn) {
         const codeNavBtn = document.getElementById('open-code-btn');
         if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
-        const vendBtn = document.getElementById('open-vendedores-btn');
-        if (vendBtn) vendBtn.style.display = 'none';
         if (window.startCodeAttemptsLiveSync) {
             window.startCodeAttemptsLiveSync(clientPhoneLoggedIn);
         }
@@ -357,10 +355,13 @@ function setupConfigUI() {
 
     // Toggle Reseller colors
     if (isSellerMode) {
-        openVendedoresBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span class="hide-mobile">👋 Hola, ${currentSellerName}</span>`;
-        openVendedoresBtn.style.background = '#27ae60';
-        openVendedoresBtn.style.color = 'white';
-        openVendedoresBtn.style.borderColor = '#2ecc71';
+        if (openVendedoresBtn) {
+            openVendedoresBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span class="hide-mobile">👋 Hola, ${currentSellerName}</span>`;
+            openVendedoresBtn.style.background = '#27ae60';
+            openVendedoresBtn.style.color = 'white';
+            openVendedoresBtn.style.borderColor = '#2ecc71';
+            openVendedoresBtn.style.display = 'inline-flex';
+        }
 
         // Hide "Mis Compras" button for sellers
         if (openClientBtn) openClientBtn.style.display = 'none';
@@ -375,10 +376,18 @@ function setupConfigUI() {
                 codeNavBtn.style.display = 'none';
             }
         }
+    } else {
+        if (openVendedoresBtn && !publicSellerRef) {
+            openVendedoresBtn.innerHTML = `<i class="fa-solid fa-user-tie"></i> <span class="hide-mobile">Vendedores</span>`;
+            openVendedoresBtn.style.background = 'rgba(138,43,226,0.15)';
+            openVendedoresBtn.style.color = '#c48dfc';
+            openVendedoresBtn.style.borderColor = 'rgba(138,43,226,0.3)';
+            openVendedoresBtn.style.display = 'inline-flex';
+        }
     }
 
     if (publicSellerRef) {
-        openVendedoresBtn.style.display = 'none';
+        if (openVendedoresBtn) openVendedoresBtn.style.display = 'none';
         // 'Mis Compras' ahora se mantiene visible en la tienda del vendedor
         if (openClientBtn) openClientBtn.style.display = 'inline-flex';
     }
@@ -1196,11 +1205,9 @@ function setupEventListeners() {
             if (window.startCodeAttemptsLiveSync) {
                 window.startCodeAttemptsLiveSync(clientPhoneLoggedIn);
             }
-            // Mostrar botón "Obtener Código" y ocultar "Vendedores" al iniciar sesión
+            // Mostrar botón "Obtener Código" al iniciar sesión
             const codeNavBtn = document.getElementById('open-code-btn');
             if (codeNavBtn) codeNavBtn.style.display = 'inline-flex';
-            const vendBtn = document.getElementById('open-vendedores-btn');
-            if (vendBtn) vendBtn.style.display = 'none';
             clientLoginModal.style.display = 'none';
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
