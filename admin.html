@@ -9661,10 +9661,25 @@
 
             const dict = storeConfig.crmGalleryDict || {};
             const platClean = (scr.platform || '').toLowerCase().trim();
-            const matchingKeys = Object.keys(dict).filter(k => {
+            const allDictKeys = Object.keys(dict);
+
+            // Filtrar claves que correspondan exactamente a esta plataforma.
+            // Si la venta es "Netflix" normal, NO debe incluir "Netflix Privada".
+            let matchingKeys = allDictKeys.filter(k => {
                 const base = k.split(' | ')[0].trim().toLowerCase();
-                return base === platClean || k.toLowerCase().startsWith(platClean);
+                return base === platClean;
             });
+
+            // Si no hubo coincidencia exacta de base, buscar con tolerancia pero distinguiendo "privada" de "normal"
+            if (matchingKeys.length === 0) {
+                const isPlatPrivada = platClean.includes('privad');
+                matchingKeys = allDictKeys.filter(k => {
+                    const base = k.split(' | ')[0].trim().toLowerCase();
+                    const isBasePrivada = base.includes('privad');
+                    if (isBasePrivada !== isPlatPrivada) return false;
+                    return base.includes(platClean) || platClean.includes(base);
+                });
+            }
 
             // Detectar variante preferida según la venta (si dice TV o CEL/PC)
             const contextText = `${scr.itemName || ''} ${scr.itemDetails || ''} ${_crmTargetClient.itemsRaw || ''}`.toLowerCase();
@@ -9904,10 +9919,20 @@
             if (!items || items.length === 0) {
                 const pClean = (platformName || '').toLowerCase().trim();
                 const allKeys = Object.keys(dict);
-                const matchingKeys = allKeys.filter(k => {
+                let matchingKeys = allKeys.filter(k => {
                     const base = k.split(' | ')[0].trim().toLowerCase();
-                    return base === pClean || k.toLowerCase().startsWith(pClean);
+                    return base === pClean;
                 });
+
+                if (matchingKeys.length === 0) {
+                    const isPlatPrivada = pClean.includes('privad');
+                    matchingKeys = allKeys.filter(k => {
+                        const base = k.split(' | ')[0].trim().toLowerCase();
+                        const isBasePrivada = base.includes('privad');
+                        if (isBasePrivada !== isPlatPrivada) return false;
+                        return base.includes(pClean) || pClean.includes(base);
+                    });
+                }
 
                 if (matchingKeys.length > 0) {
                     const contextStr = `${optScreen?.itemName || ''} ${optScreen?.itemDetails || ''} ${_crmTargetClient?.itemsRaw || ''}`.toLowerCase();
@@ -9947,14 +9972,14 @@
                     fullItems.forEach(it => {
                         if (it.specificEmails && Array.isArray(it.specificEmails)) {
                             const basePlat = platformName.split(' | ')[0].trim().toLowerCase();
-                            const match = it.specificEmails.find(se =>
-                                se.platform && (
-                                    se.platform.toLowerCase() === basePlat ||
-                                    se.platform.toLowerCase() === platformName.toLowerCase() ||
-                                    platformName.toLowerCase().includes(se.platform.toLowerCase()) ||
-                                    se.platform.toLowerCase().includes(platformName.toLowerCase())
-                                )
-                            );
+                            const isBasePrivada = basePlat.includes('privad');
+                            const match = it.specificEmails.find(se => {
+                                if (!se || !se.platform) return false;
+                                const sePlat = se.platform.toLowerCase().trim();
+                                const isSePrivada = sePlat.includes('privad');
+                                if (isBasePrivada !== isSePrivada) return false;
+                                return sePlat === basePlat || basePlat.includes(sePlat) || sePlat.includes(basePlat);
+                            });
                             if (match) {
                                 if (match.email && match.email.trim()) targetEmail = match.email;
                                 if (match.pass && match.pass.trim()) targetPass = match.pass;
