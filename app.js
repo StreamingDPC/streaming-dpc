@@ -5766,6 +5766,24 @@ let _cachedNavRankings = null;
 let _cachedNavTimestamp = 0;
 let _navTimerInterval = null;
 
+function pickCleanestClientName(existingName, newName) {
+    if (!existingName) return newName || 'Cliente';
+    if (!newName) return existingName;
+    const n1 = existingName.trim();
+    const n2 = newName.trim();
+    if (n1.toLowerCase() === 'cliente' || n1.toLowerCase() === 'sin nombre') return n2;
+    if (n2.toLowerCase() === 'cliente' || n2.toLowerCase() === 'sin nombre') return n1;
+    const hasLeadingNum1 = /^\d+[\s\-_.]/.test(n1);
+    const hasLeadingNum2 = /^\d+[\s\-_.]/.test(n2);
+    if (hasLeadingNum1 && !hasLeadingNum2) return n2;
+    if (!hasLeadingNum1 && hasLeadingNum2) return n1;
+    const hasTrailingNum1 = /[\s\-_.]\d+$/.test(n1);
+    const hasTrailingNum2 = /[\s\-_.]\d+$/.test(n2);
+    if (hasTrailingNum1 && !hasTrailingNum2) return n2;
+    if (!hasTrailingNum1 && hasTrailingNum2) return n1;
+    return n2.length > n1.length ? n2 : n1;
+}
+
 async function loadNavRankings() {
     if (_cachedNavRankings && (Date.now() - _cachedNavTimestamp < 90000)) {
         return _cachedNavRankings;
@@ -5802,9 +5820,11 @@ async function loadNavRankings() {
         const screens = Math.max(1, items.length);
 
         if (isAdmin) {
-            const key = cleanPhone || cName.toLowerCase();
+            const key = (cleanPhone && cleanPhone.length >= 7) ? cleanPhone : (cName.toLowerCase() || 'cliente');
             if (!adminClients[key]) {
                 adminClients[key] = { id: key, name: cName, phone: cleanPhone, screens: 0, purchases: 0 };
+            } else {
+                adminClients[key].name = pickCleanestClientName(adminClients[key].name, cName);
             }
             adminClients[key].screens += screens;
             adminClients[key].purchases += 1;
@@ -5816,10 +5836,14 @@ async function loadNavRankings() {
             sellers[sName].screens += screens;
             sellers[sName].sales += 1;
 
-            // Seller client
-            const cKey = `${sName}___${cName.toLowerCase() || cleanPhone}`;
+            // Seller client (Agrupados por teléfono excepto Any, Angie, Katherin)
+            const isSharedPhoneSeller = ['any', 'angie', 'katherin', 'katherine', 'katerin'].some(ex => sName.toLowerCase().trim().startsWith(ex));
+            const scIdent = (!isSharedPhoneSeller && cleanPhone && cleanPhone.length >= 7) ? cleanPhone : (cName.toLowerCase() || cleanPhone || 'cliente');
+            const cKey = `${sName}___${scIdent}`;
             if (!sellerClients[cKey]) {
                 sellerClients[cKey] = { id: cKey, name: cName, seller: sName, phone: cleanPhone, screens: 0, purchases: 0 };
+            } else {
+                sellerClients[cKey].name = pickCleanestClientName(sellerClients[cKey].name, cName);
             }
             sellerClients[cKey].screens += screens;
             sellerClients[cKey].purchases += 1;

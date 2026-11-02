@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.52 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.53 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -8409,6 +8409,24 @@
         let categoryChart = null;
         let historyChart = null;
 
+        function pickCleanestClientName(existingName, newName) {
+            if (!existingName) return newName || 'Cliente';
+            if (!newName) return existingName;
+            const n1 = existingName.trim();
+            const n2 = newName.trim();
+            if (n1.toLowerCase() === 'cliente' || n1.toLowerCase() === 'sin nombre') return n2;
+            if (n2.toLowerCase() === 'cliente' || n2.toLowerCase() === 'sin nombre') return n1;
+            const hasLeadingNum1 = /^\d+[\s\-_.]/.test(n1);
+            const hasLeadingNum2 = /^\d+[\s\-_.]/.test(n2);
+            if (hasLeadingNum1 && !hasLeadingNum2) return n2;
+            if (!hasLeadingNum1 && hasLeadingNum2) return n1;
+            const hasTrailingNum1 = /[\s\-_.]\d+$/.test(n1);
+            const hasTrailingNum2 = /[\s\-_.]\d+$/.test(n2);
+            if (hasTrailingNum1 && !hasTrailingNum2) return n2;
+            if (!hasTrailingNum1 && hasTrailingNum2) return n1;
+            return n2.length > n1.length ? n2 : n1;
+        }
+
         // Estado global para rankings
         window.currentRankingTab = 'admin'; // 'admin' | 'sellers' | 'seller-clients'
         window.currentStatsRankingData = {
@@ -8525,8 +8543,8 @@
                     const saleScreens = Math.max(1, items.length);
 
                     if (isAdmin) {
-                        // 1. Clientes del Admin
-                        const cKey = cleanPhone || cName;
+                        // 1. Clientes del Admin (Agrupados por teléfono)
+                        const cKey = (cleanPhone && cleanPhone.length >= 7) ? cleanPhone : (cName.toLowerCase() || 'cliente');
                         if (!rankingAdminClients[cKey]) {
                             rankingAdminClients[cKey] = {
                                 phone: cleanPhone,
@@ -8537,6 +8555,11 @@
                                 platforms: new Set(),
                                 lastDate: sDate.getTime()
                             };
+                        } else {
+                            rankingAdminClients[cKey].name = pickCleanestClientName(rankingAdminClients[cKey].name, cName);
+                        }
+                        if (!rankingAdminClients[cKey].phone && cleanPhone) {
+                            rankingAdminClients[cKey].phone = cleanPhone;
                         }
                         rankingAdminClients[cKey].spent += saleTotal;
                         rankingAdminClients[cKey].purchases += 1;
@@ -8550,8 +8573,10 @@
                         const sellerClean = sName;
                         allSellersSet.add(sellerClean);
 
+                        // Vendedores que usan un solo celular para todos sus clientes (excepción: Any, Angie, Katherin)
+                        const isSharedPhoneSeller = ['any', 'angie', 'katherin', 'katherine', 'katerin'].some(ex => sellerClean.toLowerCase().trim().startsWith(ex));
                         const cNameNorm = (cName || '').trim().toLowerCase();
-                        const clientIdent = cNameNorm || cleanPhone || 'cliente';
+                        const clientIdent = (!isSharedPhoneSeller && cleanPhone && cleanPhone.length >= 7) ? cleanPhone : (cNameNorm || cleanPhone || 'cliente');
 
                         // 2. Vendedores
                         if (!rankingSellers[sellerClean]) {
@@ -8572,7 +8597,7 @@
                         rankingSellers[sellerClean].clientPhones.add(clientIdent);
                         itemNames.forEach(n => rankingSellers[sellerClean].platforms.add(n));
 
-                        // 3. Clientes del Vendedor (Agrupados por NOMBRE del cliente, ya que los revendedores suelen usar un solo teléfono)
+                        // 3. Clientes del Vendedor (Agrupados por teléfono excepto Any, Angie, Katherin)
                         const scKey = `${sellerClean}___${clientIdent}`;
                         if (!rankingSellerClients[scKey]) {
                             rankingSellerClients[scKey] = {
@@ -8585,6 +8610,8 @@
                                 platforms: new Set(),
                                 lastDate: sDate.getTime()
                             };
+                        } else {
+                            rankingSellerClients[scKey].name = pickCleanestClientName(rankingSellerClients[scKey].name, cName);
                         }
                         if (!rankingSellerClients[scKey].phone && cleanPhone) {
                             rankingSellerClients[scKey].phone = cleanPhone;
