@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.51 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.52 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -15464,17 +15464,37 @@
             'sept': 8, 'oct': 9, 'nov': 10, 'dec': 11, 'dic': 11
         };
 
-        function parseExcelDateStr(dateStr, isEnd = false) {
+        function parseExcelDateStr(dateStr, isEnd = false, startRefMs = null) {
             if (!dateStr) return null;
             const s = String(dateStr).trim().toLowerCase().replace(/\./g, '');
-            let m = s.match(/^(\d{1,2})[-/\s]+([a-z]{3,4})/i);
+            const now = new Date();
+            let m = s.match(/^(\d{1,2})[-/\s]+([a-z]{3,4})(?:[-/\s]+(\d{2,4}))?/i);
             if (m) {
                 const day = parseInt(m[1], 10);
                 const monKey = m[2].slice(0, 3).toLowerCase();
                 const month = DB_MONTH_MAP[monKey];
                 if (month !== undefined && day >= 1 && day <= 31) {
-                    const now = new Date();
-                    let year = now.getFullYear();
+                    let year = m[3] ? parseInt(m[3], 10) : now.getFullYear();
+                    if (year < 100) year += 2000;
+
+                    if (!m[3] && isEnd) {
+                        if (startRefMs) {
+                            const sDate = new Date(startRefMs);
+                            const sMonth = sDate.getMonth();
+                            const sYear = sDate.getFullYear();
+                            if (month < sMonth || (month === sMonth && day < sDate.getDate())) {
+                                year = sYear + 1;
+                            } else {
+                                year = sYear;
+                            }
+                        } else {
+                            const candidateMs = new Date(year, month, day, 23, 59, 59, 999).getTime();
+                            if (candidateMs < now.getTime() - 45 * 86400000) {
+                                year = now.getFullYear() + 1;
+                            }
+                        }
+                    }
+
                     if (isEnd) return new Date(year, month, day, 23, 59, 59, 999).getTime();
                     return new Date(year, month, day, 12, 0, 0, 0).getTime();
                 }
@@ -15483,9 +15503,27 @@
             if (m) {
                 const day = parseInt(m[1], 10);
                 const month = parseInt(m[2], 10) - 1;
-                let year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+                let year = m[3] ? parseInt(m[3], 10) : now.getFullYear();
                 if (year < 100) year += 2000;
                 if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+                    if (!m[3] && isEnd) {
+                        if (startRefMs) {
+                            const sDate = new Date(startRefMs);
+                            const sMonth = sDate.getMonth();
+                            const sYear = sDate.getFullYear();
+                            if (month < sMonth || (month === sMonth && day < sDate.getDate())) {
+                                year = sYear + 1;
+                            } else {
+                                year = sYear;
+                            }
+                        } else {
+                            const candidateMs = new Date(year, month, day, 23, 59, 59, 999).getTime();
+                            if (candidateMs < now.getTime() - 45 * 86400000) {
+                                year = now.getFullYear() + 1;
+                            }
+                        }
+                    }
+
                     if (isEnd) return new Date(year, month, day, 23, 59, 59, 999).getTime();
                     return new Date(year, month, day, 12, 0, 0, 0).getTime();
                 }
@@ -15696,7 +15734,7 @@
                             fecha,
                             fin,
                             startMs: parseExcelDateStr(fecha, false),
-                            expMs: parseExcelDateStr(fin, true)
+                            expMs: parseExcelDateStr(fin, true, parseExcelDateStr(fecha, false))
                         });
                     }
                 }

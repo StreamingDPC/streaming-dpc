@@ -150,19 +150,39 @@ const MONTH_MAP = {
     'dec': 11, 'dic': 11
 };
 
-function parseExcelDateStr(dateStr, isEnd = false) {
+function parseExcelDateStr(dateStr, isEnd = false, startRefMs = null) {
     if (!dateStr) return null;
     const s = String(dateStr).trim().toLowerCase().replace(/\./g, '');
+    const now = new Date();
 
-    // Formato con texto de mes: "18-jul", "18/oct", "18 oct", "18-octubre"
-    let m = s.match(/^(\d{1,2})[-/\s]+([a-z]{3,4})/i);
+    // Formato con texto de mes: "18-jul", "18/oct", "18 oct", "18-octubre", "2-Jan-2027", "2-Jan-27", "2-Jan"
+    let m = s.match(/^(\d{1,2})[-/\s]+([a-z]{3,4})(?:[-/\s]+(\d{2,4}))?/i);
     if (m) {
         const day = parseInt(m[1], 10);
         const monKey = m[2].slice(0, 3).toLowerCase();
         const month = MONTH_MAP[monKey];
         if (month !== undefined && day >= 1 && day <= 31) {
-            const now = new Date();
-            let year = now.getFullYear();
+            let year = m[3] ? parseInt(m[3], 10) : now.getFullYear();
+            if (year < 100) year += 2000;
+
+            if (!m[3] && isEnd) {
+                if (startRefMs) {
+                    const sDate = new Date(startRefMs);
+                    const sMonth = sDate.getMonth();
+                    const sYear = sDate.getFullYear();
+                    if (month < sMonth || (month === sMonth && day < sDate.getDate())) {
+                        year = sYear + 1;
+                    } else {
+                        year = sYear;
+                    }
+                } else {
+                    const candidateMs = new Date(year, month, day, 23, 59, 59, 999).getTime();
+                    if (candidateMs < now.getTime() - 45 * 86400000) {
+                        year = now.getFullYear() + 1;
+                    }
+                }
+            }
+
             if (isEnd) {
                 return new Date(year, month, day, 23, 59, 59, 999).getTime();
             }
@@ -170,14 +190,32 @@ function parseExcelDateStr(dateStr, isEnd = false) {
         }
     }
 
-    // Formato numérico: "18/10/2026", "18-10-2026", "18/10/26", "18/10", "18-10"
+    // Formato numérico: "18/10/2026", "18-10-2026", "18/10/26", "18/10", "18-10", "2/01/2027", "2/01"
     m = s.match(/^(\d{1,2})[-/](\d{1,2})(?:[-/](\d{2,4}))?/);
     if (m) {
         const day = parseInt(m[1], 10);
         const month = parseInt(m[2], 10) - 1;
-        let year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+        let year = m[3] ? parseInt(m[3], 10) : now.getFullYear();
         if (year < 100) year += 2000;
         if (month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+            if (!m[3] && isEnd) {
+                if (startRefMs) {
+                    const sDate = new Date(startRefMs);
+                    const sMonth = sDate.getMonth();
+                    const sYear = sDate.getFullYear();
+                    if (month < sMonth || (month === sMonth && day < sDate.getDate())) {
+                        year = sYear + 1;
+                    } else {
+                        year = sYear;
+                    }
+                } else {
+                    const candidateMs = new Date(year, month, day, 23, 59, 59, 999).getTime();
+                    if (candidateMs < now.getTime() - 45 * 86400000) {
+                        year = now.getFullYear() + 1;
+                    }
+                }
+            }
+
             if (isEnd) {
                 return new Date(year, month, day, 23, 59, 59, 999).getTime();
             }
@@ -634,7 +672,7 @@ function parseWorkbookFromBuffer(buffer) {
                 fecha,
                 fin,
                 startMs: parseExcelDateStr(fecha, false),
-                expMs: parseExcelDateStr(fin, true)
+                expMs: parseExcelDateStr(fin, true, parseExcelDateStr(fecha, false))
             });
         }
     }
