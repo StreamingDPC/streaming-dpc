@@ -5859,6 +5859,7 @@ async function loadNavRankings() {
     });
 
     Object.keys(sellerSales).forEach(sName => {
+        if (sName === 'Página Web Oficial' || sName.toLowerCase().includes('oficial') || sName.toLowerCase() === 'admin') return;
         const sales = sellerSales[sName] || {};
         Object.keys(sales).forEach(id => processSale(sales[id], sName));
     });

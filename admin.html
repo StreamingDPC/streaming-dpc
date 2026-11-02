@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.53 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.54 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -8478,9 +8478,11 @@
             function processStatSale(s) {
                 if (!s || s.isPaid === false) return;
                 const cleanPhone = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
-                const sig = (s.fechaCompraOriginal || s.date || 0) + '_' + cleanPhone;
-                if (sig && sig !== '0_' && processedSignatures.has(sig)) return; // Evitar duplicidad estricta entre carteras
-                if (sig && sig !== '0_') processedSignatures.add(sig);
+                const sId = s.id || s._saleId || '';
+                const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
+                const sig = sId ? (sId + '_' + cleanPhone) : ((s.fechaCompraOriginal || s.date || 0) + '_' + cleanPhone + '_' + sProfile);
+                if (sig && !sig.startsWith('0_') && processedSignatures.has(sig)) return; // Evitar duplicidad estricta entre carteras
+                if (sig && !sig.startsWith('0_')) processedSignatures.add(sig);
 
                 const sDate = new Date(s.date || s.fechaCompraOriginal || Date.now());
                 const month = sDate.getMonth();
