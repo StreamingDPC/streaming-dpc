@@ -14,7 +14,6 @@
         "puppeteer-core": "^22.0.0",
         "puppeteer-extra": "^3.3.6",
         "puppeteer-extra-plugin-stealth": "^2.11.2",
-        "rebrowser-puppeteer-core": "^25.14.101",
-        "streaming-dpc-local-bot": "file:"
+        "rebrowser-puppeteer-core": "^25.14.101"
     }
 }
