@@ -5801,22 +5801,41 @@ async function loadNavRankings() {
     const sellers = {};
     const sellerClients = {};
     const currentYear = new Date().getFullYear();
+    const processedSignatures = new Set();
 
     function processSale(s, defaultSeller) {
-        if (!s) return;
-        const d = new Date(s.date || 0);
+        if (!s || s.isPaid === false) return;
+        const cleanPhone = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+        const sId = s.id || s._saleId || '';
+        const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
+        const sig = sId ? (sId + '_' + cleanPhone) : ((s.fechaCompraOriginal || s.date || 0) + '_' + cleanPhone + '_' + sProfile);
+        if (sig && !sig.startsWith('0_') && processedSignatures.has(sig)) return;
+        if (sig && !sig.startsWith('0_')) processedSignatures.add(sig);
+
+        const d = new Date(s.date || s.fechaCompraOriginal || 0);
         if (d.getFullYear() !== currentYear) return;
 
         const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
         const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');
 
         let cName = (s.clientName || '').trim();
-        const cleanPhone = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
         if (!cName || cName.toLowerCase() === 'cliente') {
             cName = cleanPhone ? `Cliente (${cleanPhone.slice(-4)})` : 'Cliente';
         }
 
-        const items = s.items ? (Array.isArray(s.items) ? s.items : Object.values(s.items)) : [];
+        let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+        const seenItemSigs = new Set();
+        const items = [];
+        rawItems.forEach(it => {
+            if (!it) return;
+            const itPlat = (it.name || '').trim().toLowerCase();
+            const itEmail = (it.email || it.correo || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].email) || '').trim().toLowerCase();
+            const itProf = (it.profile || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].profile) || '').trim().toLowerCase();
+            const itSig = `${itPlat}_${itEmail}_${itProf}`;
+            if (seenItemSigs.has(itSig) && itSig !== '__') return;
+            seenItemSigs.add(itSig);
+            items.push(it);
+        });
         const screens = Math.max(1, items.length);
 
         if (isAdmin) {
