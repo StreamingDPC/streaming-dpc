@@ -1367,15 +1367,22 @@
                         </select>
                     </div>
 
-                    <!-- Buscador y Contador -->
-                    <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div style="position:relative; flex:1; min-width:240px; max-width:380px;">
-                            <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#777; font-size:0.85rem;"></i>
-                            <input type="text" id="ranking-search" placeholder="Buscar por nombre o teléfono..." oninput="renderRankingTab()"
-                                style="width:100%; padding:7px 12px 7px 34px; border-radius:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); color:white; font-size:0.85rem;">
+                        <!-- Buscador, Ordenamiento y Contador -->
+                        <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div style="position:relative; flex:1; min-width:240px; max-width:380px;">
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#777; font-size:0.85rem;"></i>
+                                <input type="text" id="ranking-search" placeholder="Buscar por nombre o teléfono..." oninput="renderRankingTab()"
+                                    style="width:100%; padding:7px 12px 7px 34px; border-radius:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); color:white; font-size:0.85rem;">
+                            </div>
+                            <div id="ranking-sort-box" style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:0.8rem; color:#aaa;"><i class="fa-solid fa-arrow-down-wide-short"></i> Ordenar por:</span>
+                                <select id="ranking-sort-by" onchange="renderRankingTab()" style="padding:6px 12px; border-radius:8px; background:#1e272e; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem; cursor:pointer;">
+                                    <option value="spent">💰 Dinero Invertido ($)</option>
+                                    <option value="screens">📺 Cantidad de Pantallas</option>
+                                </select>
+                            </div>
+                            <span id="ranking-count-badge" style="font-size:0.82rem; color:#bbb; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.05);"></span>
                         </div>
-                        <span id="ranking-count-badge" style="font-size:0.82rem; color:#bbb; background:rgba(255,255,255,0.05); padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.05);"></span>
-                    </div>
 
                     <!-- Contenido dinámico del ranking -->
                     <div id="ranking-content-area" style="overflow-x:auto; max-height:650px; overflow-y:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
@@ -8774,6 +8781,11 @@
                 subfilterBox.style.display = (tab === 'seller-clients') ? 'flex' : 'none';
             }
 
+            const sortBox = document.getElementById('ranking-sort-box');
+            if (sortBox) {
+                sortBox.style.display = (tab === 'navidad') ? 'none' : 'flex';
+            }
+
             renderRankingTab();
         };
 
@@ -9029,6 +9041,21 @@
 
             if (badgeEl) {
                 badgeEl.innerHTML = `Mostrando: <strong style="color:#f1c40f;">${list.length}</strong> ${itemType}`;
+            }
+
+            const sortBy = document.getElementById('ranking-sort-by')?.value || 'spent';
+            if (tab === 'sellers') {
+                if (sortBy === 'screens') {
+                    list.sort((a, b) => (b.screens || 0) - (a.screens || 0));
+                } else {
+                    list.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
+                }
+            } else {
+                if (sortBy === 'screens') {
+                    list.sort((a, b) => (b.screens || 0) - (a.screens || 0));
+                } else {
+                    list.sort((a, b) => (b.spent || 0) - (a.spent || 0));
+                }
             }
 
             if (list.length === 0) {
