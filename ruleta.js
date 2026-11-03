@@ -610,7 +610,11 @@
         let phone = getCurrentUserIdentifier();
 
         if (phone === 'invitado') {
-            const entered = prompt("🎰 Para girar la ruleta y asegurar tus premios, por favor ingresa tu número de WhatsApp (10 dígitos):");
+            const enteredName = prompt("👤 Para girar la ruleta, por favor ingresa tu Nombre Completo:");
+            if (enteredName && enteredName.trim()) {
+                localStorage.setItem('dpc_ruleta_guest_name', enteredName.trim());
+            }
+            const entered = prompt("📱 Ahora ingresa tu número de WhatsApp (10 dígitos):");
             if (!entered) return;
             const clean = entered.replace(/\D/g, '').replace(/^57/, '');
             if (clean.length < 10) {
@@ -736,9 +740,73 @@
     };
 
     /**
+     * Obtiene el nombre real del cliente buscando en perfiles, ventas de Firebase o rankings
+     */
+    async function obtenerNombreCliente(phone) {
+        const cleanPhone = String(phone || '').replace(/\D/g, '').replace(/^57/, '');
+
+        // 1. Verificar si hay un nombre guardado en localStorage
+        const storedName = localStorage.getItem('dpc_ruleta_guest_name');
+        if (storedName && storedName.trim() && storedName.trim().toLowerCase() !== 'cliente') {
+            return storedName.trim();
+        }
+
+        if (!cleanPhone || cleanPhone === 'invitado') return '';
+
+        // 2. Buscar en allClientProfiles si está en memoria
+        if (typeof allClientProfiles !== 'undefined' && allClientProfiles[cleanPhone] && allClientProfiles[cleanPhone].name) {
+            const n = allClientProfiles[cleanPhone].name.trim();
+            if (n && n.toLowerCase() !== 'cliente') return n;
+        }
+
+        // 3. Buscar en los rankings navideños calculados
+        if (typeof loadNavRankings === 'function') {
+            try {
+                const rankings = await loadNavRankings();
+                const allRankClients = [
+                    ...(rankings.admin_client || []),
+                    ...(rankings.reseller_client || [])
+                ];
+                const found = allRankClients.find(c => c.phone === cleanPhone || c.phone === '57' + cleanPhone);
+                if (found && found.name && found.name.toLowerCase() !== 'cliente') {
+                    return found.name.trim();
+                }
+            } catch (e) { }
+        }
+
+        // 4. Buscar en Firebase en clientSales
+        if (typeof db !== 'undefined') {
+            try {
+                const sSnap = await db.ref(`clientSales/${cleanPhone}`).once('value');
+                const sales = sSnap.val();
+                if (sales) {
+                    for (const k of Object.keys(sales)) {
+                        const s = sales[k];
+                        if (s && s.clientName && s.clientName.trim() && s.clientName.trim().toLowerCase() !== 'cliente') {
+                            return s.clientName.trim();
+                        }
+                    }
+                }
+                const sSnap57 = await db.ref(`clientSales/57${cleanPhone}`).once('value');
+                const sales57 = sSnap57.val();
+                if (sales57) {
+                    for (const k of Object.keys(sales57)) {
+                        const s = sales57[k];
+                        if (s && s.clientName && s.clientName.trim() && s.clientName.trim().toLowerCase() !== 'cliente') {
+                            return s.clientName.trim();
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        return '';
+    }
+
+    /**
      * Acción de Reclamar Premio por WhatsApp
      */
-    window.reclamarPremioWhatsapp = function () {
+    window.reclamarPremioWhatsapp = async function () {
         if (!premioTemporal) return;
 
         const stats = getEstadisticasUsuario();
@@ -748,18 +816,27 @@
 
         const config = window.getRuletaConfig();
 
-        let nombre = 'Cliente';
         let telefono = getCurrentUserIdentifier();
-        if (telefono === 'invitado') telefono = 'Sin registrar';
-
-        if (typeof clientPhoneLoggedIn !== 'undefined' && clientPhoneLoggedIn) {
-            const p = String(clientPhoneLoggedIn).replace(/\D/g, '').replace(/^57/, '');
-            if (typeof allClientProfiles !== 'undefined' && allClientProfiles[p]) {
-                nombre = allClientProfiles[p].name || 'Cliente';
+        if (telefono === 'invitado') {
+            const enteredPhone = prompt("📱 Ingresa tu número de WhatsApp para entregarte tu premio:");
+            if (enteredPhone) {
+                telefono = enteredPhone.replace(/\D/g, '').replace(/^57/, '');
+                localStorage.setItem('dpc_ruleta_guest_phone', telefono);
             }
-        } else {
-            const storedName = localStorage.getItem('dpc_ruleta_guest_name');
-            if (storedName) nombre = storedName;
+        }
+
+        // Obtener el nombre real del cliente
+        let nombre = await obtenerNombreCliente(telefono);
+
+        // Si aún no tenemos el nombre o dice 'Cliente', solicitarlo al usuario
+        if (!nombre || nombre.toLowerCase() === 'cliente') {
+            const inputNombre = prompt("👤 ¡Felicidades por tu premio! Ingresa tu Nombre y Apellido para tu Ticket:");
+            if (inputNombre && inputNombre.trim()) {
+                nombre = inputNombre.trim();
+                localStorage.setItem('dpc_ruleta_guest_name', nombre);
+            } else {
+                nombre = 'Cliente Ganador';
+            }
         }
 
         const usuarioSesion = { nombre, telefono };
