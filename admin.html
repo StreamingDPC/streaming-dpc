@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.75 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.76 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -10780,11 +10780,8 @@
             }
         };
 
-        window.openRuletaAdminModal = function() {
-            const modal = document.getElementById('ruleta-admin-modal');
-            if (!modal) return;
-            
-            const conf = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.ruletaConfig) ? storeConfig.ruletaConfig : {};
+        window.syncRuletaModalFromConfig = function(conf) {
+            if (!conf) conf = {};
             currentRuletaEnabled = conf.enabled !== false;
             updateRuletaAdminToggleBtn(currentRuletaEnabled);
             currentRuletaResetBtnEnabled = conf.resetButtonEnabled === true;
@@ -10811,8 +10808,56 @@
             }
 
             renderRuletaAdminPrizesList();
-            cargarLogsRuletaAdminHoy();
+        };
+
+        // Escucha directa en vivo exclusiva para ruletaConfig
+        if (typeof db !== 'undefined') {
+            db.ref('storeConfig/ruletaConfig').on('value', snap => {
+                const val = snap.val();
+                if (val) {
+                    if (typeof storeConfig === 'undefined' || !storeConfig) storeConfig = {};
+                    storeConfig.ruletaConfig = val;
+                    window._cachedRuletaConfig = val;
+                    const modal = document.getElementById('ruleta-admin-modal');
+                    if (modal && modal.style.display === 'flex' && !_ruletaAutoSaveTimer) {
+                        const activeEl = document.activeElement;
+                        if (!activeEl || activeEl.tagName !== 'INPUT') {
+                            window.syncRuletaModalFromConfig(val);
+                        }
+                    }
+                }
+            });
+        }
+
+        window.openRuletaAdminModal = async function() {
+            const modal = document.getElementById('ruleta-admin-modal');
+            if (!modal) return;
             modal.style.display = 'flex';
+
+            // 1. Mostrar de inmediato con la memoria local o cache
+            const conf = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.ruletaConfig) 
+                ? storeConfig.ruletaConfig 
+                : (window._cachedRuletaConfig || {});
+            
+            window.syncRuletaModalFromConfig(conf);
+
+            // 2. Consulta rápida directa a Firebase para traer la versión más fresca
+            if (typeof db !== 'undefined') {
+                try {
+                    const snap = await db.ref('storeConfig/ruletaConfig').once('value');
+                    const live = snap.val();
+                    if (live) {
+                        if (typeof storeConfig === 'undefined' || !storeConfig) storeConfig = {};
+                        storeConfig.ruletaConfig = live;
+                        window._cachedRuletaConfig = live;
+                        window.syncRuletaModalFromConfig(live);
+                    }
+                } catch(e) {
+                    console.warn("Consulta ruletaConfig:", e);
+                }
+            }
+
+            cargarLogsRuletaAdminHoy();
         };
 
         window.closeRuletaAdminModal = function() {

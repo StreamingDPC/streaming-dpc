@@ -12,11 +12,11 @@
     const DEFAULT_PREMIOS = [
         {
             id: 1,
-            label: "30% DCTO Netflix",
+            label: "10% DCTO Netflix",
             tipo: "descuento_servicio",
             servicio: "Netflix Premium",
             precioNormal: 15000,
-            descuentoPorcentaje: 30, // Paga 10.500
+            descuentoPorcentaje: 10, // Paga 10.500
             probabilidad: 10,       // 10% de probabilidad
             stockMaximo: 5,         // Máximo 5 ganadores
             color: "#e50914"
