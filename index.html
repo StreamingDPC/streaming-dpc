@@ -59,7 +59,7 @@
             <div class="logo" style="display: flex; align-items: center; gap: 10px;">
                 <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
                     alt="Streaming DPC" style="height: 80px; border-radius: 8px; object-fit: contain;">
-                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.73</span>
+                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.74</span>
             </div>
             <div class="header-actions"
                 style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
@@ -1542,8 +1542,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
     <!-- Lógica Principal -->
-    <script src="ruleta.js?v=3.9.73"></script>
-    <script src="app.js?v=3.9.73"></script>
+    <script src="ruleta.js?v=3.9.74"></script>
+    <script src="app.js?v=3.9.74"></script>
     <!-- CRM / Respuestas Selector Modal -->
     <div id="crm-selector-modal" class="modal" style="display:none; z-index: 5000;">
         <div class="modal-content"
@@ -1807,6 +1807,23 @@
             }
         });
     </script>
+
+    <!-- MODAL DE ALERTA PROFESIONAL - RULETA DE LA SUERTE -->
+    <div id="ruleta-custom-alert-modal" class="ruleta-alert-overlay" style="display: none;">
+        <div class="ruleta-alert-card">
+            <span class="ruleta-alert-close" onclick="cerrarAlertaRuleta()">&times;</span>
+            <div id="ruleta-alert-icon" class="ruleta-alert-icon">⏳</div>
+            <h3 id="ruleta-alert-title" class="ruleta-alert-title">¡Giros Diarios Completados!</h3>
+            <p id="ruleta-alert-desc" class="ruleta-alert-desc">
+                Has alcanzado el límite de <strong>3 giros por hoy</strong>.<br><br>
+                🎁 ¡Vuelve mañana para disfrutar de 3 nuevas oportunidades de ganar pantallas y descuentos exclusivos!
+            </p>
+            <button type="button" id="ruleta-alert-btn" class="ruleta-alert-confirm-btn" onclick="cerrarAlertaRuleta()">
+                ¡Entendido, volveré mañana!
+            </button>
+        </div>
+    </div>
+
 </body>
 
 </html>

@@ -638,7 +638,12 @@
         // 1. Verificar si está en el Top 3
         const inTop3 = await window.isUserInTop3Navidad();
         if (inTop3) {
-            alert("👑 ¡Ya estás en el Podio Navideño (Top 3)! Tus premios mayores ya están garantizados para el 25 de diciembre. La Ruleta es exclusiva para quienes no alcanzaron el Top 3.");
+            window.mostrarAlertaRuleta({
+                icono: "👑",
+                titulo: "¡Ya estás en el Podio Navideño!",
+                mensaje: "¡Felicidades! Tus premios mayores ya están garantizados en los 3 primeros lugares para el 25 de diciembre.<br><br>Esta ruleta es un beneficio exclusivo para los clientes fuera del Top 3.",
+                botonTexto: "¡Excelente, gracias!"
+            });
             return;
         }
 
@@ -655,7 +660,12 @@
             if (!entered) return;
             const clean = entered.replace(/\D/g, '').replace(/^57/, '');
             if (clean.length < 10) {
-                alert("Por favor ingresa un número de WhatsApp válido (mínimo 10 dígitos).");
+                window.mostrarAlertaRuleta({
+                    icono: "📱",
+                    titulo: "Número Inválido",
+                    mensaje: "Por favor ingresa un número de WhatsApp válido de al menos 10 dígitos para registrar tus giros.",
+                    botonTexto: "Corregir número"
+                });
                 return;
             }
             phone = clean;
@@ -670,11 +680,21 @@
                 const logData = snap.val();
                 if (logData) {
                     if (logData.aceptoPremio) {
-                        alert("🎉 ¡Ya reclamaste tu premio de hoy con tu número de WhatsApp! Mañana podrás volver a participar.");
+                        window.mostrarAlertaRuleta({
+                            icono: "🎉",
+                            titulo: "¡Premio de Hoy Ya Reservado!",
+                            mensaje: "Ya reclamaste tu premio de hoy con tu número de WhatsApp.<br><br>🎁 Mañana podrás volver a participar por nuevos premios.",
+                            botonTexto: "¡Entendido!"
+                        });
                         return;
                     }
                     if (logData.giros >= config.intentosMaximosPorDia) {
-                        alert(`Has alcanzado el límite de ${config.intentosMaximosPorDia} giros diarios registrados para tu número de WhatsApp. ¡Vuelve mañana!`);
+                        window.mostrarAlertaRuleta({
+                            icono: "⏳",
+                            titulo: "Límite Diario Alcanzado",
+                            mensaje: `Has alcanzado el límite de <strong>${config.intentosMaximosPorDia} giros diarios</strong> registrados para tu número de WhatsApp.<br><br>✨ ¡Vuelve mañana por más oportunidades!`,
+                            botonTexto: "¡Entendido!"
+                        });
                         return;
                     }
                 }
@@ -685,11 +705,21 @@
 
         const stats = getEstadisticasUsuario();
         if (stats.premioAceptado) {
-            alert("🎉 ¡Ya reclamaste tu premio de hoy! Mañana podrás girar nuevamente la ruleta.");
+            window.mostrarAlertaRuleta({
+                icono: "🎉",
+                titulo: "¡Premio de Hoy Ya Reclamado!",
+                mensaje: "Ya reclamaste tu premio de hoy.<br><br>🎁 Mañana podrás girar nuevamente la ruleta de la suerte.",
+                botonTexto: "¡Entendido!"
+            });
             return;
         }
         if (stats.intentosHoy >= config.intentosMaximosPorDia) {
-            alert(`Has alcanzado el límite de ${config.intentosMaximosPorDia} giros por hoy. ¡Vuelve mañana por más oportunidades!`);
+            window.mostrarAlertaRuleta({
+                icono: "⏳",
+                titulo: "¡Giros Diarios Completados!",
+                mensaje: `Has alcanzado el límite de <strong>${config.intentosMaximosPorDia} giros por hoy</strong>.<br><br>🎁 ¡Vuelve mañana para disfrutar de 3 nuevas oportunidades de ganar pantallas y descuentos exclusivos!`,
+                botonTexto: "¡Entendido, volveré mañana!"
+            });
             return;
         }
 
@@ -1114,7 +1144,12 @@
 
         const config = window.getRuletaConfig();
         if (!config.enabled) {
-            alert("La Ruleta de la Suerte no se encuentra habilitada en este momento. ¡Vuelve en las próximas promociones de fin de semana!");
+            window.mostrarAlertaRuleta({
+                icono: "🎰",
+                titulo: "Promoción en Pausa",
+                mensaje: "La Ruleta de la Suerte no se encuentra habilitada en este momento.<br><br>¡Te esperamos en las próximas promociones de fin de semana!",
+                botonTexto: "¡Entendido!"
+            });
             return;
         }
 
@@ -1157,6 +1192,58 @@
     /**
      * Resetea los intentos del usuario actual (o de un teléfono específico)
      */
+
+
+    /**
+     * Muestra una alerta estilizada y profesional para la Ruleta de la Suerte
+     */
+    window.mostrarAlertaRuleta = function ({
+        titulo = "Ruleta de la Suerte",
+        mensaje = "",
+        icono = "🎰",
+        botonTexto = "¡Entendido!"
+    }) {
+        let modal = document.getElementById('ruleta-custom-alert-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ruleta-custom-alert-modal';
+            modal.className = 'ruleta-alert-overlay';
+            modal.innerHTML = `
+                <div class="ruleta-alert-card">
+                    <span class="ruleta-alert-close" onclick="cerrarAlertaRuleta()">&times;</span>
+                    <div id="ruleta-alert-icon" class="ruleta-alert-icon">🎰</div>
+                    <h3 id="ruleta-alert-title" class="ruleta-alert-title">Ruleta de la Suerte</h3>
+                    <p id="ruleta-alert-desc" class="ruleta-alert-desc"></p>
+                    <button type="button" id="ruleta-alert-btn" class="ruleta-alert-confirm-btn" onclick="cerrarAlertaRuleta()">
+                        ¡Entendido!
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Cerrar al hacer clic fuera de la tarjeta
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) window.cerrarAlertaRuleta();
+            });
+        }
+
+        const iconEl = document.getElementById('ruleta-alert-icon');
+        const titleEl = document.getElementById('ruleta-alert-title');
+        const descEl = document.getElementById('ruleta-alert-desc');
+        const btnEl = document.getElementById('ruleta-alert-btn');
+
+        if (iconEl) iconEl.textContent = icono;
+        if (titleEl) titleEl.textContent = titulo;
+        if (descEl) descEl.innerHTML = mensaje;
+        if (btnEl) btnEl.textContent = botonTexto;
+
+        modal.style.display = 'flex';
+    };
+
+    window.cerrarAlertaRuleta = function () {
+        const modal = document.getElementById('ruleta-custom-alert-modal');
+        if (modal) modal.style.display = 'none';
+    };
 
     /**
      * Limpia todas las estadísticas de ruleta en localStorage y actualiza la UI
