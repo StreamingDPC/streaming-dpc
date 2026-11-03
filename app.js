@@ -5958,6 +5958,22 @@ function buildNavWhatsAppLink(userName, position, screens, prize, categoryTitle)
     return `https://wa.me/${adminPhone}?text=${text}`;
 }
 
+function isCurrentUserAdminForNavTest() {
+    try {
+        const isLocalAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+        const isSellerAdmin = typeof isSellerMode !== 'undefined' && isSellerMode &&
+            ['admin', 'administrador', 'administrador (global)', 'tienda principal', 'página web oficial'].includes(String(currentSellerName || '').toLowerCase().trim());
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasAdminParam = urlParams.get('admin') === 'true' || 
+                              urlParams.get('test_admin') === 'true' || 
+                              urlParams.get('test_navidad') === 'true' || 
+                              urlParams.get('test_promo') === 'true';
+        return Boolean(isLocalAdmin || isSellerAdmin || hasAdminParam);
+    } catch(e) {
+        return false;
+    }
+}
+
 let navTestConfig = {
     active: false,
     preset: 'reseller_1',
@@ -5972,6 +5988,11 @@ try {
     if (saved) navTestConfig = Object.assign(navTestConfig, JSON.parse(saved));
 } catch(e) {}
 
+// SEGURIDAD: Si no es Administrador, nunca activar modo pruebas de redención
+if (!isCurrentUserAdminForNavTest()) {
+    navTestConfig.active = false;
+}
+
 const NAV_TEST_PRESETS = {
     reseller_1: { role: 'reseller', position: 1, name: 'Vendedor Estrella (Prueba)', screens: 220, catTitle: 'Vendedores' },
     reseller_2: { role: 'reseller', position: 2, name: 'Vendedor Plata (Prueba)', screens: 185, catTitle: 'Vendedores' },
@@ -5985,6 +6006,11 @@ const NAV_TEST_PRESETS = {
 };
 
 window.toggleNavTestMode = function(isActive) {
+    if (!isCurrentUserAdminForNavTest()) {
+        alert("🔒 Esta opción es exclusiva para el Administrador.");
+        navTestConfig.active = false;
+        return;
+    }
     navTestConfig.active = isActive;
     localStorage.setItem('nav_test_config', JSON.stringify(navTestConfig));
     if (window.renderPremioNavideno) window.renderPremioNavideno();
@@ -6031,7 +6057,8 @@ function updateNavCountdown() {
     if (!el) return;
 
     const now = Date.now();
-    const isTestMode = (typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
+    const isNavAdmin = isCurrentUserAdminForNavTest();
+    const isTestMode = isNavAdmin && ((typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true'));
     const start = NAV_PROMO_CONFIG.startDate;
     const end = NAV_PROMO_CONFIG.endDate;
 
@@ -6072,7 +6099,11 @@ window.renderPremioNavideno = async function () {
     const currentUser = detectNavUserRole(rankings);
 
     const now = Date.now();
-    const isTestMode = (typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true');
+    const isNavAdmin = isCurrentUserAdminForNavTest();
+    if (!isNavAdmin) {
+        navTestConfig.active = false;
+    }
+    const isTestMode = isNavAdmin && ((typeof navTestConfig !== 'undefined' && navTestConfig.active) || window.location.href.includes('test_navidad=true') || window.location.href.includes('test_promo=true'));
     const isWindowOpen = (now >= NAV_PROMO_CONFIG.startDate && now <= NAV_PROMO_CONFIG.endDate) || isTestMode;
     const isBeforeStart = now < NAV_PROMO_CONFIG.startDate && !isTestMode;
 
@@ -6115,12 +6146,13 @@ window.renderPremioNavideno = async function () {
                 </div>
             </div>
 
-            <!-- Barra de Pruebas de Redención -->
-            <div class="promo-nav-test-bar">
+${isNavAdmin ? `
+            <!-- Barra de Pruebas de Redención (SOLO VISIBLE PARA ADMINISTRADOR) -->
+            <div class="promo-nav-test-bar" style="border: 1px dashed rgba(168,85,247,0.7); background: rgba(168,85,247,0.08);">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <i class="fa-solid fa-flask" style="color:#a855f7; font-size:1.15rem;"></i>
-                        <strong style="color:#e2e8f0; font-size:0.9rem;">Pruebas de Redención:</strong>
+                        <strong style="color:#e2e8f0; font-size:0.9rem;">Pruebas de Redención <span style="font-size:0.75rem; color:#a855f7; border:1px solid #a855f7; padding:1px 6px; border-radius:4px;">Solo Admin</span>:</strong>
                         <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:#fbbf24; font-size:0.85rem; font-weight:700; background:rgba(251,191,36,0.15); padding:4px 10px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);">
                             <input type="checkbox" id="nav-test-toggle" ${navTestConfig.active ? 'checked' : ''} onchange="toggleNavTestMode(this.checked)">
                             ⚡ Activar Redimir
@@ -6156,11 +6188,11 @@ window.renderPremioNavideno = async function () {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>` : ''}
     `;
 
-    // Si Modo Pruebas está activo: mostrar tarjeta de redención de prueba directa
-    if (navTestConfig.active) {
+    // Si Modo Pruebas está activo Y es Admin: mostrar tarjeta de redención de prueba directa
+    if (isNavAdmin && navTestConfig.active) {
         const testRole = navTestConfig.role || 'reseller';
         const testPos = navTestConfig.position || 1;
         const testName = navTestConfig.name || 'Usuario de Pruebas';
