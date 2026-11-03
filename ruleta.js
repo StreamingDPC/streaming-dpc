@@ -80,6 +80,21 @@
 
     const WHATSAPP_ADMIN = "573155182545";
 
+    /**
+     * Genera una firma criptográfica corta (checksum) para validar la autenticidad del ticket
+     * Protege contra alteraciones manuales en el texto de WhatsApp
+     */
+    window.generarFirmaSeguridad = function (ticketId, descuento, telefono) {
+        const semilla = `${ticketId}-${descuento}-${telefono}-DPC2026`;
+        let hash = 0;
+        for (let i = 0; i < semilla.length; i++) {
+            hash = (hash << 5) - hash + semilla.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash).toString(36).toUpperCase().padStart(4, '0').substring(0, 5);
+    };
+
+
     // Variables internas del motor de la ruleta
     let anguloActual = 0;
     let isGirando = false;
@@ -364,16 +379,29 @@
             ctx.shadowOffsetX = 1;
             ctx.shadowOffsetY = 1;
 
-            // Renglón 1: Texto en la parte superior (hacia el borde exterior)
+            // Si el sector se encuentra en la mitad inferior de la ruleta, rotar 180° para que las letras nunca queden de cabeza
+            const anguloGlobal = (anguloActual + anguloInicio + arco / 2) % (2 * Math.PI);
+            const anguloNorm = (anguloGlobal + 2 * Math.PI) % (2 * Math.PI);
+            const isInvertido = (anguloNorm > 0.05 && anguloNorm < Math.PI - 0.05);
+
+            if (isInvertido) {
+                ctx.rotate(Math.PI);
+            }
+
+            // Para que la línea del servicio siempre esté arriba y el descuento abajo visualmente
+            const ySuperior = isInvertido ? 9 : -9;
+            const yDescuento = isInvertido ? -9 : 9;
+
+            // Renglón 1: Texto en la parte superior
             ctx.fillStyle = '#ffffff';
             ctx.font = (lineaSuperior.length > 11) ? 'bold 11.5px Outfit, sans-serif' : 'bold 13px Outfit, sans-serif';
-            ctx.fillText(lineaSuperior, 0, -9);
+            ctx.fillText(lineaSuperior, 0, ySuperior);
 
-            // Renglón 2: Descuento abajo del texto (hacia el centro de la ruleta)
+            // Renglón 2: Descuento abajo del texto
             if (lineaDescuento) {
                 ctx.fillStyle = (premio.tipo === 'pantalla_gratis') ? '#4ade80' : '#fef08a';
                 ctx.font = 'bold 11.5px Outfit, sans-serif';
-                ctx.fillText(lineaDescuento, 0, 9);
+                ctx.fillText(lineaDescuento, 0, yDescuento);
             }
 
             ctx.restore();
@@ -577,15 +605,48 @@
             return;
         }
 
-        // 2. Verificar intentos del día
+        // 2. Identificar teléfono del usuario y verificar antifraude en Firebase
         const config = window.getRuletaConfig();
-        const stats = getEstadisticasUsuario();
+        let phone = getCurrentUserIdentifier();
 
+        if (phone === 'invitado') {
+            const entered = prompt("🎰 Para girar la ruleta y asegurar tus premios, por favor ingresa tu número de WhatsApp (10 dígitos):");
+            if (!entered) return;
+            const clean = entered.replace(/\D/g, '').replace(/^57/, '');
+            if (clean.length < 10) {
+                alert("Por favor ingresa un número de WhatsApp válido (mínimo 10 dígitos).");
+                return;
+            }
+            phone = clean;
+            localStorage.setItem('dpc_ruleta_guest_phone', clean);
+        }
+
+        // Consultar intentos antifraude registrados en la nube (evita trucos de modo incógnito o borrar cookies)
+        const hoy = getTodayKey();
+        if (typeof db !== 'undefined' && phone && phone !== 'invitado') {
+            try {
+                const snap = await db.ref(`ruleta_logs/${hoy}/${phone}`).once('value');
+                const logData = snap.val();
+                if (logData) {
+                    if (logData.aceptoPremio) {
+                        alert("🎉 ¡Ya reclamaste tu premio de hoy con tu número de WhatsApp! Mañana podrás volver a participar.");
+                        return;
+                    }
+                    if (logData.giros >= config.intentosMaximosPorDia) {
+                        alert(`Has alcanzado el límite de ${config.intentosMaximosPorDia} giros diarios registrados para tu número de WhatsApp. ¡Vuelve mañana!`);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Error al consultar ruleta_logs en Firebase:", e);
+            }
+        }
+
+        const stats = getEstadisticasUsuario();
         if (stats.premioAceptado) {
             alert("🎉 ¡Ya reclamaste tu premio de hoy! Mañana podrás girar nuevamente la ruleta.");
             return;
         }
-
         if (stats.intentosHoy >= config.intentosMaximosPorDia) {
             alert(`Has alcanzado el límite de ${config.intentosMaximosPorDia} giros por hoy. ¡Vuelve mañana por más oportunidades!`);
             return;
@@ -595,10 +656,14 @@
         const resBox = document.getElementById("resultado-premio");
         if (resBox) resBox.style.display = "none";
 
-        // Registrar intento
+        // Registrar intento localmente y en Firebase Realtime Database
         stats.intentosHoy += 1;
         guardarEnStorage(stats);
         actualizarUIIntentos();
+
+        if (typeof db !== 'undefined' && phone && phone !== 'invitado') {
+            db.ref(`ruleta_logs/${hoy}/${phone}/giros`).transaction(curr => (parseInt(curr) || 0) + 1).catch(console.error);
+        }
 
         isGirando = true;
         const btnSpin = document.getElementById('ruleta-spin-btn');
@@ -715,8 +780,35 @@
      */
     function generarYEnviarTicket(premio, usuario, adminPhone = WHATSAPP_ADMIN) {
         const fecha = new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" });
-        const codigoTicket = "ST-" + Math.floor(100000 + Math.random() * 900000);
+        const ticketIdNum = "ST-" + Math.floor(100000 + Math.random() * 900000);
+        const telCliente = String(usuario.telefono || 'Sin registrar').replace(/\D/g, '').replace(/^57/, '');
+        const firma = window.generarFirmaSeguridad(ticketIdNum, premio.descuentoPorcentaje || 0, telCliente);
+        const codigoTicket = `${ticketIdNum}-${firma}`;
         let mensaje = "";
+
+        // Registrar ticket auténtico en Firebase Realtime Database para validación inmediata
+        if (typeof db !== 'undefined') {
+            db.ref(`ruleta_tickets/${ticketIdNum}`).set({
+                ticketId: ticketIdNum,
+                codigoCompleto: codigoTicket,
+                firma: firma,
+                premio: premio,
+                usuario: usuario,
+                fecha: fecha,
+                timestamp: Date.now()
+            }).catch(console.error);
+
+            // Bloquear giros adicionales en la nube para este teléfono
+            if (telCliente && telCliente.length >= 10) {
+                const hoy = getTodayKey();
+                db.ref(`ruleta_logs/${hoy}/${telCliente}`).update({
+                    aceptoPremio: true,
+                    ultimoTicket: ticketIdNum,
+                    codigoCompleto: codigoTicket,
+                    ultimoPremio: premio.label || premio.servicio
+                }).catch(console.error);
+            }
+        }
 
         // CASO 1: NO GANÓ NADA (Sigue intentando)
         if (premio.tipo === "sin_premio") {
@@ -743,7 +835,7 @@
         else if (premio.tipo === "pantalla_gratis") {
             mensaje =
                 `🎟️ *TICKET DE PREMIO - STREAMING DPC* 🎟️\n` +
-                `*N° Ticket:* #${codigoTicket}\n` +
+                `*N° Ticket:* #${ticketIdNum}\n*🔒 Código de Validación:* #${codigoTicket}\n` +
                 `---------------------------------------\n` +
                 `🎉 *¡GANÉ UNA PANTALLA DE REGALO!*\n` +
                 `📺 *Servicio:* ${premio.servicio}\n` +
@@ -764,7 +856,7 @@
 
             mensaje =
                 `🎟️ *TICKET DE DESCUENTO - STREAMING DPC* 🎟️\n` +
-                `*N° Ticket:* #${codigoTicket}\n` +
+                `*N° Ticket:* #${ticketIdNum}\n*🔒 Código de Validación:* #${codigoTicket}\n` +
                 `---------------------------------------\n` +
                 `🎯 *Premio obtenido:* ${premio.label}\n` +
                 `📺 *Servicio:* ${premio.servicio}\n` +
@@ -789,7 +881,7 @@
         else if (premio.tipo === "cupon_general") {
             mensaje =
                 `🎟️ *TICKET CUPÓN GENERAL - STREAMING DPC* 🎟️\n` +
-                `*N° Ticket:* #${codigoTicket}\n` +
+                `*N° Ticket:* #${ticketIdNum}\n*🔒 Código de Validación:* #${codigoTicket}\n` +
                 `---------------------------------------\n` +
                 `🎯 *Premio:* ${premio.label}\n` +
                 `🏷️ *Beneficio:* ${premio.descuentoPorcentaje}% de descuento en la pantalla que elija.\n` +
