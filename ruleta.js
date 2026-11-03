@@ -520,47 +520,66 @@
 
         if (!resBox || !iconoEl || !nombreEl || !detalleEl) return;
 
-        // Si no ganó nada
+        // Si no ganó nada (Sigue intentando): NO activar ni mostrar botón de pedir pantalla
         if (premioTemporal.tipo === "sin_premio") {
             iconoEl.textContent = "😢";
             nombreEl.textContent = "¡Sigue Intentando!";
-            detalleEl.innerHTML = `
-                <p style="margin: 0; color: #cbd5e1;">No obtuviste descuento en este giro.</p>
-                <p style="margin: 6px 0 0 0; color: #38bdf8;">Puedes comprar tu pantalla habitual pagando por Nequi o Daviplata.</p>
-            `;
+
+            // Ocultar botón de enviar WhatsApp cuando no hay premio
             if (btnEnviar) {
-                btnEnviar.textContent = "📲 Ver Medios de Pago y Pedir Pantalla";
-                btnEnviar.style.background = "#0284c7";
+                btnEnviar.style.display = "none";
+            }
+
+            const statsTemp = getEstadisticasUsuario();
+            const intentosRestantesTemp = Math.max(0, config.intentosMaximosPorDia - statsTemp.intentosHoy);
+
+            if (intentosRestantesTemp > 0) {
+                detalleEl.innerHTML = `
+                    <p style="margin: 0; color: #cbd5e1;">No obtuviste descuento en este giro.</p>
+                    <p style="margin: 6px 0 0 0; color: #fbbf24; font-weight:700;">¡Aún te quedan ${intentosRestantesTemp} intento(s) hoy! Vuelve a probar tu suerte.</p>
+                `;
+            } else {
+                detalleEl.innerHTML = `
+                    <p style="margin: 0; color: #cbd5e1;">No obtuviste descuento en este giro.</p>
+                    <p style="margin: 6px 0 0 0; color: #ef4444; font-weight:700;">Has completado tus ${config.intentosMaximosPorDia} giros de hoy. ¡Vuelve mañana por más oportunidades!</p>
+                `;
             }
         }
-        // Si ganó pantalla gratis
+        // Si ganó pantalla gratis: Activar botón para reclamar al WhatsApp del admin
         else if (premioTemporal.tipo === "pantalla_gratis") {
+            if (btnEnviar) {
+                btnEnviar.style.display = "block";
+                btnEnviar.textContent = "🎁 Reclamar mi Pantalla Gratis al Admin";
+                btnEnviar.style.background = "#10b981";
+            }
             iconoEl.textContent = "🎉";
             nombreEl.textContent = "¡PANTALLA TOTALMENTE GRATIS!";
             detalleEl.innerHTML = `
                 <div style="display: flex; justify-content: space-between; margin-bottom:4px;"><span>Servicio:</span> <b>${premioTemporal.servicio}</b></div>
                 <div style="display: flex; justify-content: space-between; color: #4ade80; font-size:1.05rem;"><span>Total a pagar:</span> <b>$0 COP</b></div>
             `;
-            if (btnEnviar) {
-                btnEnviar.textContent = "🎁 Reclamar mi Pantalla Gratis al Admin";
-                btnEnviar.style.background = "#10b981";
-            }
         }
-        // Si ganó cupón general
+        // Si ganó cupón general: Activar botón
         else if (premioTemporal.tipo === "cupon_general") {
+            if (btnEnviar) {
+                btnEnviar.style.display = "block";
+                btnEnviar.textContent = "📲 Aceptar Cupón y Enviar al Admin";
+                btnEnviar.style.background = "#8b5cf6";
+            }
             iconoEl.textContent = "🎟️";
             nombreEl.textContent = `¡Ganaste ${premioTemporal.label}!`;
             detalleEl.innerHTML = `
                 <div style="display: flex; justify-content: space-between; margin-bottom:4px;"><span>Beneficio:</span> <b>${premioTemporal.descuentoPorcentaje}% de Descuento</b></div>
                 <div style="display: flex; justify-content: space-between; color: #fbbf24;"><span>Aplica en:</span> <b>Cualquier Pantalla que elijas</b></div>
             `;
-            if (btnEnviar) {
-                btnEnviar.textContent = "📲 Aceptar Cupón y Enviar al Admin";
-                btnEnviar.style.background = "#8b5cf6";
-            }
         }
-        // Si ganó descuento calculado
+        // Si ganó descuento calculado: Activar botón
         else {
+            if (btnEnviar) {
+                btnEnviar.style.display = "block";
+                btnEnviar.textContent = "📲 Aceptar Descuento y Enviar Ticket";
+                btnEnviar.style.background = "#22c55e";
+            }
             const rebaja = (premioTemporal.precioNormal * premioTemporal.descuentoPorcentaje) / 100;
             const finalPagar = premioTemporal.precioNormal - rebaja;
 
@@ -568,15 +587,11 @@
             nombreEl.textContent = `¡Ganaste ${premioTemporal.label}!`;
             detalleEl.innerHTML = `
                 <div style="display: flex; justify-content: space-between; margin-bottom:3px;"><span>Servicio:</span> <b>${premioTemporal.servicio}</b></div>
-                <div style="display: flex; justify-content: space-between; margin-bottom:3px;"><span>Precio normal:</span> <s>$${premioTemporal.precioNormal.toLocaleString("es-CO")}</s></div>
-                <div style="display: flex; justify-content: space-between; color: #fbbf24; margin-bottom:3px;"><span>Descuento:</span> -${premioTemporal.descuentoPorcentaje}% (-$${rebaja.toLocaleString("es-CO")})</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom:3px;"><span>Precio normal:</span> <s>${premioTemporal.precioNormal.toLocaleString("es-CO")}</s></div>
+                <div style="display: flex; justify-content: space-between; color: #fbbf24; margin-bottom:3px;"><span>Descuento:</span> -${premioTemporal.descuentoPorcentaje}% (-${rebaja.toLocaleString("es-CO")})</div>
                 <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.15); margin: 6px 0;">
-                <div style="display: flex; justify-content: space-between; font-size: 15px; color: #4ade80;"><span>Total a transferir:</span> <b>$${finalPagar.toLocaleString("es-CO")} COP</b></div>
+                <div style="display: flex; justify-content: space-between; font-size: 15px; color: #4ade80;"><span>Total a transferir:</span> <b>${finalPagar.toLocaleString("es-CO")} COP</b></div>
             `;
-            if (btnEnviar) {
-                btnEnviar.textContent = "📲 Aceptar Descuento y Enviar Ticket";
-                btnEnviar.style.background = "#22c55e";
-            }
         }
 
         // Comprobar intentos restantes
