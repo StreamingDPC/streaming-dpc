@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.57 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.58 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3285,12 +3285,12 @@
                         </div>
                     </div>
 
-                    <!-- SECCIÓN: PROMO / RANKING EN MENSAJES DE RENOVACIÓN -->
+                    <!-- SECCIÓN: PROMO / RANKING EN RECORDATORIOS Y RENOVACIONES -->
                     <div class="form-col"
                         style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem; background: rgba(251, 191, 36, 0.04); padding: 1.2rem; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.25);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.6rem; flex-wrap:wrap; gap:10px;">
                             <label style="color:#fbbf24; font-weight:700; margin:0; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
-                                <i class="fa-solid fa-gift"></i> Promoción / Ranking en Mensajes de Renovación
+                                <i class="fa-solid fa-gift"></i> Promoción / Ranking en Recordatorios y Renovaciones
                             </label>
                             <div style="display:flex; align-items:center; gap:10px;">
                                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
@@ -3300,8 +3300,18 @@
                             </div>
                         </div>
                         <p style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0; margin-bottom: 0.6rem; line-height:1.4;">
-                            Si está activado, se incluirá este mensaje al final de las renovaciones (<strong>Recordar</strong> y <strong>Renovada</strong>). Usa <code>{puesto}</code>, <code>{pantallas_acumuladas}</code> y <code>{cliente}</code> para autocompletar.
+                            Si está activado, se incluirá este mensaje al final de tus envíos por WhatsApp. Usa <code>{puesto}</code>, <code>{pantallas_acumuladas}</code> y <code>{cliente}</code> para autocompletar.
                         </p>
+                        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:0.8rem; background:rgba(0,0,0,0.25); padding:8px 12px; border-radius:8px;">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:0.82rem;">
+                                <input type="checkbox" id="conf-promoRankingInReminder" onchange="storeConfig.promoRankingInReminder = this.checked; if(typeof db !== 'undefined') db.ref('storeConfig/promoRankingInReminder').set(this.checked); window.updatePromoRankingUI();" style="width:16px; height:16px; cursor:pointer;">
+                                <span>Enviar en <strong>Recordatorios</strong> (Botón "Recordar")</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:0.82rem;">
+                                <input type="checkbox" id="conf-promoRankingInRenewal" onchange="storeConfig.promoRankingInRenewal = this.checked; if(typeof db !== 'undefined') db.ref('storeConfig/promoRankingInRenewal').set(this.checked); window.updatePromoRankingUI();" style="width:16px; height:16px; cursor:pointer;">
+                                <span>Enviar en <strong>Renovaciones</strong> (Botón "Renovada")</span>
+                            </label>
+                        </div>
                         <div style="display:flex; gap:0.5rem; align-items:flex-start;">
                             <textarea id="conf-promoRankingTemplate"
                                 style="height: 110px; padding: 10px; flex:1; font-size:0.85rem;" placeholder="Escribe aquí el mensaje promocional..."></textarea>
@@ -3802,21 +3812,37 @@
             <button onclick="closePromoRankingModal()"
                 style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
             <h2 style="color:#fbbf24; margin:0 0 0.8rem 0; display:flex; align-items:center; gap:0.8rem; font-size:1.3rem;">
-                <i class="fa-solid fa-gift"></i> Promo / Ranking en Renovaciones
+                <i class="fa-solid fa-gift"></i> Promo / Ranking en Recordatorios y Renovaciones
             </h2>
             <p style="color:#cbd5e1; font-size:0.85rem; margin-bottom:1.2rem; line-height:1.4;">
-                Activa o personaliza el mensaje de la promoción que se incluirá automáticamente cuando envíes mensajes de renovación por WhatsApp (<strong>Recordar</strong> y <strong>Renovada</strong>).
+                Activa o personaliza el mensaje de la promoción que se incluirá automáticamente cuando envíes mensajes por WhatsApp en ambos botones: <strong>Recordar</strong> y <strong>Renovada</strong>.
             </p>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; margin-bottom:1.2rem; border:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; margin-bottom:0.8rem; border:1px solid rgba(255,255,255,0.08);">
                 <div>
-                    <strong style="color:#fff; font-size:0.9rem; display:block;">Estado de la Promoción:</strong>
-                    <small style="color:#94a3b8; font-size:0.75rem;">¿Incluir este mensaje al final de las renovaciones?</small>
+                    <strong style="color:#fff; font-size:0.9rem; display:block;">Interruptor General:</strong>
+                    <small style="color:#94a3b8; font-size:0.75rem;">¿Activar o desactivar este mensaje en tus envíos?</small>
                 </div>
                 <button id="modal-promo-toggle-btn" type="button" onclick="togglePromoRankingInRenewal()"
                     style="padding:8px 16px; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer; border:1px solid #fbbf24; background:rgba(251,191,36,0.2); color:#fbbf24; display:flex; align-items:center; gap:8px;">
                     <i class="fa-solid fa-power-off"></i> <span id="modal-promo-toggle-text">ACTIVADO</span>
                 </button>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.03); padding:10px 14px; border-radius:10px; margin-bottom:1.2rem; border:1px solid rgba(255,255,255,0.06);">
+                <strong style="color:#38bdf8; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:8px;">
+                    <i class="fa-solid fa-paper-plane"></i> Enviar automáticamente en ambos o por separado:
+                </strong>
+                <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:0.85rem;">
+                        <input type="checkbox" id="modal-promo-in-reminder" onchange="window.updatePromoRankingChannelConfig()" style="width:17px; height:17px; cursor:pointer;">
+                        <span>En <strong>Recordatorios</strong> (Botón "Recordar")</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:0.85rem;">
+                        <input type="checkbox" id="modal-promo-in-renewal" onchange="window.updatePromoRankingChannelConfig()" style="width:17px; height:17px; cursor:pointer;">
+                        <span>En <strong>Renovaciones</strong> (Botón "Renovada")</span>
+                    </label>
+                </div>
             </div>
 
             <div style="margin-bottom:1rem;">
@@ -6276,6 +6302,8 @@
             sellers: [],
             estrenos: [],
             promoRankingEnabled: true,
+            promoRankingInReminder: true,
+            promoRankingInRenewal: true,
             promoRankingTemplate: "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\nActualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨",
             reminderTemplate: "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*"
         };
@@ -6455,6 +6483,12 @@
                 }
                 if (document.getElementById('conf-promoRankingEnabled')) {
                     document.getElementById('conf-promoRankingEnabled').checked = storeConfig.promoRankingEnabled !== false;
+                }
+                if (document.getElementById('conf-promoRankingInReminder')) {
+                    document.getElementById('conf-promoRankingInReminder').checked = storeConfig.promoRankingInReminder !== false;
+                }
+                if (document.getElementById('conf-promoRankingInRenewal')) {
+                    document.getElementById('conf-promoRankingInRenewal').checked = storeConfig.promoRankingInRenewal !== false;
                 }
                 if (document.getElementById('conf-promoRankingTemplate')) {
                     document.getElementById('conf-promoRankingTemplate').value = storeConfig.promoRankingTemplate;
@@ -6749,6 +6783,12 @@
 
                 if (document.getElementById('conf-promoRankingEnabled')) {
                     storeConfig.promoRankingEnabled = document.getElementById('conf-promoRankingEnabled').checked;
+                }
+                if (document.getElementById('conf-promoRankingInReminder')) {
+                    storeConfig.promoRankingInReminder = document.getElementById('conf-promoRankingInReminder').checked;
+                }
+                if (document.getElementById('conf-promoRankingInRenewal')) {
+                    storeConfig.promoRankingInRenewal = document.getElementById('conf-promoRankingInRenewal').checked;
                 }
                 if (document.getElementById('conf-promoRankingTemplate')) {
                     storeConfig.promoRankingTemplate = document.getElementById('conf-promoRankingTemplate').value;
@@ -9819,9 +9859,17 @@
             if (!modal) return;
             const tpl = storeConfig.promoRankingTemplate || "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\nActualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨";
             const enabled = storeConfig.promoRankingEnabled !== false;
+            const inRem = storeConfig.promoRankingInReminder !== false;
+            const inRen = storeConfig.promoRankingInRenewal !== false;
             
             const txtEl = document.getElementById('modal-promo-template');
             if (txtEl) txtEl.value = tpl;
+
+            const chkRem = document.getElementById('modal-promo-in-reminder');
+            if (chkRem) chkRem.checked = inRem;
+
+            const chkRen = document.getElementById('modal-promo-in-renewal');
+            if (chkRen) chkRen.checked = inRen;
             
             updatePromoRankingModalToggleBtn(enabled);
             window.updatePromoRankingPreview();
@@ -9830,7 +9878,8 @@
 
         window.closePromoRankingModal = function() {
             const modal = document.getElementById('promo-ranking-modal');
-            if (modal) modal.style.display = 'none';
+            if (!modal) return;
+            modal.style.display = 'none';
         };
 
         window.updatePromoRankingPreview = function() {
@@ -9858,50 +9907,80 @@
             window.updatePromoRankingPreview();
         };
 
+        window.updatePromoRankingChannelConfig = function() {
+            const chkRem = document.getElementById('modal-promo-in-reminder');
+            const chkRen = document.getElementById('modal-promo-in-renewal');
+            if (chkRem) {
+                storeConfig.promoRankingInReminder = chkRem.checked;
+                if (typeof db !== 'undefined') db.ref('storeConfig/promoRankingInReminder').set(chkRem.checked).catch(console.error);
+            }
+            if (chkRen) {
+                storeConfig.promoRankingInRenewal = chkRen.checked;
+                if (typeof db !== 'undefined') db.ref('storeConfig/promoRankingInRenewal').set(chkRen.checked).catch(console.error);
+            }
+            window.updatePromoRankingUI();
+        };
+
         window.savePromoRankingFromModal = function() {
             const txtEl = document.getElementById('modal-promo-template');
             if (txtEl) {
                 storeConfig.promoRankingTemplate = txtEl.value.trim();
-                db.ref('storeConfig/promoRankingTemplate').set(storeConfig.promoRankingTemplate).catch(console.error);
+                if (typeof db !== 'undefined') db.ref('storeConfig/promoRankingTemplate').set(storeConfig.promoRankingTemplate).catch(console.error);
                 if (document.getElementById('conf-promoRankingTemplate')) {
                     document.getElementById('conf-promoRankingTemplate').value = storeConfig.promoRankingTemplate;
                 }
             }
+            window.updatePromoRankingChannelConfig();
             window.closePromoRankingModal();
-            alert('¡Mensaje de promoción guardado correctamente! Ya se aplicará en tus mensajes de renovación.');
+            alert('¡Configuración de la promoción guardada correctamente! Se enviará en los mensajes seleccionados (Recordar y/o Renovada).');
         };
 
         window.togglePromoRankingInRenewal = function() {
             const current = storeConfig.promoRankingEnabled !== false;
             const next = !current;
             storeConfig.promoRankingEnabled = next;
-            db.ref('storeConfig/promoRankingEnabled').set(next).catch(console.error);
+            if (typeof db !== 'undefined') db.ref('storeConfig/promoRankingEnabled').set(next).catch(console.error);
             window.updatePromoRankingUI();
         };
 
         window.syncPromoRankingToggle = function(checked) {
             storeConfig.promoRankingEnabled = checked;
-            db.ref('storeConfig/promoRankingEnabled').set(checked).catch(console.error);
+            if (typeof db !== 'undefined') db.ref('storeConfig/promoRankingEnabled').set(checked).catch(console.error);
             window.updatePromoRankingUI();
         };
 
         window.updatePromoRankingUI = function() {
             const enabled = storeConfig.promoRankingEnabled !== false;
+            const inRem = storeConfig.promoRankingInReminder !== false;
+            const inRen = storeConfig.promoRankingInRenewal !== false;
             
+            let labelText = 'Promo: DESACTIVADO';
+            if (enabled) {
+                if (inRem && inRen) {
+                    labelText = 'Promo (Recordar y Renovada): ACTIVADO';
+                } else if (inRem) {
+                    labelText = 'Promo (Solo Recordar): ACTIVADO';
+                } else if (inRen) {
+                    labelText = 'Promo (Solo Renovada): ACTIVADO';
+                } else {
+                    labelText = 'Promo: DESACTIVADO';
+                }
+            }
+
             // Botón en barra de clientes
             const btn1 = document.getElementById('btn-toggle-promo-ranking');
             const label1 = document.getElementById('promo-ranking-btn-label');
             if (btn1 && label1) {
-                if (enabled) {
+                if (enabled && (inRem || inRen)) {
                     btn1.style.background = 'rgba(251, 191, 36, 0.15)';
                     btn1.style.borderColor = '#fbbf24';
                     btn1.style.color = '#fbbf24';
-                    label1.textContent = 'Promo Ranking: ACTIVADO';
+                    label1.textContent = labelText;
                 } else {
                     btn1.style.background = 'rgba(255, 255, 255, 0.05)';
                     btn1.style.borderColor = '#666';
                     btn1.style.color = '#94a3b8';
-                    label1.textContent = 'Promo Ranking: DESACTIVADO';
+                    label1.textContent = 'Promo: DESACTIVADO';
                 }
             }
             
@@ -9909,16 +9988,16 @@
             const btn2 = document.getElementById('seller-btn-toggle-promo-ranking');
             const label2 = document.getElementById('seller-promo-ranking-btn-label');
             if (btn2 && label2) {
-                if (enabled) {
+                if (enabled && (inRem || inRen)) {
                     btn2.style.background = 'rgba(251, 191, 36, 0.15)';
                     btn2.style.borderColor = '#fbbf24';
                     btn2.style.color = '#fbbf24';
-                    label2.textContent = 'Promo Ranking: ACTIVADO';
+                    label2.textContent = labelText;
                 } else {
                     btn2.style.background = 'rgba(255, 255, 255, 0.05)';
                     btn2.style.borderColor = '#666';
                     btn2.style.color = '#94a3b8';
-                    label2.textContent = 'Promo Ranking: DESACTIVADO';
+                    label2.textContent = 'Promo: DESACTIVADO';
                 }
             }
 
@@ -9953,17 +10032,8 @@
             const cleanPhone = String(clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
             const isSellerSale = sellerName && sellerName !== 'Página Web Oficial' && sellerName !== 'Admin';
             
-            const dataStore = window.currentStatsRankingData || {};
-            let list = [];
-            if (isSellerSale) {
-                list = [...(dataStore.sellerClients || [])].sort((a,b) => (b.screens || 0) - (a.screens || 0));
-            } else {
-                list = [...(dataStore.adminClients || [])].sort((a,b) => (b.screens || 0) - (a.screens || 0));
-            }
-
-            if (list.length === 0) {
-                list = computeLiveNavidadRankList(isSellerSale ? 'sellerClients' : 'adminClients');
-            }
+            // Para el cálculo de premio navideño siempre computamos sobre el histórico anual completo
+            const list = computeLiveNavidadRankList(isSellerSale ? 'sellerClients' : 'adminClients');
 
             const idx = list.findIndex(c => String(c.phone || '').replace(/\D/g, '').replace(/^57/, '') === cleanPhone);
             if (idx !== -1) {
@@ -9987,9 +10057,9 @@
             const sellerClients = {};
             const processedSigs = new Set();
 
-            function proc(s, defaultSeller) {
+            function proc(s, defaultSeller, fallbackPhone) {
                 if (!s || s.isPaid === false) return;
-                const cleanP = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+                const cleanP = String(s.clientPhone || fallbackPhone || '').replace(/\D/g, '').replace(/^57/, '');
                 const sId = s.id || s._saleId || '';
                 const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
                 const sig = sId ? (sId + '_' + cleanP) : ((s.fechaCompraOriginal || s.date || 0) + '_' + cleanP + '_' + sProfile);
@@ -10026,14 +10096,14 @@
             const cMap = window.allClientSalesMap || {};
             Object.keys(cMap).forEach(p => {
                 const sales = cMap[p] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], ''));
+                Object.keys(sales).forEach(id => proc(sales[id], '', p));
             });
 
             const sMap = window.globalSellerSalesDataStore || {};
             Object.keys(sMap).forEach(s => {
                 if (s === 'Página Web Oficial' || s.toLowerCase().includes('oficial') || s.toLowerCase() === 'admin') return;
                 const sales = sMap[s] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], s));
+                Object.keys(sales).forEach(id => proc(sales[id], s, ''));
             });
 
             if (type === 'sellerClients') {
@@ -10194,8 +10264,9 @@
                 msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
             }
 
-            // Inyectar Promo / Ranking Navideño si está activado
-            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+            // Inyectar Promo / Ranking Navideño si está activado para Renovaciones
+            const isPromoForRenewal = storeConfig.promoRankingEnabled !== false && storeConfig.promoRankingInRenewal !== false;
+            if (isPromoForRenewal && typeof window.buildPromoRankingMessageBlock === 'function') {
                 const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, clientName, sourceName);
                 if (promoBlock) {
                     if (msg.includes('{promo_ranking}')) {
@@ -10756,8 +10827,9 @@
                 .replace(/{total}/g, (saleTotal || 0).toLocaleString())
                 .replace(/{pago}/g, storeConfig.paymentInfo || '');
 
-            // Inyectar Promo / Ranking Navideño si está activado
-            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+            // Inyectar Promo / Ranking Navideño si está activado para Recordatorios
+            const isPromoForReminder = storeConfig.promoRankingEnabled !== false && storeConfig.promoRankingInReminder !== false;
+            if (isPromoForReminder && typeof window.buildPromoRankingMessageBlock === 'function') {
                 const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, clientName, sellerName);
                 if (promoBlock) {
                     if (finalMsg.includes('{promo_ranking}')) {
@@ -11556,8 +11628,9 @@
                 .replace(/{total}/g, saleTotal > 0 ? saleTotal.toLocaleString() : "0")
                 .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
-            // Inyectar Promo / Ranking Navideño si está activado
-            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+            // Inyectar Promo / Ranking Navideño si está activado para Recordatorios
+            const isPromoForReminder = storeConfig.promoRankingEnabled !== false && storeConfig.promoRankingInReminder !== false;
+            if (isPromoForReminder && typeof window.buildPromoRankingMessageBlock === 'function') {
                 const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, cName, '');
                 if (promoBlock) {
                     if (msg.includes('{promo_ranking}')) {
@@ -12381,8 +12454,9 @@
                         .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
                         .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
-                    // Inyectar Promo / Ranking Navideño si está activado
-                    if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+                    // Inyectar Promo / Ranking Navideño si está activado para Recordatorios
+                    const isPromoForReminder = storeConfig.promoRankingEnabled !== false && storeConfig.promoRankingInReminder !== false;
+                    if (isPromoForReminder && typeof window.buildPromoRankingMessageBlock === 'function') {
                         const promoBlock = window.buildPromoRankingMessageBlock(r.phone, r.name, '');
                         if (promoBlock) {
                             if (msgDirect.includes('{promo_ranking}')) {
