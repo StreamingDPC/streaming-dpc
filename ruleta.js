@@ -227,6 +227,67 @@
         } catch (e) { }
     }
 
+
+    /**
+     * Parsea un premio para formatearlo en 2 líneas:
+     * - Línea Superior: Nombre del servicio / producto / texto principal
+     * - Línea Inferior: Descuento / beneficio (ej: 30% DCTO, ¡GRATIS!, etc.)
+     */
+    function parsePrizeLines(premio) {
+        if (!premio) return { lineaSuperior: '', lineaDescuento: '' };
+        if (premio.textoSuperior && premio.descuentoAbajo) {
+            return { lineaSuperior: premio.textoSuperior, lineaDescuento: premio.descuentoAbajo };
+        }
+
+        const lbl = (premio.label || '').trim();
+        const servLimpio = (premio.servicio || '')
+            .replace(/premium|estándar|estandar|fan/gi, '')
+            .trim();
+        
+        let lineaSuperior = '';
+        let lineaDescuento = '';
+
+        if (premio.tipo === 'pantalla_gratis') {
+            lineaSuperior = servLimpio ? `Pantalla ${servLimpio}` : 'Pantalla';
+            if (lineaSuperior.length > 13 && servLimpio) {
+                lineaSuperior = servLimpio; // Ej: "Crunchyroll"
+            }
+            lineaDescuento = '¡GRATIS! 🎁';
+        } else if (premio.tipo === 'descuento_servicio') {
+            lineaSuperior = servLimpio || 'Pantalla';
+            lineaDescuento = (premio.descuentoPorcentaje ? `${premio.descuentoPorcentaje}% DCTO` : 'DESCUENTO');
+        } else if (premio.tipo === 'cupon_general') {
+            lineaSuperior = (servLimpio && !['ninguno', 'cualquier pantalla'].includes(servLimpio.toLowerCase())) ? servLimpio : 'Bono General';
+            lineaDescuento = (premio.descuentoPorcentaje ? `${premio.descuentoPorcentaje}% DCTO` : '15% DCTO');
+        } else if (premio.tipo === 'sin_premio') {
+            lineaSuperior = 'Sigue';
+            lineaDescuento = 'Intentando 😢';
+        } else {
+            if (lbl.includes('DCTO')) {
+                const parts = lbl.split(/DCTO/i);
+                lineaDescuento = (parts[0] + 'DCTO').trim();
+                lineaSuperior = parts[1].trim();
+            } else if (lbl.toLowerCase().includes('gratis')) {
+                lineaSuperior = lbl.replace(/gratis/gi, '').replace(/pantalla/gi, '').trim() || 'Pantalla';
+                lineaDescuento = '¡GRATIS!';
+            } else {
+                const words = lbl.split(' ');
+                if (words.length >= 2) {
+                    lineaSuperior = words.slice(0, Math.ceil(words.length / 2)).join(' ');
+                    lineaDescuento = words.slice(Math.ceil(words.length / 2)).join(' ');
+                } else {
+                    lineaSuperior = lbl;
+                    lineaDescuento = '';
+                }
+            }
+        }
+
+        if (lineaSuperior.length > 15) lineaSuperior = lineaSuperior.substring(0, 14) + '...';
+        if (lineaDescuento.length > 15) lineaDescuento = lineaDescuento.substring(0, 14) + '...';
+
+        return { lineaSuperior, lineaDescuento };
+    }
+
     /**
      * Dibuja la ruleta en el Canvas
      */
@@ -272,19 +333,37 @@
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
             ctx.stroke();
 
-            // Texto de la etiqueta
+            // Texto de la etiqueta (2 renglones: Superior = Nombre/Servicio, Abajo = Descuento)
             ctx.save();
             ctx.rotate(anguloInicio + arco / 2);
-            ctx.textAlign = 'right';
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 13px Outfit, sans-serif';
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 4;
 
-            // Recortar texto si es muy largo
-            let txt = premio.label || '';
-            if (txt.length > 22) txt = txt.substring(0, 20) + '...';
-            ctx.fillText(txt, radius - 20, 5);
+            // Posición centrada en la zona visible del sector (totalmente fuera del botón central GIRAR)
+            const rTexto = radius * 0.68;
+            ctx.translate(rTexto, 0);
+            ctx.rotate(Math.PI / 2); // Orientar horizontal a lo ancho del sector
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const { lineaSuperior, lineaDescuento } = parsePrizeLines(premio);
+
+            // Sombra para contraste y legibilidad impecable sobre cualquier color de fondo
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+
+            // Renglón 1: Texto en la parte superior (hacia el borde exterior)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = (lineaSuperior.length > 11) ? 'bold 11.5px Outfit, sans-serif' : 'bold 13px Outfit, sans-serif';
+            ctx.fillText(lineaSuperior, 0, -9);
+
+            // Renglón 2: Descuento abajo del texto (hacia el centro de la ruleta)
+            if (lineaDescuento) {
+                ctx.fillStyle = (premio.tipo === 'pantalla_gratis') ? '#4ade80' : '#fef08a';
+                ctx.font = 'bold 11.5px Outfit, sans-serif';
+                ctx.fillText(lineaDescuento, 0, 9);
+            }
+
             ctx.restore();
         }
 

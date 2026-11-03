@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.61 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.62 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -10293,6 +10293,62 @@
             }
         }
 
+
+        function parsePrizeLinesAdmin(premio) {
+            if (!premio) return { lineaSuperior: '', lineaDescuento: '' };
+            if (premio.textoSuperior && premio.descuentoAbajo) {
+                return { lineaSuperior: premio.textoSuperior, lineaDescuento: premio.descuentoAbajo };
+            }
+
+            const lbl = (premio.label || '').trim();
+            const servLimpio = (premio.servicio || '')
+                .replace(/premium|estándar|estandar|fan/gi, '')
+                .trim();
+            
+            let lineaSuperior = '';
+            let lineaDescuento = '';
+
+            if (premio.tipo === 'pantalla_gratis') {
+                lineaSuperior = servLimpio ? ('Pantalla ' + servLimpio) : 'Pantalla';
+                if (lineaSuperior.length > 13 && servLimpio) {
+                    lineaSuperior = servLimpio;
+                }
+                lineaDescuento = '¡GRATIS! 🎁';
+            } else if (premio.tipo === 'descuento_servicio') {
+                lineaSuperior = servLimpio || 'Pantalla';
+                lineaDescuento = (premio.descuentoPorcentaje ? (premio.descuentoPorcentaje + '% DCTO') : 'DESCUENTO');
+            } else if (premio.tipo === 'cupon_general') {
+                lineaSuperior = (servLimpio && !['ninguno', 'cualquier pantalla'].includes(servLimpio.toLowerCase())) ? servLimpio : 'Bono General';
+                lineaDescuento = (premio.descuentoPorcentaje ? (premio.descuentoPorcentaje + '% DCTO') : '15% DCTO');
+            } else if (premio.tipo === 'sin_premio') {
+                lineaSuperior = 'Sigue';
+                lineaDescuento = 'Intentando 😢';
+            } else {
+                if (lbl.includes('DCTO')) {
+                    const parts = lbl.split(/DCTO/i);
+                    lineaDescuento = (parts[0] + 'DCTO').trim();
+                    lineaSuperior = parts[1].trim();
+                } else if (lbl.toLowerCase().includes('gratis')) {
+                    lineaSuperior = lbl.replace(/gratis/gi, '').replace(/pantalla/gi, '').trim() || 'Pantalla';
+                    lineaDescuento = '¡GRATIS!';
+                } else {
+                    const words = lbl.split(' ');
+                    if (words.length >= 2) {
+                        lineaSuperior = words.slice(0, Math.ceil(words.length / 2)).join(' ');
+                        lineaDescuento = words.slice(Math.ceil(words.length / 2)).join(' ');
+                    } else {
+                        lineaSuperior = lbl;
+                        lineaDescuento = '';
+                    }
+                }
+            }
+
+            if (lineaSuperior.length > 15) lineaSuperior = lineaSuperior.substring(0, 14) + '...';
+            if (lineaDescuento.length > 15) lineaDescuento = lineaDescuento.substring(0, 14) + '...';
+
+            return { lineaSuperior, lineaDescuento };
+        }
+
         window.renderRuletaAdminPrizesList = function() {
             const cont = document.getElementById('admin-ruleta-prizes-container');
             const cntBadge = document.getElementById('admin-ruleta-prizes-count');
@@ -10342,6 +10398,9 @@
                                 'style="width:100%; padding:4px 6px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.78rem;">' +
                         '</div>' +
                     '</div>' +
+                    '<div style="background:rgba(255,255,255,0.04); padding:4px 10px; border-radius:6px; font-size:0.74rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">' +
+                        '<span><i class="fa-solid fa-eye" style="color:#38bdf8;"></i> Se verá en la ruleta: <strong style="color:#ffffff;">"' + parsePrizeLinesAdmin(p).lineaSuperior + '"</strong> (arriba) / <strong style="color:#fef08a;">"' + parsePrizeLinesAdmin(p).lineaDescuento + '"</strong> (abajo)</span>' +
+                    '</div>' +
                 '</div>';
             }).join('');
         };
@@ -10349,7 +10408,7 @@
         window.updateRuletaAdminPrizeField = function(idx, field, val) {
             if (!currentRuletaAdminPrizes[idx]) return;
             currentRuletaAdminPrizes[idx][field] = val;
-            if (field === 'color') renderRuletaAdminPrizesList();
+            renderRuletaAdminPrizesList();
         };
 
         window.addRuletaAdminPrize = function() {
