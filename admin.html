@@ -786,6 +786,16 @@
                             title="Sincronizar precios de ventas con el catálogo actual">
                             <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Precios
                         </button>
+                        <button id="seller-btn-toggle-promo-ranking" type="button" onclick="togglePromoRankingInRenewal()"
+                            style="padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid #fbbf24; background: rgba(251, 191, 36, 0.15); color: #fbbf24; transition: all 0.2s ease;"
+                            title="Activar/Desactivar el bloque de Ranking Navideño en los mensajes de renovación">
+                            <i class="fa-solid fa-gift"></i> <span id="seller-promo-ranking-btn-label">Promo Ranking: ACTIVADO</span>
+                        </button>
+                        <button type="button" onclick="openPromoRankingModal()"
+                            style="padding: 8px 10px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.15); color: #38bdf8; transition: all 0.2s ease;"
+                            title="Editar mensaje de la promoción">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar Promo
+                        </button>
                         <button class="save-btn" onclick="deleteSelectedSellerSales()"
                             style="background:#ff4d4d; margin:0; width:auto; padding: 8px 15px; font-size:0.9rem;"><i
                                 class="fa-solid fa-trash"></i> Eliminar Selección</button>
@@ -1081,12 +1091,22 @@
                         <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Nuevos Precios
                     </button>
                 </div>
-                <div style="display:flex; gap: 1rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
+                <div style="display:flex; gap: 0.8rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
                     <input type="text" id="filter-clients-text" placeholder="Buscar por número o nombre..."
                         class="input-modern" style="margin-bottom:0; flex:1; min-width: 200px;"
                         oninput="renderAllClientsList()">
+                    <button id="btn-toggle-promo-ranking" type="button" onclick="togglePromoRankingInRenewal()"
+                        style="padding: 9px 14px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid #fbbf24; background: rgba(251, 191, 36, 0.15); color: #fbbf24; transition: all 0.2s ease;"
+                        title="Activar/Desactivar el bloque de Ranking Navideño en los mensajes de renovación">
+                        <i class="fa-solid fa-gift"></i> <span id="promo-ranking-btn-label">Promo Ranking: ACTIVADO</span>
+                    </button>
+                    <button type="button" onclick="openPromoRankingModal()"
+                        style="padding: 9px 12px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.15); color: #38bdf8; transition: all 0.2s ease;"
+                        title="Editar mensaje de la promoción para futuras promociones">
+                        <i class="fa-solid fa-pen-to-square"></i> Editar Promo
+                    </button>
                     <button class="save-btn" onclick="deleteSelectedClientSales()"
-                        style="background:#ff4d4d; margin:0; width:auto; padding: 10px 20px;"><i
+                        style="background:#ff4d4d; margin:0; width:auto; padding: 10px 18px;"><i
                             class="fa-solid fa-trash"></i> Eliminar Selección</button>
                 </div>
                 <div id="admin-list-all-clients" class="admin-list" style="max-height: 400px; overflow-y: auto;"></div>
@@ -3265,6 +3285,32 @@
                         </div>
                     </div>
 
+                    <!-- SECCIÓN: PROMO / RANKING EN MENSAJES DE RENOVACIÓN -->
+                    <div class="form-col"
+                        style="margin-bottom: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem; background: rgba(251, 191, 36, 0.04); padding: 1.2rem; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.25);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.6rem; flex-wrap:wrap; gap:10px;">
+                            <label style="color:#fbbf24; font-weight:700; margin:0; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-gift"></i> Promoción / Ranking en Mensajes de Renovación
+                            </label>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+                                    <input type="checkbox" id="conf-promoRankingEnabled" onchange="window.syncPromoRankingToggle(this.checked)" style="width:16px; height:16px; cursor:pointer;">
+                                    <span style="font-size:0.85rem; color:#fff; font-weight:700;" id="conf-promoRankingEnabledLabel">Activado</span>
+                                </label>
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0; margin-bottom: 0.6rem; line-height:1.4;">
+                            Si está activado, se incluirá este mensaje al final de las renovaciones (<strong>Recordar</strong> y <strong>Renovada</strong>). Usa <code>{puesto}</code>, <code>{pantallas_acumuladas}</code> y <code>{cliente}</code> para autocompletar.
+                        </p>
+                        <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                            <textarea id="conf-promoRankingTemplate"
+                                style="height: 110px; padding: 10px; flex:1; font-size:0.85rem;" placeholder="Escribe aquí el mensaje promocional..."></textarea>
+                            <button class="save-btn" onclick="saveConfig()"
+                                style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);"
+                                title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                    </div>
+
                     <div class="form-grid" style="margin-bottom: 1rem;">
                         <div class="form-col">
                             <label>Asistente Automático Vencimiento HOY</label>
@@ -3744,6 +3790,66 @@
                 <button type="button" onclick="closeSyncPricesModal()" 
                     style="background:rgba(255,255,255,0.08); border:1px solid #666; color:#ccc; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">
                     Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA EDITAR PROMO / RANKING EN MENSAJES DE RENOVACIÓN -->
+    <div id="promo-ranking-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:var(--bg-secondary); border: 1px solid rgba(251,191,36,0.35); max-width:650px; width:100%; border-radius:16px; padding:1.8rem; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.7);">
+            <button onclick="closePromoRankingModal()"
+                style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 style="color:#fbbf24; margin:0 0 0.8rem 0; display:flex; align-items:center; gap:0.8rem; font-size:1.3rem;">
+                <i class="fa-solid fa-gift"></i> Promo / Ranking en Renovaciones
+            </h2>
+            <p style="color:#cbd5e1; font-size:0.85rem; margin-bottom:1.2rem; line-height:1.4;">
+                Activa o personaliza el mensaje de la promoción que se incluirá automáticamente cuando envíes mensajes de renovación por WhatsApp (<strong>Recordar</strong> y <strong>Renovada</strong>).
+            </p>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; margin-bottom:1.2rem; border:1px solid rgba(255,255,255,0.08);">
+                <div>
+                    <strong style="color:#fff; font-size:0.9rem; display:block;">Estado de la Promoción:</strong>
+                    <small style="color:#94a3b8; font-size:0.75rem;">¿Incluir este mensaje al final de las renovaciones?</small>
+                </div>
+                <button id="modal-promo-toggle-btn" type="button" onclick="togglePromoRankingInRenewal()"
+                    style="padding:8px 16px; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer; border:1px solid #fbbf24; background:rgba(251,191,36,0.2); color:#fbbf24; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-power-off"></i> <span id="modal-promo-toggle-text">ACTIVADO</span>
+                </button>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label style="color:#fbbf24; font-size:0.85rem; font-weight:600; display:block; margin-bottom:6px;">
+                    Plantilla del Mensaje Promocional:
+                </label>
+                <textarea id="modal-promo-template" rows="5"
+                    style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:#1a1e24; color:white; font-size:0.85rem; line-height:1.4; outline:none; resize:vertical;"
+                    oninput="updatePromoRankingPreview()"></textarea>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:0.75rem; color:#94a3b8;">
+                    <span>Variables disponibles:</span>
+                    <code style="color:#38bdf8; background:rgba(56,189,248,0.1); padding:1px 5px; border-radius:4px; cursor:pointer;" onclick="insertVarInPromo('{puesto}')">{puesto}</code>
+                    <code style="color:#38bdf8; background:rgba(56,189,248,0.1); padding:1px 5px; border-radius:4px; cursor:pointer;" onclick="insertVarInPromo('{pantallas_acumuladas}')">{pantallas_acumuladas}</code>
+                    <code style="color:#38bdf8; background:rgba(56,189,248,0.1); padding:1px 5px; border-radius:4px; cursor:pointer;" onclick="insertVarInPromo('{cliente}')">{cliente}</code>
+                </div>
+            </div>
+
+            <!-- VISTA PREVIA EN VIVO -->
+            <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; margin-bottom:1.5rem;">
+                <strong style="color:#38bdf8; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">
+                    <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> Vista previa cómo le llegará al cliente:
+                </strong>
+                <div id="modal-promo-preview" style="color:#e2e8f0; font-size:0.82rem; white-space:pre-wrap; line-height:1.4; font-family:sans-serif;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closePromoRankingModal()"
+                    style="background:rgba(255,255,255,0.08); border:1px solid #666; color:#ccc; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+                    Cancelar
+                </button>
+                <button type="button" onclick="savePromoRankingFromModal()" class="save-btn"
+                    style="margin:0; width:auto; padding:8px 22px; background:#27ae60; font-size:0.85rem; font-weight:700;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
                 </button>
             </div>
         </div>
@@ -6169,6 +6275,8 @@
             crmEnabled: true,
             sellers: [],
             estrenos: [],
+            promoRankingEnabled: true,
+            promoRankingTemplate: "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\nActualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨",
             reminderTemplate: "Hola {cliente} 😊 Buen dia\nTU {pantallas} finaliza \n👉 *HOY* 👈\n👉 😱... \n⚠️ Si deseas continuar, realiza el pago y me envías la foto del comprobante🧾 (sin comprobante no cuenta como pago válido) ⚠️\n\n*Medios de Pago:*\n*Nequi o Daviplata 3155182545*\n\n*Llave Nequi @NEQUICEC36* \n*Llave Daviplata @PLATA3155182545* \n*Llave Nu @CMA736*\n*Llave Be @BE346516*"
         };
         let adminInitialized = false;
@@ -6337,6 +6445,22 @@
                 }
                 if (document.getElementById('conf-renovadaPluralTemplate')) {
                     document.getElementById('conf-renovadaPluralTemplate').value = storeConfig.renovadaPluralTemplate || "♦️♦️♦️ ** Tus Pantallas de *{pantallas}* han sido Renovadas* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
+                }
+
+                if (typeof storeConfig.promoRankingEnabled === 'undefined') {
+                    storeConfig.promoRankingEnabled = true;
+                }
+                if (!storeConfig.promoRankingTemplate) {
+                    storeConfig.promoRankingTemplate = "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\nActualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨";
+                }
+                if (document.getElementById('conf-promoRankingEnabled')) {
+                    document.getElementById('conf-promoRankingEnabled').checked = storeConfig.promoRankingEnabled !== false;
+                }
+                if (document.getElementById('conf-promoRankingTemplate')) {
+                    document.getElementById('conf-promoRankingTemplate').value = storeConfig.promoRankingTemplate;
+                }
+                if (typeof window.updatePromoRankingUI === 'function') {
+                    window.updatePromoRankingUI();
                 }
 
                 if (document.getElementById('conf-sellerPassword')) document.getElementById('conf-sellerPassword').value = storeConfig.sellerPassword || 'admin';
@@ -6621,6 +6745,16 @@
                 }
                 if (document.getElementById('conf-renovadaPluralTemplate')) {
                     storeConfig.renovadaPluralTemplate = document.getElementById('conf-renovadaPluralTemplate').value;
+                }
+
+                if (document.getElementById('conf-promoRankingEnabled')) {
+                    storeConfig.promoRankingEnabled = document.getElementById('conf-promoRankingEnabled').checked;
+                }
+                if (document.getElementById('conf-promoRankingTemplate')) {
+                    storeConfig.promoRankingTemplate = document.getElementById('conf-promoRankingTemplate').value;
+                }
+                if (typeof window.updatePromoRankingUI === 'function') {
+                    window.updatePromoRankingUI();
                 }
 
                 if (document.getElementById('conf-sellerPassword')) storeConfig.sellerPassword = document.getElementById('conf-sellerPassword').value;
@@ -9665,6 +9799,266 @@
             }
         }
 
+        // =========================================================================
+        // MOTOR DE PROMO RANKING EN MENSAJES DE RENOVACIÓN (RECORDAR Y RENOVADA)
+        // =========================================================================
+        window.openPromoRankingModal = function() {
+            const modal = document.getElementById('promo-ranking-modal');
+            if (!modal) return;
+            const tpl = storeConfig.promoRankingTemplate || "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\nActualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨";
+            const enabled = storeConfig.promoRankingEnabled !== false;
+            
+            const txtEl = document.getElementById('modal-promo-template');
+            if (txtEl) txtEl.value = tpl;
+            
+            updatePromoRankingModalToggleBtn(enabled);
+            window.updatePromoRankingPreview();
+            modal.style.display = 'flex';
+        };
+
+        window.closePromoRankingModal = function() {
+            const modal = document.getElementById('promo-ranking-modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.updatePromoRankingPreview = function() {
+            const txtEl = document.getElementById('modal-promo-template');
+            const prevEl = document.getElementById('modal-promo-preview');
+            if (!txtEl || !prevEl) return;
+            const val = txtEl.value || '';
+            const previewText = val
+                .replace(/{puesto}/gi, '1')
+                .replace(/{pantallas_acumuladas}|{pantallas}/gi, '17')
+                .replace(/{cliente}|{nombre}/gi, 'Diana Ortegón')
+                .replace(/{año}|{year}/gi, '2026');
+            prevEl.textContent = previewText;
+        };
+
+        window.insertVarInPromo = function(varName) {
+            const txtEl = document.getElementById('modal-promo-template');
+            if (!txtEl) return;
+            const start = txtEl.selectionStart || txtEl.value.length;
+            const end = txtEl.selectionEnd || txtEl.value.length;
+            const text = txtEl.value;
+            txtEl.value = text.substring(0, start) + varName + text.substring(end);
+            txtEl.focus();
+            txtEl.selectionStart = txtEl.selectionEnd = start + varName.length;
+            window.updatePromoRankingPreview();
+        };
+
+        window.savePromoRankingFromModal = function() {
+            const txtEl = document.getElementById('modal-promo-template');
+            if (txtEl) {
+                storeConfig.promoRankingTemplate = txtEl.value.trim();
+                db.ref('storeConfig/promoRankingTemplate').set(storeConfig.promoRankingTemplate).catch(console.error);
+                if (document.getElementById('conf-promoRankingTemplate')) {
+                    document.getElementById('conf-promoRankingTemplate').value = storeConfig.promoRankingTemplate;
+                }
+            }
+            window.closePromoRankingModal();
+            alert('¡Mensaje de promoción guardado correctamente! Ya se aplicará en tus mensajes de renovación.');
+        };
+
+        window.togglePromoRankingInRenewal = function() {
+            const current = storeConfig.promoRankingEnabled !== false;
+            const next = !current;
+            storeConfig.promoRankingEnabled = next;
+            db.ref('storeConfig/promoRankingEnabled').set(next).catch(console.error);
+            window.updatePromoRankingUI();
+        };
+
+        window.syncPromoRankingToggle = function(checked) {
+            storeConfig.promoRankingEnabled = checked;
+            db.ref('storeConfig/promoRankingEnabled').set(checked).catch(console.error);
+            window.updatePromoRankingUI();
+        };
+
+        window.updatePromoRankingUI = function() {
+            const enabled = storeConfig.promoRankingEnabled !== false;
+            
+            // Botón en barra de clientes
+            const btn1 = document.getElementById('btn-toggle-promo-ranking');
+            const label1 = document.getElementById('promo-ranking-btn-label');
+            if (btn1 && label1) {
+                if (enabled) {
+                    btn1.style.background = 'rgba(251, 191, 36, 0.15)';
+                    btn1.style.borderColor = '#fbbf24';
+                    btn1.style.color = '#fbbf24';
+                    label1.textContent = 'Promo Ranking: ACTIVADO';
+                } else {
+                    btn1.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btn1.style.borderColor = '#666';
+                    btn1.style.color = '#94a3b8';
+                    label1.textContent = 'Promo Ranking: DESACTIVADO';
+                }
+            }
+            
+            // Botón en barra de vendedores
+            const btn2 = document.getElementById('seller-btn-toggle-promo-ranking');
+            const label2 = document.getElementById('seller-promo-ranking-btn-label');
+            if (btn2 && label2) {
+                if (enabled) {
+                    btn2.style.background = 'rgba(251, 191, 36, 0.15)';
+                    btn2.style.borderColor = '#fbbf24';
+                    btn2.style.color = '#fbbf24';
+                    label2.textContent = 'Promo Ranking: ACTIVADO';
+                } else {
+                    btn2.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btn2.style.borderColor = '#666';
+                    btn2.style.color = '#94a3b8';
+                    label2.textContent = 'Promo Ranking: DESACTIVADO';
+                }
+            }
+
+            // Checkbox en Configuración general
+            const chk = document.getElementById('conf-promoRankingEnabled');
+            const chkLbl = document.getElementById('conf-promoRankingEnabledLabel');
+            if (chk) chk.checked = enabled;
+            if (chkLbl) chkLbl.textContent = enabled ? 'Activado' : 'Desactivado';
+
+            // Botón en modal
+            updatePromoRankingModalToggleBtn(enabled);
+        };
+
+        function updatePromoRankingModalToggleBtn(enabled) {
+            const btn = document.getElementById('modal-promo-toggle-btn');
+            const txt = document.getElementById('modal-promo-toggle-text');
+            if (!btn || !txt) return;
+            if (enabled) {
+                btn.style.background = 'rgba(46, 204, 113, 0.2)';
+                btn.style.borderColor = '#2ecc71';
+                btn.style.color = '#2ecc71';
+                txt.textContent = 'ACTIVADO';
+            } else {
+                btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                btn.style.borderColor = '#666';
+                btn.style.color = '#94a3b8';
+                txt.textContent = 'DESACTIVADO';
+            }
+        }
+
+        window.getClientNavidadRankInfo = function(clientPhone, sellerName) {
+            const cleanPhone = String(clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+            const isSellerSale = sellerName && sellerName !== 'Página Web Oficial' && sellerName !== 'Admin';
+            
+            const dataStore = window.currentStatsRankingData || {};
+            let list = [];
+            if (isSellerSale) {
+                list = [...(dataStore.sellerClients || [])].sort((a,b) => (b.screens || 0) - (a.screens || 0));
+            } else {
+                list = [...(dataStore.adminClients || [])].sort((a,b) => (b.screens || 0) - (a.screens || 0));
+            }
+
+            if (list.length === 0) {
+                list = computeLiveNavidadRankList(isSellerSale ? 'sellerClients' : 'adminClients');
+            }
+
+            const idx = list.findIndex(c => String(c.phone || '').replace(/\D/g, '').replace(/^57/, '') === cleanPhone);
+            if (idx !== -1) {
+                return {
+                    puesto: idx + 1,
+                    pantallas: list[idx].screens || 0,
+                    nombre: list[idx].name || 'Cliente'
+                };
+            } else {
+                return {
+                    puesto: list.length + 1,
+                    pantallas: 0,
+                    nombre: 'Cliente'
+                };
+            }
+        };
+
+        function computeLiveNavidadRankList(type) {
+            const currentYear = 2026;
+            const adminClients = {};
+            const sellerClients = {};
+            const processedSigs = new Set();
+
+            function proc(s, defaultSeller) {
+                if (!s || s.isPaid === false) return;
+                const cleanP = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+                const sId = s.id || s._saleId || '';
+                const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
+                const sig = sId ? (sId + '_' + cleanP) : ((s.fechaCompraOriginal || s.date || 0) + '_' + cleanP + '_' + sProfile);
+                if (sig && !sig.startsWith('0_') && processedSigs.has(sig)) return;
+                if (sig && !sig.startsWith('0_')) processedSigs.add(sig);
+
+                const d = new Date(s.date || s.fechaCompraOriginal || 0);
+                if (d.getFullYear() !== currentYear) return;
+
+                const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
+                const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');
+
+                let cName = (s.clientName || '').trim();
+                if (!cName || cName.toLowerCase() === 'cliente') {
+                    cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
+                }
+
+                let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                const screens = Math.max(1, rawItems.length);
+
+                if (isAdmin) {
+                    const key = (cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || 'cliente');
+                    if (!adminClients[key]) adminClients[key] = { phone: cleanP, name: cName, screens: 0 };
+                    adminClients[key].screens += screens;
+                } else {
+                    const isShared = ['any', 'angie', 'katherin', 'katherine', 'katerin'].some(ex => sName.toLowerCase().trim().startsWith(ex));
+                    const scIdent = (!isShared && cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || cleanP || 'cliente');
+                    const key = `${sName}___${scIdent}`;
+                    if (!sellerClients[key]) sellerClients[key] = { phone: cleanP, name: cName, seller: sName, screens: 0 };
+                    sellerClients[key].screens += screens;
+                }
+            }
+
+            const cMap = window.allClientSalesMap || {};
+            Object.keys(cMap).forEach(p => {
+                const sales = cMap[p] || {};
+                Object.keys(sales).forEach(id => proc(sales[id], ''));
+            });
+
+            const sMap = window.globalSellerSalesDataStore || {};
+            Object.keys(sMap).forEach(s => {
+                if (s === 'Página Web Oficial' || s.toLowerCase().includes('oficial') || s.toLowerCase() === 'admin') return;
+                const sales = sMap[s] || {};
+                Object.keys(sales).forEach(id => proc(sales[id], s));
+            });
+
+            if (type === 'sellerClients') {
+                return Object.values(sellerClients).sort((a,b) => b.screens - a.screens);
+            }
+            return Object.values(adminClients).sort((a,b) => b.screens - a.screens);
+        }
+
+        window.buildPromoRankingMessageBlock = function(clientPhone, clientName, sellerName) {
+            if (!storeConfig || storeConfig.promoRankingEnabled === false) return '';
+            
+            const rankInfo = window.getClientNavidadRankInfo(clientPhone, sellerName);
+            
+            let defaultTpl = "🏆 *Ranking Premio Navideño Streaming DPC* 🎄\n" +
+                             "Actualmente estás en el puesto *#{puesto}* con *{pantallas_acumuladas} pantallas* acumuladas en el año.\n" +
+                             "¡Sigue renovando a tiempo y no te quedes fuera de los 3 grandes premios este 25 de diciembre! 🎁✨";
+                             
+            let tpl = (storeConfig.promoRankingTemplate && storeConfig.promoRankingTemplate.trim().length > 0)
+                ? storeConfig.promoRankingTemplate
+                : defaultTpl;
+                
+            let puestoDisp = (rankInfo && rankInfo.puesto) ? `${rankInfo.puesto}` : '1';
+            let screensDisp = (rankInfo && typeof rankInfo.pantallas !== 'undefined') ? `${rankInfo.pantallas}` : '0';
+            let clientDisp = clientName || 'Cliente';
+            let yearDisp = new Date().getFullYear().toString();
+
+            if (rankInfo && rankInfo.pantallas === 0) {
+                puestoDisp = 'En competencia';
+            }
+            
+            return tpl
+                .replace(/{puesto}/gi, puestoDisp)
+                .replace(/{pantallas_acumuladas}|{pantallas}/gi, screensDisp)
+                .replace(/{cliente}|{nombre}/gi, clientDisp)
+                .replace(/{año}|{year}/gi, yearDisp);
+        };
+
         async function sendAdminRenovadaMessage(clientNameEnc, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId, sourceNameEnc, sourceType) {
             if (!clientPhone) return alert('Este cliente no tiene número registrado.');
             const clientName = safeDecode(clientNameEnc);
@@ -9786,6 +10180,20 @@
             } else {
                 const template = storeConfig.renovadaSingularTemplate || "♦️♦️♦️ ** Tu Pantalla de *{pantallas}* ha sido Renovada* con los mismos datos que tenga buen día que la disfrute ♦️♦️♦️ *vence {mes}*";
                 msg = template.replace(/{cliente}/g, clientName).replace(/{pantallas}/g, itemsStr).replace(/{mes}/g, monthText);
+            }
+
+            // Inyectar Promo / Ranking Navideño si está activado
+            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+                const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, clientName, sourceName);
+                if (promoBlock) {
+                    if (msg.includes('{promo_ranking}')) {
+                        msg = msg.replace(/{promo_ranking}/g, promoBlock);
+                    } else {
+                        msg = msg + '\n\n' + promoBlock;
+                    }
+                }
+            } else {
+                msg = msg.replace(/{promo_ranking}/g, '');
             }
 
             const encodedMsg = encodeURIComponent(msg);
@@ -10335,6 +10743,20 @@
                 .replace(/{pin}/g, clientPin)
                 .replace(/{total}/g, (saleTotal || 0).toLocaleString())
                 .replace(/{pago}/g, storeConfig.paymentInfo || '');
+
+            // Inyectar Promo / Ranking Navideño si está activado
+            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+                const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, clientName, sellerName);
+                if (promoBlock) {
+                    if (finalMsg.includes('{promo_ranking}')) {
+                        finalMsg = finalMsg.replace(/{promo_ranking}/g, promoBlock);
+                    } else {
+                        finalMsg = finalMsg + '\n\n' + promoBlock;
+                    }
+                }
+            } else {
+                finalMsg = finalMsg.replace(/{promo_ranking}/g, '');
+            }
 
             const encodedMsg = encodeURIComponent(finalMsg);
 
@@ -11121,6 +11543,20 @@
                 .replace(/{pin}/g, clientPin)
                 .replace(/{total}/g, saleTotal > 0 ? saleTotal.toLocaleString() : "0")
                 .replace(/{pago}/g, storeConfig.paymentInfo || "");
+
+            // Inyectar Promo / Ranking Navideño si está activado
+            if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+                const promoBlock = window.buildPromoRankingMessageBlock(clientPhone, cName, '');
+                if (promoBlock) {
+                    if (msg.includes('{promo_ranking}')) {
+                        msg = msg.replace(/{promo_ranking}/g, promoBlock);
+                    } else {
+                        msg = msg + '\n\n' + promoBlock;
+                    }
+                }
+            } else {
+                msg = msg.replace(/{promo_ranking}/g, '');
+            }
 
             const encodedMsg = encodeURIComponent(msg);
 
@@ -11932,6 +12368,20 @@
                         .replace(/{pin}/g, clientPin)
                         .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
                         .replace(/{pago}/g, storeConfig.paymentInfo || "");
+
+                    // Inyectar Promo / Ranking Navideño si está activado
+                    if (storeConfig.promoRankingEnabled !== false && typeof window.buildPromoRankingMessageBlock === 'function') {
+                        const promoBlock = window.buildPromoRankingMessageBlock(r.phone, r.name, '');
+                        if (promoBlock) {
+                            if (msgDirect.includes('{promo_ranking}')) {
+                                msgDirect = msgDirect.replace(/{promo_ranking}/g, promoBlock);
+                            } else {
+                                msgDirect = msgDirect + '\n\n' + promoBlock;
+                            }
+                        }
+                    } else {
+                        msgDirect = msgDirect.replace(/{promo_ranking}/g, '');
+                    }
 
                     let waPhone = r.phone.replace(/\D/g, "");
                     if (waPhone.length === 10 && waPhone.startsWith("3")) waPhone = "57" + waPhone;
