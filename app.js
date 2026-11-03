@@ -6127,6 +6127,10 @@ window.renderPremioNavideno = async function () {
         ];
     }
 
+    const ruletaConfig = (typeof window.getRuletaConfig === 'function') 
+        ? window.getRuletaConfig() 
+        : { enabled: true, bannerText: "¿No estás en el podio? ¡Aprovecha y gira la ruleta aquí!", bannerSubtext: "Participa por pantallas de regalo y descuentos exclusivos para clientes fuera del Top 3.", buttonText: "🎰 ¡Girar Ruleta de la Suerte!" };
+
     let html = `
         <div class="promo-nav-container">
             <div class="promo-nav-header">
@@ -6144,6 +6148,18 @@ window.renderPremioNavideno = async function () {
                         ⏳ Calculando cuenta regresiva...
                     </span>
                 </div>
+
+                <!-- Botón de acceso directo para ir a la Ruleta abajo -->
+                ${(ruletaConfig.enabled !== false) ? `
+                <div style="margin-top: 2px; margin-bottom: 8px; display: flex; justify-content: center;">
+                    <button type="button" onclick="irARuletaPromo()" class="promo-nav-jump-ruleta-btn"
+                        style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%); color: #fff; font-size: 0.95rem; font-weight: 800; padding: 10px 26px; border-radius: 50px; border: 2px solid rgba(254, 240, 138, 0.6); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 18px rgba(234, 88, 12, 0.45), 0 0 10px rgba(251, 191, 36, 0.3); transition: all 0.25s ease;">
+                        <i class="fa-solid fa-dharmachakra fa-spin" style="--fa-animation-duration: 5s; font-size: 1.1rem; color: #fef08a;"></i>
+                        <span>🎰 Ruleta</span>
+                        <i class="fa-solid fa-arrow-down" style="font-size: 0.85rem; color: #fef08a;"></i>
+                    </button>
+                </div>
+                ` : ''}
             </div>
 
 ${isNavAdmin ? `
@@ -6413,13 +6429,10 @@ ${isNavAdmin ? `
     // =========================================================================
     // BANNER PROMOCIONAL DE LA RULETA DE LA SUERTE
     // =========================================================================
-    const ruletaConfig = (typeof window.getRuletaConfig === 'function') 
-        ? window.getRuletaConfig() 
-        : { enabled: true, bannerText: "¿No estás en el podio? ¡Aprovecha y gira la ruleta aquí!", bannerSubtext: "Participa por pantallas de regalo y descuentos exclusivos para clientes fuera del Top 3.", buttonText: "🎰 ¡Girar Ruleta de la Suerte!" };
 
     if (ruletaConfig.enabled !== false) {
         html += `
-            <div class="ruleta-promo-banner">
+            <div id="ruleta-promo-banner-section" class="ruleta-promo-banner">
                 <div class="ruleta-banner-badge">
                     <i class="fa-solid fa-gift"></i> Beneficio Exclusivo Clientes Fuera del Top 3
                 </div>
@@ -6449,4 +6462,24 @@ ${isNavAdmin ? `
     if (_navTimerInterval) clearInterval(_navTimerInterval);
     updateNavCountdown();
     _navTimerInterval = setInterval(updateNavCountdown, 1000);
+};
+
+
+/**
+ * Desplaza suavemente la pantalla hacia el banner de la Ruleta y le aplica un destello visual
+ */
+window.irARuletaPromo = function () {
+    const banner = document.getElementById('ruleta-promo-banner-section');
+    if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        banner.style.transition = 'box-shadow 0.4s ease, transform 0.4s ease';
+        banner.style.boxShadow = '0 0 45px rgba(245, 158, 11, 0.95), inset 0 0 30px rgba(251, 191, 36, 0.35)';
+        banner.style.transform = 'scale(1.025)';
+        setTimeout(() => {
+            banner.style.boxShadow = '';
+            banner.style.transform = '';
+        }, 1600);
+    } else {
+        if (typeof openRuletaModal === 'function') openRuletaModal();
+    }
 };

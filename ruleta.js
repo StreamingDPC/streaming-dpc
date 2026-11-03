@@ -1440,3 +1440,23 @@
 
 })();
 
+
+
+/**
+ * Desplaza suavemente la pantalla hacia el banner de la Ruleta y le aplica un destello visual
+ */
+window.irARuletaPromo = function () {
+    const banner = document.getElementById('ruleta-promo-banner-section');
+    if (banner) {
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        banner.style.transition = 'box-shadow 0.4s ease, transform 0.4s ease';
+        banner.style.boxShadow = '0 0 45px rgba(245, 158, 11, 0.95), inset 0 0 30px rgba(251, 191, 36, 0.35)';
+        banner.style.transform = 'scale(1.025)';
+        setTimeout(() => {
+            banner.style.boxShadow = '';
+            banner.style.transform = '';
+        }, 1600);
+    } else {
+        if (typeof openRuletaModal === 'function') openRuletaModal();
+    }
+};
