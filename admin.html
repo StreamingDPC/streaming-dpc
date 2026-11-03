@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.54 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.57 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -7725,6 +7725,18 @@
                 }
 
                 await db.ref('/').update(updates);
+
+                // Actualizar caché en memoria para que se refleje inmediatamente en el DOM sin recargar con F5
+                Object.keys(updates).forEach(path => {
+                    const parts = path.split('/');
+                    if (parts[0] === 'clientSales' && window.allClientSalesMap && window.allClientSalesMap[parts[1]] && window.allClientSalesMap[parts[1]][parts[2]]) {
+                        window.allClientSalesMap[parts[1]][parts[2]][parts[3]] = updates[path];
+                    }
+                    if (parts[0] === 'sellerSales' && window.globalSellerSalesDataStore && window.globalSellerSalesDataStore[parts[1]] && window.globalSellerSalesDataStore[parts[1]][parts[2]]) {
+                        window.globalSellerSalesDataStore[parts[1]][parts[2]][parts[3]] = updates[path];
+                    }
+                });
+
                 closeSyncPricesModal();
 
                 if (window.renderAllClientsList) renderAllClientsList();
