@@ -131,11 +131,31 @@
      * Obtiene el identificador del usuario (teléfono verificado o guest)
      */
     function getCurrentUserIdentifier() {
+        // 1. Teléfono de cliente autenticado
         if (typeof clientPhoneLoggedIn !== 'undefined' && clientPhoneLoggedIn) {
             return String(clientPhoneLoggedIn).replace(/\D/g, '').replace(/^57/, '');
         }
+        const stPhone = localStorage.getItem('clientPhone');
+        if (stPhone) return String(stPhone).replace(/\D/g, '').replace(/^57/, '');
+
+        // 2. Si está en Modo Vendedor
+        const isSeller = (typeof isSellerMode !== 'undefined' && isSellerMode) || localStorage.getItem('isSellerMode') === 'true';
+        const sellerName = (typeof currentSellerName !== 'undefined' && currentSellerName) || localStorage.getItem('sellerName') || '';
+        if (isSeller && sellerName) {
+            const sc = (typeof storeConfig !== 'undefined') ? storeConfig : {};
+            const sellersRaw = sc.sellers || [];
+            const sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw || {});
+            const sObj = sellers.find(s => (s.name || '').toLowerCase().trim() === sellerName.toLowerCase().trim());
+            if (sObj && sObj.whatsapp) {
+                return String(sObj.whatsapp).replace(/\D/g, '').replace(/^57/, '');
+            }
+            return 'vendedor_' + sellerName.toLowerCase().trim().replace(/\s+/g, '_');
+        }
+
+        // 3. Teléfono de invitado si ya lo ingresó
         const guestPhone = localStorage.getItem('dpc_ruleta_guest_phone');
         if (guestPhone) return String(guestPhone).replace(/\D/g, '').replace(/^57/, '');
+
         return 'invitado';
     }
 
@@ -1072,6 +1092,7 @@
             if (wheelWrap) wheelWrap.style.opacity = '1';
         }
 
+        setupRuletaAutoResetListener();
         actualizarUIIntentos();
         window.dibujarRuleta();
     };
@@ -1090,6 +1111,65 @@
     /**
      * Resetea los intentos del usuario actual (o de un teléfono específico)
      */
+
+    /**
+     * Limpia todas las estadísticas de ruleta en localStorage y actualiza la UI
+     */
+    function limpiarStatsLocalesRuleta() {
+        try {
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith('dpc_ruleta_stats_') || k.startsWith('dpc_ruleta_guest_')) {
+                    localStorage.removeItem(k);
+                }
+            });
+        } catch (e) {}
+
+        const resBox = document.getElementById("resultado-premio");
+        if (resBox) resBox.style.display = "none";
+        const btnSpin = document.getElementById('ruleta-spin-btn');
+        if (btnSpin) btnSpin.disabled = false;
+
+        actualizarUIIntentos();
+    }
+
+    /**
+     * Listener en tiempo real desde Firebase para auto-resetear la ruleta cuando el admin lo solicite
+     */
+    function setupRuletaAutoResetListener() {
+        if (typeof db === 'undefined') return;
+
+        // A. Escuchar reset global (tienda completa)
+        try {
+            db.ref('storeConfig/ruletaStats/lastGlobalReset').on('value', snap => {
+                const val = snap.val();
+                if (!val) return;
+                const localTs = parseInt(localStorage.getItem('dpc_ruleta_last_reset_ts') || '0');
+                if (val > localTs) {
+                    localStorage.setItem('dpc_ruleta_last_reset_ts', String(val));
+                    limpiarStatsLocalesRuleta();
+                    console.log("⚡ Auto-reset global de Ruleta ejecutado desde Firebase!");
+                }
+            });
+        } catch (e) {}
+
+        // B. Escuchar reset de este usuario o vendedor específico
+        try {
+            const myId = getCurrentUserIdentifier();
+            if (myId) {
+                db.ref(`ruleta_resets/${myId}`).on('value', snap => {
+                    const val = snap.val();
+                    if (!val) return;
+                    const localUserTs = parseInt(localStorage.getItem('dpc_ruleta_user_reset_ts') || '0');
+                    if (val > localUserTs) {
+                        localStorage.setItem('dpc_ruleta_user_reset_ts', String(val));
+                        limpiarStatsLocalesRuleta();
+                        console.log("⚡ Auto-reset individual de Ruleta ejecutado desde Firebase para:", myId);
+                    }
+                });
+            }
+        } catch (e) {}
+    }
+
     window.resetearIntentosActuales = async function (phoneTarget) {
         const hoy = getTodayKey();
         const targetPhone = phoneTarget ? String(phoneTarget).replace(/\D/g, '').replace(/^57/, '') : getCurrentUserIdentifier();
@@ -1239,9 +1319,10 @@
         const opcion = prompt(
             "🎰 HERRAMIENTAS DE PRUEBA - RESET DE GIROS DE RULETA\n\n" +
             "Selecciona una opción escribiendo el número:\n\n" +
-            "1️⃣ = Resetear MIS intentos ahora (este navegador)\n" +
-            "2️⃣ = Resetear intentos por CELULAR o NOMBRE de cliente\n" +
-            "3️⃣ = Resetear TODOS los intentos de hoy (General / Todos los clientes)\n" +
+            "1️⃣ = Resetear MIS intentos ahora (este navegador / vendedor actual)\n" +
+            "2️⃣ = Resetear intentos de un VENDEDOR específico\n" +
+            "3️⃣ = Resetear intentos por CELULAR o NOMBRE de cliente\n" +
+            "4️⃣ = Resetear TODOS los intentos de hoy (General / Todos los clientes)\n" +
             "0️⃣ = Cancelar\n",
             "1"
         );
@@ -1249,9 +1330,19 @@
         if (!opcion || opcion.trim() === "0") return;
 
         if (opcion.trim() === "1") {
+            limpiarStatsLocalesRuleta();
             await window.resetearIntentosActuales();
             alert("✅ ¡Tus giros han sido restablecidos! Tienes 3/3 giros disponibles y la ruleta está lista.");
         } else if (opcion.trim() === "2") {
+            const vNombre = prompt("👔 Ingresa el Nombre o WhatsApp del Vendedor a resetear:");
+            if (!vNombre || !vNombre.trim()) return;
+            const res = await window.resetearIntentosPorCliente(vNombre.trim());
+            if (res && res.success) {
+                alert(`✅ ¡Giros restablecidos con éxito para el vendedor: ${vNombre.trim()}!`);
+            } else {
+                alert("⚠️ " + (res && res.message ? res.message : "No se pudo resetear el vendedor."));
+            }
+        } else if (opcion.trim() === "3") {
             const busqueda = prompt("📱 Ingresa el celular (ej: 3155182545) o nombre del cliente a resetear:");
             if (!busqueda || !busqueda.trim()) return;
             const res = await window.resetearIntentosPorCliente(busqueda.trim());
@@ -1260,8 +1351,8 @@
             } else {
                 alert("⚠️ " + (res && res.message ? res.message : "No se pudo resetear el cliente."));
             }
-        } else if (opcion.trim() === "3") {
-            if (confirm("⚠️ ¿Estás completamente seguro de reiniciar TODOS los giros de hoy para TODOS los clientes?")) {
+        } else if (opcion.trim() === "4") {
+            if (confirm("⚠️ ¿Estás completamente seguro de reiniciar TODOS los giros de hoy para TODOS los clientes y vendedores?")) {
                 await window.resetearTodosLosIntentosGenerales();
                 alert("✅ ¡Se han restablecido todos los giros diarios de hoy en la tienda!");
             }

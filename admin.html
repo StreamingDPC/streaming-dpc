@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.67 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.68 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3870,6 +3870,22 @@
                     </div>
 
                     <!-- Buscador de cliente para reset individual -->
+                    <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:12px; border:1px solid rgba(255,255,255,0.06); margin-bottom:10px;">
+                        <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:6px;">
+                            <i class="fa-solid fa-user-tie" style="color:#c48dfc;"></i> Resetear giros de un Vendedor:
+                        </label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <select id="admin-reset-vendedor-select"
+                                style="flex:1; min-width:220px; padding:7px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.85rem;">
+                                <option value="">-- Seleccionar Vendedor para Resetear --</option>
+                            </select>
+                            <button type="button" onclick="adminResetearVendedorSeleccionado()"
+                                style="background:#a855f7; border:none; color:white; font-weight:700; padding:7px 18px; border-radius:8px; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-rotate-left"></i> Resetear este Vendedor
+                            </button>
+                        </div>
+                    </div>
+
                     <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:12px; border:1px solid rgba(255,255,255,0.06); margin-bottom:10px;">
                         <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:6px;">
                             Resetear giros de un cliente en específico (Celular o Nombre):
@@ -10442,6 +10458,63 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
+
+        window.renderAdminResetSellersDropdown = function() {
+            const sel = document.getElementById('admin-reset-vendedor-select');
+            if (!sel) return;
+            const sellersRaw = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.sellers) ? storeConfig.sellers : [];
+            const sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw || {});
+            
+            sel.innerHTML = '<option value="">-- Seleccionar Vendedor para Resetear --</option>';
+            sellers.forEach(s => {
+                if (!s || !s.name) return;
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({ name: s.name, whatsapp: s.whatsapp || '' });
+                opt.textContent = `${s.name} ${s.whatsapp ? '(' + s.whatsapp + ')' : ''}`;
+                sel.appendChild(opt);
+            });
+        };
+
+        window.adminResetearVendedorSeleccionado = async function() {
+            const sel = document.getElementById('admin-reset-vendedor-select');
+            if (!sel || !sel.value) {
+                alert("Por favor selecciona un vendedor de la lista.");
+                return;
+            }
+            try {
+                const sData = JSON.parse(sel.value);
+                const sName = (sData.name || '').trim();
+                const sWa = String(sData.whatsapp || '').replace(/\D/g, '').replace(/^57/, '');
+                const hoy = getRuletaTodayKeyAdmin();
+
+                if (typeof db !== 'undefined') {
+                    const nowTs = Date.now();
+                    if (sWa) {
+                        await db.ref(`ruleta_logs/${hoy}/${sWa}`).remove();
+                        await db.ref(`ruleta_resets/${sWa}`).set(nowTs);
+                    }
+                    const sSlug = 'vendedor_' + sName.toLowerCase().replace(/\s+/g, '_');
+                    await db.ref(`ruleta_logs/${hoy}/${sSlug}`).remove();
+                    await db.ref(`ruleta_resets/${sSlug}`).set(nowTs);
+                    await db.ref(`ruleta_resets/${sName}`).set(nowTs);
+
+                    try {
+                        Object.keys(localStorage).forEach(k => {
+                            if (k.includes(sSlug) || (sWa && k.includes(sWa))) {
+                                localStorage.removeItem(k);
+                            }
+                        });
+                    } catch(e) {}
+
+                    alert(`✅ ¡Giros reiniciados con éxito para el vendedor "${sName}"!`);
+                    cargarLogsRuletaAdminHoy();
+            renderAdminResetSellersDropdown();
+                }
+            } catch(e) {
+                alert("Error al resetear vendedor: " + e.message);
+            }
+        };
+
         window.adminResetearMisGiros = async function() {
             try {
                 Object.keys(localStorage).forEach(k => {
@@ -10521,6 +10594,9 @@
             if (typeof db !== 'undefined') {
                 try {
                     await db.ref(`ruleta_logs/${hoy}`).remove();
+                    const nowTs = Date.now();
+                    await db.ref('storeConfig/ruletaStats/lastGlobalReset').set(nowTs);
+                    await db.ref('ruleta_resets/invitado').set(nowTs);
                     Object.keys(localStorage).forEach(k => {
                         if (k.startsWith('dpc_ruleta_stats_')) localStorage.removeItem(k);
                     });
