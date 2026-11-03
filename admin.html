@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.58 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.59 (Premio Navideño 2026 y Sincronización Global)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -11526,47 +11526,59 @@
 
         window.getMultiMonthPromoText = function (itemsStr, isSeller = false) {
             if (!itemsStr) return '';
-            let clean = itemsStr.replace(/^🎬\s*\*\s*|\*\s*\(combo prediseñado\)/gi, '').trim();
-            clean = clean.replace(/\s*\([123]\s*mes(?:es)?\)/gi, '').trim();
-            clean = clean.replace(/Max\s*\(\s*HBO\s*\)/gi, 'Hbo Max').replace(/\bHBO\b(?! Max)/gi, 'Hbo Max');
-
             const pCatalog = (typeof dynamicProducts !== 'undefined' ? dynamicProducts : []).filter(x => x && x.active !== false);
 
-            const p2Name = clean + ' (2 Meses)';
-            const p3Name = clean + ' (3 Meses)';
-
-            let p2 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === p2Name.toLowerCase());
-            let p3 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === p3Name.toLowerCase());
-
-            if (!p2 || !p3) {
-                const parts = clean.split(/[,+]/).map(s => s.trim().toLowerCase()).filter(Boolean).sort();
-                if (parts.length > 0) {
-                    p2 = pCatalog.find(x => {
-                        if (!x || !x.name || !/\b2\s*mes/i.test(x.name)) return false;
-                        const xClean = x.name.replace(/\s*\(2\s*mes(?:es)?\)/gi, '').trim().toLowerCase();
-                        const xParts = xClean.split(/[,+]/).map(s => s.trim()).filter(Boolean).sort();
-                        return parts.length === xParts.length && parts.every((v, i) => v === xParts[i]);
-                    });
-                    p3 = pCatalog.find(x => {
-                        if (!x || !x.name || !/\b3\s*mes/i.test(x.name)) return false;
-                        const xClean = x.name.replace(/\s*\(3\s*mes(?:es)?\)/gi, '').trim().toLowerCase();
-                        const xParts = xClean.split(/[,+]/).map(s => s.trim()).filter(Boolean).sort();
-                        return parts.length === xParts.length && parts.every((v, i) => v === xParts[i]);
-                    });
-                }
+            function normalizeComboName(name) {
+                return (name || '')
+                    .toLowerCase()
+                    .replace(/[🎬♦*]/g, '')
+                    .replace(/\(combo prediseñado\)/gi, '')
+                    .replace(/\s*\([123]\s*mes(?:es)?\)/gi, '')
+                    .replace(/max\s*\(\s*hbo\s*\)/gi, 'hbo max')
+                    .replace(/\bhbo\b(?! max)/gi, 'hbo max')
+                    .replace(/\bprime\b(?! video)/gi, 'prime video')
+                    .replace(/[+,/&]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
             }
+
+            const normTarget = normalizeComboName(itemsStr);
+            const targetWords = normTarget.split(' ').filter(Boolean).sort();
+
+            // 1. Búsqueda directa del combo prediseñado en 2 y 3 Meses
+            let p2 = pCatalog.find(x => {
+                if (!x || !x.name || !/\b2\s*mes/i.test(x.name)) return false;
+                const pWords = normalizeComboName(x.name).split(' ').filter(Boolean).sort();
+                return targetWords.length === pWords.length && targetWords.every((w, i) => w === pWords[i]);
+            });
+
+            let p3 = pCatalog.find(x => {
+                if (!x || !x.name || !/\b3\s*mes/i.test(x.name)) return false;
+                const pWords = normalizeComboName(x.name).split(' ').filter(Boolean).sort();
+                return targetWords.length === pWords.length && targetWords.every((w, i) => w === pWords[i]);
+            });
 
             let price2 = p2 ? (isSeller ? (p2.sellerPrice || p2.price) : p2.price) : null;
             let price3 = p3 ? (isSeller ? (p3.sellerPrice || p3.price) : p3.price) : null;
 
+            // 2. Fallback: Suma de ítems individuales si compró varias pantallas
             if (!price2 || !price3) {
-                const parts = clean.split(/[,+]/).map(s => s.trim()).filter(Boolean);
+                let parts = itemsStr.replace(/[🎬♦*]/g, '').replace(/\(combo prediseñado\)/gi, '').split(/[,+]/).map(s => s.trim()).filter(Boolean);
                 if (parts.length > 1) {
                     let sum2 = 0, sum3 = 0, allFound = true;
                     parts.forEach(part => {
-                        const normPart = part.replace(/Max\s*\(\s*HBO\s*\)/gi, 'Hbo Max').replace(/\bHBO\b(?! Max)/gi, 'Hbo Max');
-                        const part2 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === (normPart + ' (2 Meses)').toLowerCase());
-                        const part3 = pCatalog.find(x => x && x.name && x.name.toLowerCase() === (normPart + ' (3 Meses)').toLowerCase());
+                        const normPart = normalizeComboName(part);
+                        const partWords = normPart.split(' ').filter(Boolean).sort();
+                        const part2 = pCatalog.find(x => {
+                            if (!x || !x.name || !/\b2\s*mes/i.test(x.name)) return false;
+                            const xWords = normalizeComboName(x.name).split(' ').filter(Boolean).sort();
+                            return partWords.length === xWords.length && partWords.every((w, i) => w === xWords[i]);
+                        });
+                        const part3 = pCatalog.find(x => {
+                            if (!x || !x.name || !/\b3\s*mes/i.test(x.name)) return false;
+                            const xWords = normalizeComboName(x.name).split(' ').filter(Boolean).sort();
+                            return partWords.length === xWords.length && partWords.every((w, i) => w === xWords[i]);
+                        });
                         if (part2 && part3) {
                             sum2 += isSeller ? (part2.sellerPrice || part2.price) : part2.price;
                             sum3 += isSeller ? (part3.sellerPrice || part3.price) : part3.price;
