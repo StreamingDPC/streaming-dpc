@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.71 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.72 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -10394,8 +10394,12 @@
             }
 
             try {
-                const snap = await db.ref('ruleta_tickets/' + ticketId).once('value');
-                const data = snap.val();
+                let snap = await db.ref('clientProfiles/_ruleta_tickets/' + ticketId).once('value');
+                let data = snap.val();
+                if (!data) {
+                    snap = await db.ref('ruleta_tickets/' + ticketId).once('value').catch(() => ({ val: () => null }));
+                    data = snap.val();
+                }
 
                 if (!data) {
                     resEl.style.background = 'rgba(239, 68, 68, 0.15)';
@@ -10524,13 +10528,13 @@
                 if (typeof db !== 'undefined') {
                     const nowTs = Date.now();
                     if (sWa) {
-                        await db.ref(`ruleta_logs/${hoy}/${sWa}`).remove();
-                        await db.ref(`ruleta_resets/${sWa}`).set(nowTs);
+                        await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${sWa}`).remove();
+                        await db.ref(`clientProfiles/_ruleta_resets/${sWa}`).set(nowTs);
                     }
                     const sSlug = 'vendedor_' + sName.toLowerCase().replace(/\s+/g, '_');
-                    await db.ref(`ruleta_logs/${hoy}/${sSlug}`).remove();
-                    await db.ref(`ruleta_resets/${sSlug}`).set(nowTs);
-                    await db.ref(`ruleta_resets/${sName}`).set(nowTs);
+                    await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${sSlug}`).remove();
+                    await db.ref(`clientProfiles/_ruleta_resets/${sSlug}`).set(nowTs);
+                    await db.ref(`clientProfiles/_ruleta_resets/${sName}`).set(nowTs);
 
                     try {
                         Object.keys(localStorage).forEach(k => {
@@ -10610,7 +10614,7 @@
             const hoy = getRuletaTodayKeyAdmin();
             if (typeof db !== 'undefined') {
                 try {
-                    await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                    await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${cleanPhone}`).remove();
                     inp.value = '';
                     alert(`✅ ¡Giros reiniciados con éxito para el cliente con teléfono ${cleanPhone}!`);
                     cargarLogsRuletaAdminHoy();
@@ -10627,10 +10631,10 @@
             const hoy = getRuletaTodayKeyAdmin();
             if (typeof db !== 'undefined') {
                 try {
-                    await db.ref(`ruleta_logs/${hoy}`).remove();
+                    await db.ref(`clientProfiles/_ruleta_logs/${hoy}`).remove();
                     const nowTs = Date.now();
                     await db.ref('storeConfig/ruletaStats/lastGlobalReset').set(nowTs);
-                    await db.ref('ruleta_resets/invitado').set(nowTs);
+                    await db.ref('clientProfiles/_ruleta_resets/invitado').set(nowTs);
                     Object.keys(localStorage).forEach(k => {
                         if (k.startsWith('dpc_ruleta_stats_')) localStorage.removeItem(k);
                     });
@@ -10647,7 +10651,7 @@
             if (confirm(`¿Resetear los giros de hoy para ${nombre || phone}?`)) {
                 if (typeof db !== 'undefined') {
                     try {
-                        await db.ref(`ruleta_logs/${hoy}/${phone}`).remove();
+                        await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${phone}`).remove();
                         alert(`✅ Giros reiniciados para ${nombre || phone}.`);
                         cargarLogsRuletaAdminHoy();
                     } catch(e) {
@@ -10671,7 +10675,7 @@
             }
 
             try {
-                const snap = await db.ref(`ruleta_logs/${hoy}`).once('value');
+                const snap = await db.ref(`clientProfiles/_ruleta_logs/${hoy}`).once('value');
                 const logs = snap.val() || {};
                 const phones = Object.keys(logs);
                 if (countEl) countEl.textContent = phones.length;

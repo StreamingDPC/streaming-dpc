@@ -664,7 +664,7 @@
         const hoy = getTodayKey();
         if (typeof db !== 'undefined' && phone && phone !== 'invitado') {
             try {
-                const snap = await db.ref(`ruleta_logs/${hoy}/${phone}`).once('value');
+                const snap = await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${phone}`).once('value');
                 const logData = snap.val();
                 if (logData) {
                     if (logData.aceptoPremio) {
@@ -705,7 +705,7 @@
                 ? allClientProfiles[phone].name
                 : (localStorage.getItem('dpc_ruleta_guest_name') || 'Cliente');
 
-            db.ref(`ruleta_logs/${hoy}/${phone}`).transaction(curr => {
+            db.ref(`clientProfiles/_ruleta_logs/${hoy}/${phone}`).transaction(curr => {
                 const c = curr || {};
                 return {
                     ...c,
@@ -913,7 +913,7 @@
 
         // Registrar ticket auténtico en Firebase Realtime Database para validación inmediata
         if (typeof db !== 'undefined') {
-            db.ref(`ruleta_tickets/${ticketIdNum}`).set({
+            const ticketPayload = {
                 ticketId: ticketIdNum,
                 codigoCompleto: codigoTicket,
                 firma: firma,
@@ -921,12 +921,14 @@
                 usuario: usuario,
                 fecha: fecha,
                 timestamp: Date.now()
-            }).catch(console.error);
+            };
+            db.ref(`clientProfiles/_ruleta_tickets/${ticketIdNum}`).set(ticketPayload).catch(console.error);
+            db.ref(`ruleta_tickets/${ticketIdNum}`).set(ticketPayload).catch(() => {});
 
             // Bloquear giros adicionales en la nube para este teléfono
             if (telCliente && telCliente.length >= 10) {
                 const hoy = getTodayKey();
-                db.ref(`ruleta_logs/${hoy}/${telCliente}`).update({
+                db.ref(`clientProfiles/_ruleta_logs/${hoy}/${telCliente}`).update({
                     nombre: usuario.nombre || 'Cliente',
                     phone: telCliente,
                     aceptoPremio: true,
@@ -1156,7 +1158,7 @@
         try {
             const myId = getCurrentUserIdentifier();
             if (myId) {
-                db.ref(`ruleta_resets/${myId}`).on('value', snap => {
+                db.ref(`clientProfiles/_ruleta_resets/${myId}`).on('value', snap => {
                     const val = snap.val();
                     if (!val) return;
                     const localUserTs = parseInt(localStorage.getItem('dpc_ruleta_user_reset_ts') || '0');
@@ -1189,7 +1191,7 @@
         // 2. Limpiar en Firebase Realtime Database
         if (typeof db !== 'undefined' && targetPhone && targetPhone !== 'invitado') {
             try {
-                await db.ref(`ruleta_logs/${hoy}/${targetPhone}`).remove();
+                await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${targetPhone}`).remove();
             } catch (e) {
                 console.warn("Error borrando ruleta_logs en Firebase:", e);
             }
@@ -1271,13 +1273,13 @@
         if (typeof db !== 'undefined') {
             const nowTs = Date.now();
             if (cleanPhone && cleanPhone.length >= 7) {
-                await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
-                await db.ref(`ruleta_resets/${cleanPhone}`).set(nowTs);
+                await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                await db.ref(`clientProfiles/_ruleta_resets/${cleanPhone}`).set(nowTs);
             }
             if (isSellerFound || !cleanPhone) {
-                await db.ref(`ruleta_logs/${hoy}/${sSlug}`).remove();
-                await db.ref(`ruleta_resets/${sSlug}`).set(nowTs);
-                await db.ref(`ruleta_resets/${busqueda.trim()}`).set(nowTs);
+                await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${sSlug}`).remove();
+                await db.ref(`clientProfiles/_ruleta_resets/${sSlug}`).set(nowTs);
+                await db.ref(`clientProfiles/_ruleta_resets/${busqueda.trim()}`).set(nowTs);
             }
         }
 
@@ -1331,7 +1333,7 @@
 
         const hoy = getTodayKey();
         if (typeof db !== 'undefined') {
-            await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
+            await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${cleanPhone}`).remove();
         }
 
         // Si coincide con la sesión actual, resetear también local
@@ -1356,7 +1358,7 @@
         const hoy = getTodayKey();
         if (typeof db !== 'undefined') {
             try {
-                await db.ref(`ruleta_logs/${hoy}`).remove();
+                await db.ref(`clientProfiles/_ruleta_logs/${hoy}`).remove();
             } catch (e) {
                 console.error("Error al resetear ruleta_logs generales en Firebase:", e);
                 throw e;
