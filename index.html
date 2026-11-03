@@ -59,7 +59,7 @@
             <div class="logo" style="display: flex; align-items: center; gap: 10px;">
                 <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
                     alt="Streaming DPC" style="height: 80px; border-radius: 8px; object-fit: contain;">
-                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.66</span>
+                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.67</span>
             </div>
             <div class="header-actions"
                 style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
@@ -1542,8 +1542,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
     <!-- Lógica Principal -->
-    <script src="ruleta.js?v=3.9.66"></script>
-    <script src="app.js?v=3.9.66"></script>
+    <script src="ruleta.js?v=3.9.67"></script>
+    <script src="app.js?v=3.9.67"></script>
     <!-- CRM / Respuestas Selector Modal -->
     <div id="crm-selector-modal" class="modal" style="display:none; z-index: 5000;">
         <div class="modal-content"
@@ -1603,13 +1603,21 @@
             </div>
 
             <!-- Caja de Estado e Intentos -->
-            <div class="ruleta-user-status-box">
+            <div class="ruleta-user-status-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="color: #94a3b8; font-size: 0.82rem;">
                     <i class="fa-solid fa-gamepad" style="color: #fbbf24;"></i> Giros Diarios:
                 </span>
                 <span id="ruleta-intentos-badge" style="color: #fbbf24; font-weight: 700; font-size: 0.82rem;">
                     🟢 🟢 🟢 <strong>3/3</strong> disponibles hoy
                 </span>
+                </div>
+                <!-- Botón de Reset de Giros (Admin / Pruebas) -->
+                <button id="ruleta-btn-reset-admin" type="button" onclick="menuResetearIntentosRuleta()"
+                    title="Resetear intentos de prueba para Admin o clientes"
+                    style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-size: 0.74rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;">
+                    <i class="fa-solid fa-rotate-left"></i> Resetear Giros
+                </button>
             </div>
 
             <!-- Alerta para Ganadores del Top 3 (Exclusión) -->

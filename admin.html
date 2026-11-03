@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.66 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.67 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3844,6 +3844,61 @@
                     </div>
 
                     <div id="admin-validador-resultado" style="display:none; padding:10px; border-radius:8px; font-size:0.85rem; line-height:1.4;"></div>
+                </div>
+
+                <!-- SECCIÓN 5: CONTROL Y RESETEO DE INTENTOS DIARIOS (HERRAMIENTAS DE PRUEBA) -->
+                <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px solid rgba(239,68,68,0.3); margin-bottom:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                        <div>
+                            <h4 style="color:#f87171; margin:0; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-rotate-left"></i> Control y Reseteo de Intentos Diarios (Pruebas de Ruleta)
+                            </h4>
+                            <small style="color:#94a3b8; font-size:0.75rem;">
+                                Reinicia los giros diarios consumidos para hacer pruebas inmediatas, resetear a un cliente específico o limpiar los giros generales de hoy.
+                            </small>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" onclick="adminResetearMisGiros()"
+                                style="background:rgba(56,189,248,0.15); border:1px solid #38bdf8; color:#38bdf8; font-weight:700; padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-user-gear"></i> ⚡ Resetear Mis Giros (Admin)
+                            </button>
+                            <button type="button" onclick="adminResetearTodosLosGirosGenerales()"
+                                style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#ef4444; font-weight:800; padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> ⚠️ Resetear TODOS los Giros de Hoy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Buscador de cliente para reset individual -->
+                    <div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:12px; border:1px solid rgba(255,255,255,0.06); margin-bottom:10px;">
+                        <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:6px;">
+                            Resetear giros de un cliente en específico (Celular o Nombre):
+                        </label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <input type="text" id="admin-reset-cliente-input" placeholder="Ej: 3155182545 o Jessica..."
+                                style="flex:1; min-width:220px; padding:7px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.85rem;">
+                            <button type="button" onclick="adminResetearClienteEspecifico()"
+                                style="background:#ffb703; border:none; color:black; font-weight:700; padding:7px 18px; border-radius:8px; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-rotate-left"></i> Resetear este Cliente
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla en vivo de clientes que han participado hoy -->
+                    <div style="margin-top:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="color:#e2e8f0; font-size:0.82rem; font-weight:700;">
+                                <i class="fa-solid fa-list-check" style="color:#38bdf8;"></i> Clientes con Giros Registrados Hoy (<span id="admin-ruleta-logs-count">0</span>):
+                            </span>
+                            <button type="button" onclick="cargarLogsRuletaAdminHoy()"
+                                style="background:transparent; border:none; color:#38bdf8; font-size:0.75rem; cursor:pointer; text-decoration:underline;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Actualizar lista
+                            </button>
+                        </div>
+                        <div id="admin-ruleta-logs-list" style="max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.25); border-radius:8px; border:1px solid rgba(255,255,255,0.05); padding:6px; font-size:0.78rem;">
+                            <!-- Render dinámico de logs de hoy con botón de reset por cada cliente -->
+                        </div>
+                    </div>
                 </div>
 
             <!-- PIE DEL MODAL: BOTONES DE GUARDAR Y ACCIONES -->
@@ -10381,6 +10436,171 @@
             return String(val == null ? '' : val).replace(/"/g, '&quot;');
         }
 
+
+        function getRuletaTodayKeyAdmin() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        window.adminResetearMisGiros = async function() {
+            try {
+                Object.keys(localStorage).forEach(k => {
+                    if (k.startsWith('dpc_ruleta_stats_') || k.startsWith('dpc_ruleta_guest_')) {
+                        localStorage.removeItem(k);
+                    }
+                });
+                alert("✅ ¡Tus giros locales de Administrador han sido reiniciados! Tienes 3/3 disponibles para probar.");
+                cargarLogsRuletaAdminHoy();
+            } catch(e) {
+                alert("Error al resetear giros: " + e.message);
+            }
+        };
+
+        window.adminResetearClienteEspecifico = async function() {
+            const inp = document.getElementById('admin-reset-cliente-input');
+            if (!inp || !inp.value.trim()) {
+                alert("Por favor ingresa un número de celular o nombre de cliente a resetear.");
+                return;
+            }
+            const query = inp.value.trim();
+            let cleanPhone = query.replace(/\D/g, '').replace(/^57/, '');
+
+            // Si es nombre, buscar en allClientProfiles o clientSales
+            if (!cleanPhone || cleanPhone.length < 7) {
+                const norm = query.toLowerCase();
+                if (typeof allClientProfiles !== 'undefined') {
+                    for (const p of Object.keys(allClientProfiles)) {
+                        const c = allClientProfiles[p];
+                        if (c && c.name && c.name.toLowerCase().includes(norm)) {
+                            cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                            break;
+                        }
+                    }
+                }
+                if ((!cleanPhone || cleanPhone.length < 7) && typeof db !== 'undefined') {
+                    try {
+                        const sSnap = await db.ref('clientSales').once('value');
+                        const sVal = sSnap.val() || {};
+                        for (const p of Object.keys(sVal)) {
+                            const sales = sVal[p] || {};
+                            for (const sId of Object.keys(sales)) {
+                                if (sales[sId] && sales[sId].clientName && sales[sId].clientName.toLowerCase().includes(norm)) {
+                                    cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                                    break;
+                                }
+                            }
+                            if (cleanPhone && cleanPhone.length >= 7) break;
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            if (!cleanPhone || cleanPhone.length < 7) {
+                alert(`No se encontró ningún cliente registrado con "${query}". Verifica el número o nombre.`);
+                return;
+            }
+
+            const hoy = getRuletaTodayKeyAdmin();
+            if (typeof db !== 'undefined') {
+                try {
+                    await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                    inp.value = '';
+                    alert(`✅ ¡Giros reiniciados con éxito para el cliente con teléfono ${cleanPhone}!`);
+                    cargarLogsRuletaAdminHoy();
+                } catch(e) {
+                    alert("Error al resetear en Firebase: " + e.message);
+                }
+            }
+        };
+
+        window.adminResetearTodosLosGirosGenerales = async function() {
+            if (!confirm("⚠️ ¿Estás completamente seguro de borrar TODOS los giros de hoy de todos los clientes?\n\nTodos los usuarios de la tienda podrán volver a girar sus 3 intentos del día.")) {
+                return;
+            }
+            const hoy = getRuletaTodayKeyAdmin();
+            if (typeof db !== 'undefined') {
+                try {
+                    await db.ref(`ruleta_logs/${hoy}`).remove();
+                    Object.keys(localStorage).forEach(k => {
+                        if (k.startsWith('dpc_ruleta_stats_')) localStorage.removeItem(k);
+                    });
+                    alert("✅ ¡Todos los giros diarios del día de hoy han sido reiniciados en toda la plataforma!");
+                    cargarLogsRuletaAdminHoy();
+                } catch(e) {
+                    alert("Error al borrar giros generales: " + e.message);
+                }
+            }
+        };
+
+        window.adminResetearClienteDirecto = async function(phone, nombre) {
+            const hoy = getRuletaTodayKeyAdmin();
+            if (confirm(`¿Resetear los giros de hoy para ${nombre || phone}?`)) {
+                if (typeof db !== 'undefined') {
+                    try {
+                        await db.ref(`ruleta_logs/${hoy}/${phone}`).remove();
+                        alert(`✅ Giros reiniciados para ${nombre || phone}.`);
+                        cargarLogsRuletaAdminHoy();
+                    } catch(e) {
+                        alert("Error: " + e.message);
+                    }
+                }
+            }
+        };
+
+        window.cargarLogsRuletaAdminHoy = async function() {
+            const container = document.getElementById('admin-ruleta-logs-list');
+            const countEl = document.getElementById('admin-ruleta-logs-count');
+            if (!container) return;
+
+            const hoy = getRuletaTodayKeyAdmin();
+            container.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:8px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando participantes de hoy...</div>';
+
+            if (typeof db === 'undefined') {
+                container.innerHTML = '<div style="color:#ef4444; padding:6px;">Base de datos no disponible.</div>';
+                return;
+            }
+
+            try {
+                const snap = await db.ref(`ruleta_logs/${hoy}`).once('value');
+                const logs = snap.val() || {};
+                const phones = Object.keys(logs);
+                if (countEl) countEl.textContent = phones.length;
+
+                if (phones.length === 0) {
+                    container.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:12px;">No hay giros registrados hoy aún. ¡Todos los clientes tienen sus 3 intentos intactos!</div>';
+                    return;
+                }
+
+                let listHtml = '<div style="display:flex; flex-direction:column; gap:6px;">';
+                phones.forEach(p => {
+                    const item = logs[p] || {};
+                    const giros = item.giros || 0;
+                    const acepto = item.aceptoPremio ? '<span style="color:#2ecc71; font-weight:700;">🎁 Premio Aceptado</span>' : '<span style="color:#fbbf24;">En juego</span>';
+                    const ultimoPremio = item.ultimoPremio ? `(${item.ultimoPremio})` : '';
+                    const nom = item.nombre || 'Cliente';
+
+                    listHtml += `
+                        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div>
+                                <strong style="color:#fff;">${nom}</strong> <span style="color:#94a3b8; font-size:0.75rem;">(📱 ${p})</span>
+                                <div style="font-size:0.72rem; color:#cbd5e1; margin-top:2px;">
+                                    Giros usados: <b>${giros}/3</b> | Estado: ${acepto} ${ultimoPremio}
+                                </div>
+                            </div>
+                            <button type="button" onclick="adminResetearClienteDirecto('${p}', '${nom.replace(/'/g, "\\'")}')"
+                                style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; font-size:0.72rem; font-weight:700; padding:3px 8px; border-radius:5px; cursor:pointer;">
+                                <i class="fa-solid fa-rotate-left"></i> Resetear
+                            </button>
+                        </div>
+                    `;
+                });
+                listHtml += '</div>';
+                container.innerHTML = listHtml;
+            } catch(e) {
+                container.innerHTML = `<div style="color:#ef4444; padding:6px;">Error cargando logs: ${e.message}</div>`;
+            }
+        };
+
         window.openRuletaAdminModal = function() {
             const modal = document.getElementById('ruleta-admin-modal');
             if (!modal) return;
@@ -10408,6 +10628,7 @@
             }
 
             renderRuletaAdminPrizesList();
+            cargarLogsRuletaAdminHoy();
             modal.style.display = 'flex';
         };
 

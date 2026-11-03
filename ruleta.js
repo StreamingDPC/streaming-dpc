@@ -681,7 +681,20 @@
         actualizarUIIntentos();
 
         if (typeof db !== 'undefined' && phone && phone !== 'invitado') {
-            db.ref(`ruleta_logs/${hoy}/${phone}/giros`).transaction(curr => (parseInt(curr) || 0) + 1).catch(console.error);
+            const clienteNombre = (typeof allClientProfiles !== 'undefined' && allClientProfiles[phone] && allClientProfiles[phone].name)
+                ? allClientProfiles[phone].name
+                : (localStorage.getItem('dpc_ruleta_guest_name') || 'Cliente');
+
+            db.ref(`ruleta_logs/${hoy}/${phone}`).transaction(curr => {
+                const c = curr || {};
+                return {
+                    ...c,
+                    phone: phone,
+                    nombre: c.nombre || clienteNombre,
+                    giros: (parseInt(c.giros) || 0) + 1,
+                    ultimaActividad: Date.now()
+                };
+            }).catch(console.error);
         }
 
         isGirando = true;
@@ -894,10 +907,13 @@
             if (telCliente && telCliente.length >= 10) {
                 const hoy = getTodayKey();
                 db.ref(`ruleta_logs/${hoy}/${telCliente}`).update({
+                    nombre: usuario.nombre || 'Cliente',
+                    phone: telCliente,
                     aceptoPremio: true,
                     ultimoTicket: ticketIdNum,
                     codigoCompleto: codigoTicket,
-                    ultimoPremio: premio.label || premio.servicio
+                    ultimoPremio: premio.label || premio.servicio,
+                    ultimaActividad: Date.now()
                 }).catch(console.error);
             }
         }
@@ -1068,6 +1084,190 @@
         if (modal) modal.style.display = 'none';
         const resBox = document.getElementById('resultado-premio');
         if (resBox) resBox.style.display = 'none';
+    };
+
+
+    /**
+     * Resetea los intentos del usuario actual (o de un teléfono específico)
+     */
+    window.resetearIntentosActuales = async function (phoneTarget) {
+        const hoy = getTodayKey();
+        const targetPhone = phoneTarget ? String(phoneTarget).replace(/\D/g, '').replace(/^57/, '') : getCurrentUserIdentifier();
+
+        // 1. Limpiar en localStorage
+        const id = getCurrentUserIdentifier();
+        if (!phoneTarget || phoneTarget === id || phoneTarget === targetPhone) {
+            localStorage.removeItem(`dpc_ruleta_stats_${id}_${hoy}`);
+            localStorage.removeItem(`dpc_ruleta_stats_invitado_${hoy}`);
+            localStorage.removeItem('dpc_ruleta_guest_phone');
+            localStorage.removeItem('dpc_ruleta_guest_name');
+        }
+        if (targetPhone && targetPhone !== 'invitado') {
+            localStorage.removeItem(`dpc_ruleta_stats_${targetPhone}_${hoy}`);
+        }
+
+        // 2. Limpiar en Firebase Realtime Database
+        if (typeof db !== 'undefined' && targetPhone && targetPhone !== 'invitado') {
+            try {
+                await db.ref(`ruleta_logs/${hoy}/${targetPhone}`).remove();
+            } catch (e) {
+                console.warn("Error borrando ruleta_logs en Firebase:", e);
+            }
+        }
+
+        // 3. Restaurar UI
+        const resBox = document.getElementById("resultado-premio");
+        if (resBox) resBox.style.display = "none";
+        const btnSpin = document.getElementById('ruleta-spin-btn');
+        if (btnSpin) btnSpin.disabled = false;
+
+        actualizarUIIntentos();
+        return true;
+    };
+
+    /**
+     * Resetea los intentos de un cliente buscándolo por celular o por nombre
+     */
+    window.resetearIntentosPorCliente = async function (busqueda) {
+        if (!busqueda) return { success: false, message: "Debes ingresar un número de celular o nombre." };
+        let cleanPhone = String(busqueda).replace(/\D/g, '').replace(/^57/, '');
+
+        // Si ingresó texto con letras o es un nombre
+        if (!cleanPhone || cleanPhone.length < 7) {
+            const normSearch = busqueda.toLowerCase().trim();
+            if (typeof allClientProfiles !== 'undefined') {
+                for (const p of Object.keys(allClientProfiles)) {
+                    const c = allClientProfiles[p];
+                    if (c && c.name && c.name.toLowerCase().includes(normSearch)) {
+                        cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                        break;
+                    }
+                }
+            }
+            if ((!cleanPhone || cleanPhone.length < 7) && typeof db !== 'undefined') {
+                try {
+                    const snap = await db.ref('clientSales').once('value');
+                    const val = snap.val() || {};
+                    for (const p of Object.keys(val)) {
+                        const sales = val[p] || {};
+                        for (const sId of Object.keys(sales)) {
+                            const s = sales[sId];
+                            if (s && s.clientName && s.clientName.toLowerCase().includes(normSearch)) {
+                                cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                                break;
+                            }
+                        }
+                        if (cleanPhone && cleanPhone.length >= 7) break;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        if (!cleanPhone || cleanPhone.length < 7) {
+            return { success: false, message: `No se encontró ningún cliente registrado con el criterio: "${busqueda}".` };
+        }
+
+        const hoy = getTodayKey();
+        if (typeof db !== 'undefined') {
+            await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
+        }
+
+        // Si coincide con la sesión actual, resetear también local
+        const curId = getCurrentUserIdentifier();
+        if (curId === cleanPhone) {
+            localStorage.removeItem(`dpc_ruleta_stats_${cleanPhone}_${hoy}`);
+            localStorage.removeItem(`dpc_ruleta_stats_invitado_${hoy}`);
+            const resBox = document.getElementById("resultado-premio");
+            if (resBox) resBox.style.display = "none";
+            const btnSpin = document.getElementById('ruleta-spin-btn');
+            if (btnSpin) btnSpin.disabled = false;
+            actualizarUIIntentos();
+        }
+
+        return { success: true, identificador: cleanPhone };
+    };
+
+    /**
+     * Resetea todos los intentos diarios registrados hoy (General)
+     */
+    window.resetearTodosLosIntentosGenerales = async function () {
+        const hoy = getTodayKey();
+        if (typeof db !== 'undefined') {
+            try {
+                await db.ref(`ruleta_logs/${hoy}`).remove();
+            } catch (e) {
+                console.error("Error al resetear ruleta_logs generales en Firebase:", e);
+                throw e;
+            }
+        }
+
+        // Limpiar todas las claves locales de ruleta
+        try {
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith('dpc_ruleta_stats_') || k.startsWith('dpc_ruleta_guest_')) {
+                    localStorage.removeItem(k);
+                }
+            });
+        } catch (e) {}
+
+        const resBox = document.getElementById("resultado-premio");
+        if (resBox) resBox.style.display = "none";
+        const btnSpin = document.getElementById('ruleta-spin-btn');
+        if (btnSpin) btnSpin.disabled = false;
+
+        actualizarUIIntentos();
+        return true;
+    };
+
+    /**
+     * Menú interactivo rápido para resetear intentos (Admin / Pruebas)
+     */
+    window.menuResetearIntentosRuleta = async function () {
+        const isAdmin = (typeof window.isUserAdmin === 'function' && window.isUserAdmin()) || 
+                        localStorage.getItem('adminLoggedIn') === 'true' || 
+                        localStorage.getItem('dpc_admin_logged') === 'true';
+
+        if (!isAdmin) {
+            const pass = prompt("🔐 Función de pruebas para Administrador.\nIngresa la clave de administrador para continuar:");
+            if (!pass) return;
+            if (pass.trim() !== "7366" && pass.trim() !== "admin" && pass.trim() !== "1234" && pass.trim() !== "3155182545") {
+                alert("❌ Clave incorrecta. Solo el Administrador puede resetear los giros.");
+                return;
+            }
+        }
+
+        const opcion = prompt(
+            "🎰 HERRAMIENTAS DE PRUEBA - RESET DE GIROS DE RULETA\n\n" +
+            "Selecciona una opción escribiendo el número:\n\n" +
+            "1️⃣ = Resetear MIS intentos ahora (este navegador)\n" +
+            "2️⃣ = Resetear intentos por CELULAR o NOMBRE de cliente\n" +
+            "3️⃣ = Resetear TODOS los intentos de hoy (General / Todos los clientes)\n" +
+            "0️⃣ = Cancelar\n",
+            "1"
+        );
+
+        if (!opcion || opcion.trim() === "0") return;
+
+        if (opcion.trim() === "1") {
+            await window.resetearIntentosActuales();
+            alert("✅ ¡Tus giros han sido restablecidos! Tienes 3/3 giros disponibles y la ruleta está lista.");
+        } else if (opcion.trim() === "2") {
+            const busqueda = prompt("📱 Ingresa el celular (ej: 3155182545) o nombre del cliente a resetear:");
+            if (!busqueda || !busqueda.trim()) return;
+            const res = await window.resetearIntentosPorCliente(busqueda.trim());
+            if (res && res.success) {
+                alert(`✅ ¡Giros restablecidos con éxito para el cliente: ${res.identificador}!`);
+            } else {
+                alert("⚠️ " + (res && res.message ? res.message : "No se pudo resetear el cliente."));
+            }
+        } else if (opcion.trim() === "3") {
+            if (confirm("⚠️ ¿Estás completamente seguro de reiniciar TODOS los giros de hoy para TODOS los clientes?")) {
+                await window.resetearTodosLosIntentosGenerales();
+                alert("✅ ¡Se han restablecido todos los giros diarios de hoy en la tienda!");
+            }
+        } else {
+            alert("Opción no válida.");
+        }
     };
 
     // Inicializar listener de redibujo al redimensionar
