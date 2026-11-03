@@ -1212,6 +1212,88 @@
         if (!busqueda) return { success: false, message: "Debes ingresar un número de celular o nombre." };
         let cleanPhone = String(busqueda).replace(/\D/g, '').replace(/^57/, '');
 
+        // 1. Si no es celular largo, buscar si es un vendedor registrado (ej: Jessica)
+        const normSearch = busqueda.toLowerCase().trim();
+        let sellerWa = '';
+        let isSellerFound = false;
+
+        const sc = (typeof storeConfig !== 'undefined') ? storeConfig : {};
+        let sellersRaw = sc.sellers || [];
+        if (!sellersRaw.length && typeof db !== 'undefined') {
+            try {
+                const snap = await db.ref('storeConfig/sellers').once('value');
+                sellersRaw = snap.val() || [];
+            } catch(e) {}
+        }
+        const sellersList = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw || {});
+        const foundSeller = sellersList.find(s => (s.name || '').toLowerCase().trim() === normSearch);
+        if (foundSeller) {
+            isSellerFound = true;
+            if (foundSeller.whatsapp) {
+                sellerWa = String(foundSeller.whatsapp).replace(/\D/g, '').replace(/^57/, '');
+                cleanPhone = sellerWa;
+            }
+        }
+
+        // 2. Si no es vendedor, buscar en perfiles de clientes
+        if (!cleanPhone || cleanPhone.length < 7) {
+            if (typeof allClientProfiles !== 'undefined') {
+                for (const p of Object.keys(allClientProfiles)) {
+                    const c = allClientProfiles[p];
+                    if (c && c.name && c.name.toLowerCase().includes(normSearch)) {
+                        cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                        break;
+                    }
+                }
+            }
+            if ((!cleanPhone || cleanPhone.length < 7) && typeof db !== 'undefined') {
+                try {
+                    const snap = await db.ref('clientSales').once('value');
+                    const val = snap.val() || {};
+                    for (const p of Object.keys(val)) {
+                        const sales = val[p] || {};
+                        for (const sId of Object.keys(sales)) {
+                            const s = sales[sId];
+                            if (s && s.clientName && s.clientName.toLowerCase().includes(normSearch)) {
+                                cleanPhone = String(p).replace(/\D/g, '').replace(/^57/, '');
+                                break;
+                            }
+                        }
+                        if (cleanPhone && cleanPhone.length >= 7) break;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        const hoy = getTodayKey();
+        const sSlug = 'vendedor_' + normSearch.replace(/\s+/g, '_');
+
+        if (typeof db !== 'undefined') {
+            const nowTs = Date.now();
+            if (cleanPhone && cleanPhone.length >= 7) {
+                await db.ref(`ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                await db.ref(`ruleta_resets/${cleanPhone}`).set(nowTs);
+            }
+            if (isSellerFound || !cleanPhone) {
+                await db.ref(`ruleta_logs/${hoy}/${sSlug}`).remove();
+                await db.ref(`ruleta_resets/${sSlug}`).set(nowTs);
+                await db.ref(`ruleta_resets/${busqueda.trim()}`).set(nowTs);
+            }
+        }
+
+        // Si coincide con la sesión actual, resetear también local
+        const curId = getCurrentUserIdentifier();
+        if (curId === cleanPhone || curId === sSlug || curId === busqueda.trim()) {
+            limpiarStatsLocalesRuleta();
+        }
+
+        return { success: true, identificador: cleanPhone || busqueda.trim() };
+    };
+
+    const _ignoreOldResetPorCliente = async function (busqueda) {
+        if (!busqueda) return { success: false, message: "Debes ingresar un número de celular o nombre." };
+        let cleanPhone = String(busqueda).replace(/\D/g, '').replace(/^57/, '');
+
         // Si ingresó texto con letras o es un nombre
         if (!cleanPhone || cleanPhone.length < 7) {
             const normSearch = busqueda.toLowerCase().trim();
@@ -1303,24 +1385,11 @@
      * Menú interactivo rápido para resetear intentos (Admin / Pruebas)
      */
     window.menuResetearIntentosRuleta = async function () {
-        const isAdmin = (typeof window.isUserAdmin === 'function' && window.isUserAdmin()) || 
-                        localStorage.getItem('adminLoggedIn') === 'true' || 
-                        localStorage.getItem('dpc_admin_logged') === 'true';
-
-        if (!isAdmin) {
-            const pass = prompt("🔐 Función de pruebas para Administrador.\nIngresa la clave de administrador para continuar:");
-            if (!pass) return;
-            if (pass.trim() !== "7366" && pass.trim() !== "admin" && pass.trim() !== "1234" && pass.trim() !== "3155182545") {
-                alert("❌ Clave incorrecta. Solo el Administrador puede resetear los giros.");
-                return;
-            }
-        }
-
         const opcion = prompt(
             "🎰 HERRAMIENTAS DE PRUEBA - RESET DE GIROS DE RULETA\n\n" +
             "Selecciona una opción escribiendo el número:\n\n" +
             "1️⃣ = Resetear MIS intentos ahora (este navegador / vendedor actual)\n" +
-            "2️⃣ = Resetear intentos de un VENDEDOR específico\n" +
+            "2️⃣ = Resetear intentos de un VENDEDOR específico (Ej: Jessica, Pedro...)\n" +
             "3️⃣ = Resetear intentos por CELULAR o NOMBRE de cliente\n" +
             "4️⃣ = Resetear TODOS los intentos de hoy (General / Todos los clientes)\n" +
             "0️⃣ = Cancelar\n",

@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.69 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.70 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3874,7 +3874,7 @@
                             <i class="fa-solid fa-user-tie" style="color:#c48dfc;"></i> Resetear giros de un Vendedor:
                         </label>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <select id="admin-reset-vendedor-select"
+                            <select id="admin-reset-vendedor-select" onfocus="renderAdminResetSellersDropdown()"
                                 style="flex:1; min-width:220px; padding:7px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.85rem;">
                                 <option value="">-- Seleccionar Vendedor para Resetear --</option>
                             </select>
@@ -10460,20 +10460,53 @@
         }
 
 
-        window.renderAdminResetSellersDropdown = function() {
+        window.renderAdminResetSellersDropdown = async function() {
             const sel = document.getElementById('admin-reset-vendedor-select');
             if (!sel) return;
-            const sellersRaw = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.sellers) ? storeConfig.sellers : [];
-            const sellers = Array.isArray(sellersRaw) ? sellersRaw : Object.values(sellersRaw || {});
-            
+
+            let sellers = [];
+            if (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.sellers) {
+                const raw = storeConfig.sellers;
+                sellers = Array.isArray(raw) ? [...raw] : Object.values(raw || {});
+            }
+
+            // Si está vacío en memoria, consultar Firebase en tiempo real
+            if (sellers.length === 0 && typeof db !== 'undefined') {
+                try {
+                    const snap = await db.ref('storeConfig/sellers').once('value');
+                    const raw = snap.val() || [];
+                    sellers = Array.isArray(raw) ? [...raw] : Object.values(raw || {});
+                } catch(e) {}
+            }
+
+            // También consultar de sellerSales para garantizar que no falte ninguno
+            const sellerNames = new Set(sellers.map(s => (s.name || '').trim().toLowerCase()));
+            if (typeof db !== 'undefined') {
+                try {
+                    const sSalesSnap = await db.ref('sellerSales').once('value');
+                    const sSales = sSalesSnap.val() || {};
+                    Object.keys(sSales).forEach(name => {
+                        const trimmed = (name || '').trim();
+                        if (trimmed && trimmed !== 'Página Web Oficial' && trimmed !== 'Admin' && !sellerNames.has(trimmed.toLowerCase())) {
+                            sellers.push({ name: trimmed, whatsapp: '' });
+                            sellerNames.add(trimmed.toLowerCase());
+                        }
+                    });
+                } catch(e) {}
+            }
+
+            const currentVal = sel.value;
             sel.innerHTML = '<option value="">-- Seleccionar Vendedor para Resetear --</option>';
-            sellers.forEach(s => {
+            sellers.sort((a,b) => (a.name || '').localeCompare(b.name || '')).forEach(s => {
                 if (!s || !s.name) return;
                 const opt = document.createElement('option');
                 opt.value = JSON.stringify({ name: s.name, whatsapp: s.whatsapp || '' });
                 opt.textContent = `${s.name} ${s.whatsapp ? '(' + s.whatsapp + ')' : ''}`;
                 sel.appendChild(opt);
             });
+
+            if (currentVal) sel.value = currentVal;
+            console.log("Dropdown de vendedores para ruleta renderizado con " + sellers.length + " vendedores.");
         };
 
         window.adminResetearVendedorSeleccionado = async function() {
