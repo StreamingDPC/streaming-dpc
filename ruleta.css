@@ -1,0 +1,288 @@
+/* ==========================================================================
+   RULETA DE LA SUERTE - STREAMING DPC
+   Estilos para el Banner, Modal, Canvas y Tarjetas de Premios
+   ========================================================================== */
+
+/* Banner promocional en la pestaña Premio Navideño */
+.ruleta-promo-banner {
+    margin-top: 35px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(245, 158, 11, 0.18) 50%, rgba(168, 85, 247, 0.15) 100%);
+    border: 2px solid rgba(251, 191, 36, 0.4);
+    border-radius: 18px;
+    padding: 24px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(251, 191, 36, 0.1);
+    animation: ruletaGlowPulse 3s infinite alternate;
+}
+
+@keyframes ruletaGlowPulse {
+    0% {
+        box-shadow: 0 0 15px rgba(251, 191, 36, 0.2), inset 0 0 15px rgba(251, 191, 36, 0.05);
+        border-color: rgba(251, 191, 36, 0.35);
+    }
+    100% {
+        box-shadow: 0 0 30px rgba(251, 191, 36, 0.45), inset 0 0 25px rgba(251, 191, 36, 0.15);
+        border-color: rgba(251, 191, 36, 0.7);
+    }
+}
+
+.ruleta-banner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg, #ef4444, #f59e0b);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+    margin-bottom: 10px;
+}
+
+.ruleta-banner-title {
+    color: #fff;
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 6px 0 10px 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.ruleta-banner-desc {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    max-width: 650px;
+    margin: 0 auto 18px auto;
+    line-height: 1.5;
+}
+
+.ruleta-banner-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.05rem;
+    padding: 13px 32px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ruleta-banner-btn:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 10px 25px rgba(234, 88, 12, 0.7);
+}
+
+.ruleta-banner-btn:active {
+    transform: translateY(1px) scale(0.99);
+}
+
+/* Modal de la Ruleta */
+#ruleta-modal .modal-content {
+    max-width: 520px;
+    width: 95%;
+    background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 70%, #020617 100%);
+    border: 2px solid rgba(251, 191, 36, 0.4);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(245, 158, 11, 0.2);
+    text-align: center;
+    position: relative;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+/* Contenedor del Canvas de la Ruleta */
+.ruleta-wheel-wrap {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    margin: 15px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 400px) {
+    .ruleta-wheel-wrap {
+        width: 280px;
+        height: 280px;
+    }
+}
+
+#ruleta-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(251, 191, 36, 0.3);
+    display: block;
+}
+
+/* Flecha / Indicador Superior */
+.ruleta-pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 26px solid #fbbf24;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
+    z-index: 20;
+    pointer-events: none;
+}
+
+.ruleta-pointer::after {
+    content: '';
+    position: absolute;
+    top: -24px;
+    left: -6px;
+    width: 12px;
+    height: 12px;
+    background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+/* Botón Central de Giro */
+.ruleta-center-btn {
+    position: absolute;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fbbf24, #b45309);
+    border: 4px solid #ffffff;
+    color: #1e1b4b;
+    font-weight: 900;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.6);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    user-select: none;
+}
+
+.ruleta-center-btn:hover:not(:disabled) {
+    transform: scale(1.08);
+    filter: brightness(1.1);
+}
+
+.ruleta-center-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.ruleta-center-btn:disabled {
+    background: #475569;
+    color: #94a3b8;
+    border-color: #64748b;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Caja de Estado del Usuario e Intentos */
+.ruleta-user-status-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+/* Bloque Top 3 Excluido */
+.ruleta-top3-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 15px 0;
+    color: #fbbf24;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* Tarjeta de Resultado Dinámica */
+.resultado-box {
+    background: rgba(15, 23, 42, 0.95);
+    border: 2px solid #fbbf24;
+    border-radius: 16px;
+    padding: 18px;
+    margin-top: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(251, 191, 36, 0.25);
+    animation: resultadoAppear 0.4s ease-out;
+}
+
+@keyframes resultadoAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.btn-whatsapp-ticket {
+    background: #25d366;
+    color: #fff;
+    border: none;
+    font-weight: bold;
+    font-size: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.btn-whatsapp-ticket:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+}
+
+.btn-reintentar {
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid #475569;
+    padding: 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-reintentar:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: #94a3b8;
+}

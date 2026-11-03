@@ -7,6 +7,7 @@
     <title>Streaming DPC - Premium Screens</title>
     <meta name="description" content="Venta de pantallas y combos de streaming: Netflix, Disney+, HBO Max y más.">
     <link rel="stylesheet" href="style.css?v=3.9.56">
+    <link rel="stylesheet" href="ruleta.css?v=3.9.60">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -58,7 +59,7 @@
             <div class="logo" style="display: flex; align-items: center; gap: 10px;">
                 <img src="https://github.com/StreamingDPC/streaming-dpc/blob/main/assets/streaming%20%20pag%202.jpg?raw=true"
                     alt="Streaming DPC" style="height: 80px; border-radius: 8px; object-fit: contain;">
-                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.59</span>
+                <span style="font-size: 0.7rem; color: #4cd137; opacity: 0.5;">v3.9.60</span>
             </div>
             <div class="header-actions"
                 style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
@@ -1541,7 +1542,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
     <!-- Lógica Principal -->
-    <script src="app.js?v=3.9.56"></script>
+    <script src="ruleta.js?v=3.9.60"></script>
+    <script src="app.js?v=3.9.60"></script>
     <!-- CRM / Respuestas Selector Modal -->
     <div id="crm-selector-modal" class="modal" style="display:none; z-index: 5000;">
         <div class="modal-content"
@@ -1579,6 +1581,87 @@
             </div>
         </div>
     </div>
+
+    
+    <!-- MODAL DE LA RULETA DE LA SUERTE -->
+    <div id="ruleta-modal" class="modal" style="display:none; z-index: 6000;">
+        <div class="modal-content" style="max-width: 520px; width: 95%; background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 70%, #020617 100%); border: 2px solid rgba(251, 191, 36, 0.4); border-radius: 20px; padding: 1.5rem; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(245, 158, 11, 0.2); text-align: center; position: relative;">
+            <span class="close-btn"
+                style="position:absolute; top:1rem; right:1rem; color:white; font-size:1.6rem; cursor:pointer;"
+                onclick="cerrarModalRuleta()">&times;</span>
+
+            <div style="text-align: center; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                    ✨ Promoción Exclusiva Streaming DPC ✨
+                </div>
+                <h2 style="color: #fff; margin: 0; font-size: 1.45rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    🎰 Ruleta de la Suerte 🎁
+                </h2>
+                <p style="color: #cbd5e1; font-size: 0.82rem; margin: 6px auto 0 auto; max-width: 420px; line-height: 1.4;">
+                    ¡Gira y gana descuentos especiales o pantallas de regalo! Máximo <strong>3 intentos por día</strong>. Al aceptar un premio quedará reservado con tu ticket exclusivo.
+                </p>
+            </div>
+
+            <!-- Caja de Estado e Intentos -->
+            <div class="ruleta-user-status-box">
+                <span style="color: #94a3b8; font-size: 0.82rem;">
+                    <i class="fa-solid fa-gamepad" style="color: #fbbf24;"></i> Giros Diarios:
+                </span>
+                <span id="ruleta-intentos-badge" style="color: #fbbf24; font-weight: 700; font-size: 0.82rem;">
+                    🟢 🟢 🟢 <strong>3/3</strong> disponibles hoy
+                </span>
+            </div>
+
+            <!-- Alerta para Ganadores del Top 3 (Exclusión) -->
+            <div id="ruleta-top3-box" class="ruleta-top3-warning" style="display: none;">
+                <i class="fa-solid fa-crown" style="font-size: 1.6rem; color: #fbbf24; flex-shrink: 0;"></i>
+                <div style="text-align:left;">
+                    <strong style="color: #fff; display: block; font-size: 0.95rem; margin-bottom: 3px;">
+                        ¡Ya estás en el Podio Navideño! 👑
+                    </strong>
+                    <span>
+                        Tus grandes premios navideños ya están reservados en los 3 primeros lugares. Esta ruleta es un beneficio exclusivo para los clientes que no alcanzaron el Top 3.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Contenedor del Canvas de la Ruleta -->
+            <div id="ruleta-wheel-wrap" class="ruleta-wheel-wrap">
+                <div class="ruleta-pointer"></div>
+                <canvas id="ruleta-canvas" width="320" height="320"></canvas>
+                <button id="ruleta-spin-btn" class="ruleta-center-btn" onclick="girarRuleta()">
+                    GIRAR
+                </button>
+            </div>
+
+            <!-- Tarjeta de Resultado Dinámica -->
+            <div id="resultado-premio" class="resultado-box" style="display: none;">
+                <!-- Icono y Titular -->
+                <div id="icono-resultado" style="font-size: 38px; margin-bottom: 5px;">🎁</div>
+                <h3 id="nombre-premio-ganado" style="color: #ffb703; margin: 0 0 10px 0;">¡Felicidades!</h3>
+
+                <!-- Desglose de precios dinámico -->
+                <div id="detalle-precio-box"
+                    style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 14px; text-align: left; border: 1px solid rgba(255,255,255,0.08);">
+                    <!-- Se llena con JS -->
+                </div>
+
+                <!-- Botones de Acción -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Botón principal de WhatsApp -->
+                    <button id="btn-enviar-admin" class="btn-whatsapp-ticket" onclick="reclamarPremioWhatsapp()">
+                        📲 Enviar Ticket al WhatsApp del Admin
+                    </button>
+
+                    <!-- Botón secundario para volver a girar si le quedan vidas -->
+                    <button id="btn-seguir-girando" class="btn-reintentar" onclick="reintentarGiro()">
+                        🔄 Probar otro intento (<span id="intentos-left-btn">2</span> restantes)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Custom Styled Alert Modal -->
     <div id="custom-alert"

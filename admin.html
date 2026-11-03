@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.59 (Premio Navideño 2026 y Sincronización Global)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.60 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -452,6 +452,9 @@
                 <button class="admin-tab" id="tab-btn-basedatos" data-tab="basedatos" onclick="switchTab('basedatos', this); renderDatabaseTab();"
                     style="border: 1px solid rgba(46, 204, 113, 0.55); background: rgba(46, 204, 113, 0.08);"><i class="fa-solid fa-database"
                         style="color:#2ecc71;"></i> Base de Datos</button>
+                <button class="admin-tab" type="button" onclick="openRuletaAdminModal()"
+                    style="border: 1px solid rgba(255, 183, 3, 0.55); background: rgba(255, 183, 3, 0.12); color: #ffb703; font-weight: 700;"><i
+                        class="fa-solid fa-dharmachakra"></i> 🎰 Ruleta Premios</button>
             </div>
         </div>
 
@@ -1376,6 +1379,9 @@
                             <button id="btn-rank-navidad" class="rank-tab-btn" onclick="switchRankingTab('navidad')" style="color:#fbbf24; border-color:rgba(251,191,36,0.35);">
                                 <i class="fa-solid fa-gift" style="color:#ef4444;"></i> 🎄 Premio Navideño
                             </button>
+                            <button id="btn-rank-ruleta" type="button" class="rank-tab-btn" onclick="openRuletaAdminModal()" style="color:#ffb703; border-color:rgba(255,183,3,0.4); background:rgba(255,183,3,0.12); font-weight:700;">
+                                <i class="fa-solid fa-dharmachakra"></i> 🎰 Ruleta Premios
+                            </button>
                         </div>
                     </div>
 
@@ -2059,6 +2065,9 @@
                     <button class="save-btn sub-conf-btn" id="btn-conf-emails" onclick="showSubConf('emails', this)"
                         style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:var(--glass); color:var(--text-secondary);"><i
                             class="fa-solid fa-envelope"></i> Cuentas Correo</button>
+                    <button class="save-btn sub-conf-btn" id="btn-conf-ruleta" onclick="openRuletaAdminModal()"
+                        style="margin:0; width:auto; border-radius:8px; padding: 10px 15px; background:rgba(255,183,3,0.15); color:#ffb703; border: 1px solid #ffb703; font-weight: bold;"><i
+                            class="fa-solid fa-dharmachakra"></i> 🎰 Ruleta Premios</button>
                 </div>
 
                 <!-- SUB TAB: METODOS DE PAGO -->
@@ -2861,6 +2870,21 @@
 
                 <!-- SUB TAB: GENERAL -->
                 <div id="sub-conf-general" class="sub-conf-content" style="display:block;">
+                    <!-- Banner de acceso directo a Ruleta de Premios -->
+                    <div style="background: rgba(255, 183, 3, 0.1); border: 2px solid #ffb703; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:2.4rem;">🎰</span>
+                            <div>
+                                <h4 style="color: #ffb703; margin: 0; font-size: 1.15rem; font-weight:800;">RULETA DE LA SUERTE Y PREMIOS (FIN DE SEMANA / PROMOS)</h4>
+                                <p style="color: #ccc; margin: 4px 0 0 0; font-size: 0.85rem;">Activa o desactiva la ruleta para promociones, edita el banner de la sección navideña y gestiona los premios, descuentos y pantallas de regalo.</p>
+                            </div>
+                        </div>
+                        <button type="button" class="save-btn" onclick="openRuletaAdminModal()"
+                            style="margin: 0; padding: 10px 22px; background: #ffb703; color: black; font-weight: 800; border-radius: 8px; font-size:0.95rem; cursor:pointer; box-shadow: 0 4px 12px rgba(255,183,3,0.3);">
+                            <i class="fa-solid fa-sliders"></i> CONFIGURAR RULETA
+                        </button>
+                    </div>
+
                     <!-- Banner de acceso directo a Métodos de Pago -->
                     <div style="background: rgba(46, 204, 113, 0.12); border: 2px solid #2ecc71; border-radius: 12px; padding: 1.2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                         <div style="display:flex; align-items:center; gap:12px;">
@@ -3699,6 +3723,122 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DE CONFIGURACIÓN DE LA RULETA DE PREMIOS -->
+    <div id="ruleta-admin-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:99999; align-items:center; justify-content:center; padding:15px; overflow-y:auto;">
+        <div style="background:var(--bg-secondary); border: 2px solid #ffb703; max-width:920px; width:100%; border-radius:18px; padding:1.8rem; position:relative; box-shadow:0 10px 45px rgba(255,183,3,0.25); max-height:92vh; display:flex; flex-direction:column;">
+            <button onclick="closeRuletaAdminModal()"
+                style="position:absolute; top:1rem; right:1.2rem; background:transparent; border:none; color:white; font-size:1.8rem; cursor:pointer; line-height:1;">&times;</button>
+            
+            <div style="margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.8rem;">
+                <h2 style="color:#ffb703; margin:0 0 0.4rem 0; display:flex; align-items:center; gap:0.8rem; font-size:1.4rem;">
+                    <i class="fa-solid fa-dharmachakra"></i> Ruleta de la Suerte y Premios (Fin de Semana / Promos)
+                </h2>
+                <p style="color:#cbd5e1; font-size:0.85rem; margin:0; line-height:1.4;">
+                    Enciende o apaga la ruleta para tus promociones, edita el banner bajo el Podio Navideño y personaliza los premios con sus precios habituales y descuentos automáticos.
+                </p>
+            </div>
+
+            <div style="overflow-y:auto; padding-right:6px; flex:1;">
+                <!-- SECCIÓN 1: ESTADO Y CONTROL GENERAL -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-bottom:1.2rem;">
+                    <!-- Interruptor Ruleta -->
+                    <div style="background:rgba(255,255,255,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong style="color:#fff; font-size:0.95rem; display:block;">Estado de la Ruleta:</strong>
+                            <small style="color:#94a3b8; font-size:0.75rem;">Enciende para activar promociones en tienda</small>
+                        </div>
+                        <button id="admin-ruleta-toggle-btn" type="button" onclick="toggleRuletaEnabledInModal()"
+                            style="padding:8px 18px; border-radius:8px; font-weight:800; font-size:0.85rem; cursor:pointer; border:1px solid #2ecc71; background:rgba(46,204,113,0.2); color:#2ecc71; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-power-off"></i> <span id="admin-ruleta-toggle-text">ACTIVADA</span>
+                        </button>
+                    </div>
+
+                    <!-- Intentos diarios -->
+                    <div style="background:rgba(255,255,255,0.04); padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong style="color:#fff; font-size:0.95rem; display:block;">Giros Máximos por Día:</strong>
+                            <small style="color:#94a3b8; font-size:0.75rem;">Límite diario antes de bloquearse</small>
+                        </div>
+                        <input type="number" id="admin-ruleta-intentos" min="1" max="10" value="3"
+                            style="width:70px; text-align:center; padding:7px 10px; border-radius:8px; background:#1e272e; color:#ffb703; font-weight:800; font-size:1rem; border:1px solid rgba(255,183,3,0.4);">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: TEXTOS DEL BANNER Y PROMOCIÓN -->
+                <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); margin-bottom:1.2rem;">
+                    <h4 style="color:#38bdf8; margin:0 0 10px 0; font-size:0.92rem; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-bullhorn"></i> Mensaje del Banner en Tienda (Bajo el Podio Navideño)
+                    </h4>
+                    <div style="display:grid; grid-template-columns:1fr; gap:10px;">
+                        <div>
+                            <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Título del Banner:</label>
+                            <input type="text" id="admin-ruleta-banner-text" placeholder="¿No estás en el podio? ¡Aprovecha y entra aquí!"
+                                style="width:100%; padding:8px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.88rem;">
+                        </div>
+                        <div>
+                            <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Subtítulo / Mensaje de la Promo:</label>
+                            <textarea id="admin-ruleta-banner-subtext" rows="2" placeholder="Gira la ruleta y reclama premios directos o pantallas de regalo exclusivas."
+                                style="width:100%; padding:8px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.85rem; resize:vertical;"></textarea>
+                        </div>
+                        <div>
+                            <label style="color:#cbd5e1; font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Texto del Botón:</label>
+                            <input type="text" id="admin-ruleta-button-text" placeholder="🎰 ¡Girar Ruleta de la Suerte!"
+                                style="width:100%; padding:8px 12px; border-radius:8px; background:#1a1e24; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.88rem;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: TABLA DE PREMIOS DINÁMICOS -->
+                <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); margin-bottom:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                        <div>
+                            <h4 style="color:#ffb703; margin:0; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-gifts"></i> Premios y Sectores de la Ruleta (<span id="admin-ruleta-prizes-count">6</span> premios)
+                            </h4>
+                            <small style="color:#94a3b8; font-size:0.75rem;">Cada sector calcula automáticamente el valor a pagar o si es 100% gratis con ticket de WhatsApp.</small>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" onclick="resetRuletaAdminPrizesToDefault()"
+                                style="background:rgba(255,255,255,0.08); border:1px solid #777; color:#ddd; padding:5px 12px; border-radius:6px; font-size:0.78rem; cursor:pointer;">
+                                <i class="fa-solid fa-rotate-left"></i> Restaurar Defectos
+                            </button>
+                            <button type="button" onclick="addRuletaAdminPrize()"
+                                style="background:#2ecc71; border:none; color:black; font-weight:700; padding:5px 14px; border-radius:6px; font-size:0.8rem; cursor:pointer;">
+                                <i class="fa-solid fa-plus"></i> + Agregar Premio
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de premios -->
+                    <div id="admin-ruleta-prizes-container" style="display:flex; flex-direction:column; gap:8px; max-height:360px; overflow-y:auto; padding-right:4px;">
+                        <!-- Se llena con renderRuletaAdminPrizesList() -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PIE DEL MODAL: BOTONES DE GUARDAR Y ACCIONES -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem; margin-top:0.5rem;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="admin-ruleta-save-status" style="color:#2ecc71; font-size:0.85rem; display:none; font-weight:700;">
+                        <i class="fa-solid fa-check"></i> ¡Configuración de Ruleta Guardada en Firebase!
+                    </span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="closeRuletaAdminModal()"
+                        style="background:rgba(255,255,255,0.08); border:1px solid #666; color:#ccc; padding:9px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+                        Cerrar
+                    </button>
+                    <button type="button" onclick="saveRuletaAdminConfig()" class="save-btn"
+                        style="margin:0; width:auto; padding:9px 26px; background:#ffb703; color:black; font-size:0.9rem; font-weight:800; box-shadow:0 4px 15px rgba(255,183,3,0.3);">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Configuración
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </div>
     </div>
 
@@ -10027,6 +10167,269 @@
                 txt.textContent = 'DESACTIVADO';
             }
         }
+
+
+        // =========================================================================
+        // MOTOR DE GESTIÓN DE LA RULETA DE PREMIOS (ADMIN)
+        // =========================================================================
+        window.DEFAULT_RULETA_PREMIOS = [
+            {
+                id: 1,
+                label: "30% DCTO Netflix",
+                tipo: "descuento_servicio",
+                servicio: "Netflix Premium",
+                precioNormal: 15000,
+                descuentoPorcentaje: 30,
+                color: "#e50914"
+            },
+            {
+                id: 2,
+                label: "Pantalla ViX Gratis",
+                tipo: "pantalla_gratis",
+                servicio: "ViX Premium",
+                precioNormal: 8000,
+                descuentoPorcentaje: 100,
+                color: "#ff5400"
+            },
+            {
+                id: 3,
+                label: "20% DCTO Disney+",
+                tipo: "descuento_servicio",
+                servicio: "Disney+ Estándar",
+                precioNormal: 14000,
+                descuentoPorcentaje: 20,
+                color: "#113ccf"
+            },
+            {
+                id: 4,
+                label: "Pantalla Crunchyroll Gratis",
+                tipo: "pantalla_gratis",
+                servicio: "Crunchyroll Fan",
+                precioNormal: 9000,
+                descuentoPorcentaje: 100,
+                color: "#f77f00"
+            },
+            {
+                id: 5,
+                label: "Bono 15% General",
+                tipo: "cupon_general",
+                servicio: "Cualquier Pantalla",
+                precioNormal: 0,
+                descuentoPorcentaje: 15,
+                color: "#7209b7"
+            },
+            {
+                id: 6,
+                label: "Sigue Intentando 😢",
+                tipo: "sin_premio",
+                servicio: "Ninguno",
+                precioNormal: 0,
+                descuentoPorcentaje: 0,
+                color: "#343a40"
+            }
+        ];
+
+        let currentRuletaAdminPrizes = [];
+        let currentRuletaEnabled = true;
+
+        function safeRuletaAttr(val) {
+            return String(val == null ? '' : val).replace(/"/g, '&quot;');
+        }
+
+        window.openRuletaAdminModal = function() {
+            const modal = document.getElementById('ruleta-admin-modal');
+            if (!modal) return;
+            
+            const conf = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.ruletaConfig) ? storeConfig.ruletaConfig : {};
+            currentRuletaEnabled = conf.enabled !== false;
+            updateRuletaAdminToggleBtn(currentRuletaEnabled);
+
+            const inpIntentos = document.getElementById('admin-ruleta-intentos');
+            if (inpIntentos) inpIntentos.value = conf.intentosMaximosPorDia || 3;
+
+            const inpBanner = document.getElementById('admin-ruleta-banner-text');
+            if (inpBanner) inpBanner.value = conf.bannerText || "¿No estás en el podio? ¡Aprovecha y entra aquí!";
+
+            const inpSubtext = document.getElementById('admin-ruleta-banner-subtext');
+            if (inpSubtext) inpSubtext.value = conf.bannerSubtext || "No te quedes sin premio. Gira la ruleta y reclama tu bono o pantalla exclusiva de fin de semana. (Válido para clientes fuera del Top 3).";
+
+            const inpBtnText = document.getElementById('admin-ruleta-button-text');
+            if (inpBtnText) inpBtnText.value = conf.buttonText || "🎰 ¡Girar Ruleta de la Suerte!";
+
+            if (Array.isArray(conf.premios) && conf.premios.length >= 2) {
+                currentRuletaAdminPrizes = JSON.parse(JSON.stringify(conf.premios));
+            } else {
+                currentRuletaAdminPrizes = JSON.parse(JSON.stringify(window.DEFAULT_RULETA_PREMIOS));
+            }
+
+            renderRuletaAdminPrizesList();
+            modal.style.display = 'flex';
+        };
+
+        window.closeRuletaAdminModal = function() {
+            const modal = document.getElementById('ruleta-admin-modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.toggleRuletaEnabledInModal = function() {
+            currentRuletaEnabled = !currentRuletaEnabled;
+            updateRuletaAdminToggleBtn(currentRuletaEnabled);
+        };
+
+        function updateRuletaAdminToggleBtn(enabled) {
+            const btn = document.getElementById('admin-ruleta-toggle-btn');
+            const txt = document.getElementById('admin-ruleta-toggle-text');
+            if (!btn || !txt) return;
+            if (enabled) {
+                btn.style.border = '1px solid #2ecc71';
+                btn.style.background = 'rgba(46,204,113,0.2)';
+                btn.style.color = '#2ecc71';
+                txt.textContent = 'ACTIVADA';
+            } else {
+                btn.style.border = '1px solid #e74c3c';
+                btn.style.background = 'rgba(231,76,60,0.2)';
+                btn.style.color = '#e74c3c';
+                txt.textContent = 'DESACTIVADA';
+            }
+        }
+
+        window.renderRuletaAdminPrizesList = function() {
+            const cont = document.getElementById('admin-ruleta-prizes-container');
+            const cntBadge = document.getElementById('admin-ruleta-prizes-count');
+            if (!cont) return;
+            if (cntBadge) cntBadge.textContent = currentRuletaAdminPrizes.length;
+
+            cont.innerHTML = currentRuletaAdminPrizes.map((p, idx) => {
+                return '<div style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-left:4px solid ' + (p.color || '#ffb703') + '; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">' +
+                    '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+                        '<span style="font-weight:700; color:' + (p.color || '#ffb703') + '; font-size:0.85rem;">#' + (idx + 1) + '</span>' +
+                        '<div style="display:flex; gap:8px; align-items:center; flex:1; max-width:400px;">' +
+                            '<input type="text" value="' + safeRuletaAttr(p.label) + '" placeholder="Nombre / Etiqueta del Premio" onchange="updateRuletaAdminPrizeField(' + idx + ', \'label\', this.value)" ' +
+                                'style="width:100%; padding:5px 8px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem; font-weight:600;">' +
+                        '</div>' +
+                        '<div style="display:flex; align-items:center; gap:6px;">' +
+                            '<input type="color" value="' + (p.color || '#ffb703') + '" onchange="updateRuletaAdminPrizeField(' + idx + ', \'color\', this.value)" title="Color del sector" ' +
+                                'style="width:30px; height:30px; border-radius:6px; border:none; cursor:pointer; background:transparent;">' +
+                            '<button type="button" onclick="deleteRuletaAdminPrize(' + idx + ')" title="Eliminar premio" ' +
+                                'style="background:rgba(231,76,60,0.15); border:1px solid rgba(231,76,60,0.4); color:#e74c3c; width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;">' +
+                                '<i class="fa-solid fa-trash-can" style="font-size:0.75rem;"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; font-size:0.75rem;">' +
+                        '<div>' +
+                            '<label style="color:#94a3b8; display:block; margin-bottom:2px;">Tipo:</label>' +
+                            '<select onchange="updateRuletaAdminPrizeField(' + idx + ', \'tipo\', this.value)" style="width:100%; padding:4px 6px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.78rem;">' +
+                                '<option value="descuento_servicio" ' + (p.tipo === 'descuento_servicio' ? 'selected' : '') + '>Descuento en Pantalla</option>' +
+                                '<option value="pantalla_gratis" ' + (p.tipo === 'pantalla_gratis' ? 'selected' : '') + '>Pantalla Gratis (100%)</option>' +
+                                '<option value="cupon_general" ' + (p.tipo === 'cupon_general' ? 'selected' : '') + '>Cupón General</option>' +
+                                '<option value="sin_premio" ' + (p.tipo === 'sin_premio' ? 'selected' : '') + '>Sin Premio (Sigue intentando)</option>' +
+                            '</select>' +
+                        '</div>' +
+                        '<div>' +
+                            '<label style="color:#94a3b8; display:block; margin-bottom:2px;">Servicio:</label>' +
+                            '<input type="text" value="' + safeRuletaAttr(p.servicio) + '" placeholder="Ej: Netflix" onchange="updateRuletaAdminPrizeField(' + idx + ', \'servicio\', this.value)" ' +
+                                'style="width:100%; padding:4px 6px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.78rem;">' +
+                        '</div>' +
+                        '<div>' +
+                            '<label style="color:#94a3b8; display:block; margin-bottom:2px;">Precio Normal ($):</label>' +
+                            '<input type="number" value="' + (p.precioNormal || 0) + '" placeholder="Ej: 15000" onchange="updateRuletaAdminPrizeField(' + idx + ', \'precioNormal\', parseFloat(this.value) || 0)" ' +
+                                'style="width:100%; padding:4px 6px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.78rem;">' +
+                        '</div>' +
+                        '<div>' +
+                            '<label style="color:#94a3b8; display:block; margin-bottom:2px;">Descuento (%):</label>' +
+                            '<input type="number" min="0" max="100" value="' + (p.descuentoPorcentaje || 0) + '" placeholder="Ej: 30" onchange="updateRuletaAdminPrizeField(' + idx + ', \'descuentoPorcentaje\', parseFloat(this.value) || 0)" ' +
+                                'style="width:100%; padding:4px 6px; border-radius:6px; background:#15181c; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.78rem;">' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        };
+
+        window.updateRuletaAdminPrizeField = function(idx, field, val) {
+            if (!currentRuletaAdminPrizes[idx]) return;
+            currentRuletaAdminPrizes[idx][field] = val;
+            if (field === 'color') renderRuletaAdminPrizesList();
+        };
+
+        window.addRuletaAdminPrize = function() {
+            const nextId = currentRuletaAdminPrizes.length ? Math.max(...currentRuletaAdminPrizes.map(p => p.id || 0)) + 1 : 1;
+            const colors = ["#e50914", "#ff5400", "#113ccf", "#f77f00", "#7209b7", "#00b894", "#fdcb6e", "#e84393"];
+            const pickColor = colors[currentRuletaAdminPrizes.length % colors.length];
+            currentRuletaAdminPrizes.push({
+                id: nextId,
+                label: "Nuevo Bono " + nextId,
+                tipo: "descuento_servicio",
+                servicio: "Cualquier Pantalla",
+                precioNormal: 15000,
+                descuentoPorcentaje: 20,
+                color: pickColor
+            });
+            renderRuletaAdminPrizesList();
+        };
+
+        window.deleteRuletaAdminPrize = function(idx) {
+            if (currentRuletaAdminPrizes.length <= 2) {
+                alert("La ruleta debe tener al menos 2 premios para poder girar.");
+                return;
+            }
+            currentRuletaAdminPrizes.splice(idx, 1);
+            renderRuletaAdminPrizesList();
+        };
+
+        window.resetRuletaAdminPrizesToDefault = function() {
+            if (confirm("¿Restaurar los 6 premios por defecto de Streaming DPC?")) {
+                currentRuletaAdminPrizes = JSON.parse(JSON.stringify(window.DEFAULT_RULETA_PREMIOS));
+                renderRuletaAdminPrizesList();
+            }
+        };
+
+        window.saveRuletaAdminConfig = function() {
+            if (!currentRuletaAdminPrizes || currentRuletaAdminPrizes.length < 2) {
+                alert("Debes tener al menos 2 premios configurados en la ruleta.");
+                return;
+            }
+
+            const inpBanner = document.getElementById('admin-ruleta-banner-text');
+            const inpSubtext = document.getElementById('admin-ruleta-banner-subtext');
+            const inpBtnText = document.getElementById('admin-ruleta-button-text');
+            const inpIntentos = document.getElementById('admin-ruleta-intentos');
+
+            const bannerText = (inpBanner ? inpBanner.value.trim() : '') || "¿No estás en el podio? ¡Aprovecha y entra aquí!";
+            const bannerSubtext = (inpSubtext ? inpSubtext.value.trim() : '') || "No te quedes sin premio. Gira la ruleta y reclama tu bono o pantalla exclusiva de fin de semana. (Válido para clientes fuera del Top 3).";
+            const buttonText = (inpBtnText ? inpBtnText.value.trim() : '') || "🎰 ¡Girar Ruleta de la Suerte!";
+            const maxIntentos = (inpIntentos ? parseInt(inpIntentos.value) : 3) || 3;
+
+            const ruletaConfigData = {
+                enabled: currentRuletaEnabled,
+                bannerText: bannerText,
+                bannerSubtext: bannerSubtext,
+                buttonText: buttonText,
+                intentosMaximosPorDia: maxIntentos,
+                premios: currentRuletaAdminPrizes,
+                whatsappAdmin: "573155182545"
+            };
+
+            if (typeof storeConfig === 'undefined' || !storeConfig) storeConfig = {};
+            storeConfig.ruletaConfig = ruletaConfigData;
+
+            if (typeof db !== 'undefined') {
+                db.ref('storeConfig/ruletaConfig').set(ruletaConfigData).then(() => {
+                    const st = document.getElementById('admin-ruleta-save-status');
+                    if (st) {
+                        st.style.display = 'inline-block';
+                        setTimeout(() => { st.style.display = 'none'; }, 4000);
+                    }
+                    alert("✅ ¡Configuración de la Ruleta guardada con éxito en la nube!");
+                }).catch(err => {
+                    console.error("Error al guardar ruletaConfig:", err);
+                    alert("❌ Error al guardar en Firebase: " + err.message);
+                });
+            } else {
+                alert("✅ Configuración guardada en memoria local.");
+            }
+        };
+
 
         window.getClientNavidadRankInfo = function(clientPhone, sellerName) {
             const cleanPhone = String(clientPhone || '').replace(/\D/g, '').replace(/^57/, '');

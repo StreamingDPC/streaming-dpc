@@ -6377,6 +6377,39 @@ window.renderPremioNavideno = async function () {
         `;
     });
 
+
+    // =========================================================================
+    // BANNER PROMOCIONAL DE LA RULETA DE LA SUERTE
+    // =========================================================================
+    const ruletaConfig = (typeof window.getRuletaConfig === 'function') 
+        ? window.getRuletaConfig() 
+        : { enabled: true, bannerText: "¿No estás en el podio? ¡Aprovecha y gira la ruleta aquí!", bannerSubtext: "Participa por pantallas de regalo y descuentos exclusivos para clientes fuera del Top 3.", buttonText: "🎰 ¡Girar Ruleta de la Suerte!" };
+
+    if (ruletaConfig.enabled !== false) {
+        html += `
+            <div class="ruleta-promo-banner">
+                <div class="ruleta-banner-badge">
+                    <i class="fa-solid fa-gift"></i> Beneficio Exclusivo Clientes Fuera del Top 3
+                </div>
+                <h3 class="ruleta-banner-title">
+                    🎰 ${ruletaConfig.bannerText || '¿No estás en el podio? ¡Aprovecha y gira la ruleta aquí!'}
+                </h3>
+                <p class="ruleta-banner-desc">
+                    ${ruletaConfig.bannerSubtext || 'Participa por pantallas de regalo y descuentos exclusivos para clientes fuera del Top 3. ¡Tienes hasta 3 intentos por día!'}
+                </p>
+                <div>
+                    <button class="ruleta-banner-btn" onclick="openRuletaModal()">
+                        <i class="fa-solid fa-dharmachakra fa-spin" style="--fa-animation-duration: 6s;"></i>
+                        <span>${ruletaConfig.buttonText || '🎰 ¡Girar Ruleta de la Suerte!'}</span>
+                    </button>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.78rem; color: #94a3b8;">
+                    <i class="fa-solid fa-circle-info" style="color: #fbbf24;"></i> Los 3 primeros lugares del podio tienen sus grandes premios mayores garantizados.
+                </div>
+            </div>
+        `;
+    }
+
     html += `</div>`;
     container.innerHTML = html;
 
