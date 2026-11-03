@@ -114,6 +114,8 @@
             bannerSubtext: rConf.bannerSubtext || "Participa por pantallas de regalo y descuentos exclusivos para clientes fuera del Top 3.",
             buttonText: rConf.buttonText || "🎰 ¡Girar Ruleta de la Suerte!",
             intentosMaximosPorDia: parseInt(rConf.intentosMaximosPorDia) || 3,
+            resetButtonEnabled: rConf.resetButtonEnabled === true,
+            resetButtonTarget: rConf.resetButtonTarget || '',
             premios: (Array.isArray(rConf.premios) && rConf.premios.length >= 2) ? rConf.premios : DEFAULT_PREMIOS,
             whatsappAdmin: rConf.whatsappAdmin || WHATSAPP_ADMIN
         };
@@ -1038,6 +1040,46 @@
     /**
      * Actualiza la UI de intentos e identificación en el modal
      */
+
+    /**
+     * Controla la visibilidad del botón "Resetear Giros" según la configuración del Administrador
+     */
+    function actualizarVisibilidadBotonReset() {
+        const btnReset = document.getElementById('ruleta-btn-reset-admin');
+        if (!btnReset) return;
+
+        const config = window.getRuletaConfig();
+        const isEnabled = config.resetButtonEnabled === true;
+        const target = (config.resetButtonTarget || '').trim().toLowerCase();
+
+        if (!isEnabled) {
+            btnReset.style.display = 'none';
+            return;
+        }
+
+        const isAdmin = (typeof window.isUserAdmin === 'function' && window.isUserAdmin()) || localStorage.getItem('adminLoggedIn') === 'true';
+        const isSeller = (typeof isSellerMode !== 'undefined' && isSellerMode) || localStorage.getItem('isSellerMode') === 'true';
+        const currentSeller = ((typeof currentSellerName !== 'undefined' && currentSellerName) || localStorage.getItem('sellerName') || '').toLowerCase().trim();
+        const currentPhone = getCurrentUserIdentifier().toLowerCase();
+
+        let show = false;
+        if (!target || target === 'todos' || target === 'all') {
+            show = true;
+        } else if (target === 'admin') {
+            show = isAdmin;
+        } else {
+            if (isSeller && currentSeller && (currentSeller.includes(target) || target.includes(currentSeller))) {
+                show = true;
+            } else if (currentPhone && currentPhone !== 'invitado' && (currentPhone.includes(target) || target.includes(currentPhone))) {
+                show = true;
+            } else if (isAdmin) {
+                show = true;
+            }
+        }
+
+        btnReset.style.display = show ? 'inline-flex' : 'none';
+    }
+
     function actualizarUIIntentos() {
         const config = window.getRuletaConfig();
         const stats = getEstadisticasUsuario();
@@ -1060,6 +1102,7 @@
                 btnSpin.disabled = false;
             }
         }
+        actualizarVisibilidadBotonReset();
     }
 
     /**
@@ -1095,6 +1138,7 @@
         }
 
         setupRuletaAutoResetListener();
+        actualizarVisibilidadBotonReset();
         actualizarUIIntentos();
         window.dibujarRuleta();
     };
