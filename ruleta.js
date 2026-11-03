@@ -17,6 +17,8 @@
             servicio: "Netflix Premium",
             precioNormal: 15000,
             descuentoPorcentaje: 30, // Paga 10.500
+            probabilidad: 10,       // 10% de probabilidad
+            stockMaximo: 5,         // Máximo 5 ganadores
             color: "#e50914"
         },
         {
@@ -26,6 +28,8 @@
             servicio: "ViX Premium",
             precioNormal: 8000,
             descuentoPorcentaje: 100, // Total: $0
+            probabilidad: 1,          // 1% de probabilidad
+            stockMaximo: 1,          // Solo 1 único ganador
             color: "#ff5400"
         },
         {
@@ -35,6 +39,8 @@
             servicio: "Disney+ Estándar",
             precioNormal: 14000,
             descuentoPorcentaje: 20, // Paga 11.200
+            probabilidad: 15,        // 15% de probabilidad
+            stockMaximo: 5,          // Máximo 5 ganadores
             color: "#113ccf"
         },
         {
@@ -44,6 +50,8 @@
             servicio: "Crunchyroll Fan",
             precioNormal: 9000,
             descuentoPorcentaje: 100, // Total: $0
+            probabilidad: 1,          // 1% de probabilidad
+            stockMaximo: 1,          // Solo 1 único ganador
             color: "#f77f00"
         },
         {
@@ -53,6 +61,8 @@
             servicio: "Cualquier Pantalla",
             precioNormal: 0, // Se calcula según lo que escoja
             descuentoPorcentaje: 15,
+            probabilidad: 25,        // 25% de probabilidad
+            stockMaximo: 10,         // Máximo 10 ganadores
             color: "#7209b7"
         },
         {
@@ -62,6 +72,8 @@
             servicio: "Ninguno",
             precioNormal: 0,
             descuentoPorcentaje: 0,
+            probabilidad: 48,        // 48% de probabilidad (mayoría)
+            stockMaximo: 0,          // 0 = Ilimitado / Sin límite
             color: "#343a40"
         }
     ];
@@ -392,16 +404,82 @@
         ctx.restore();
     };
 
+
     /**
-     * Calcula el premio ganador basándose en el ángulo actual
+     * Algoritmo de Selección Ponderada por Probabilidades y Límite de Stock (Firebase)
+     * Excluye premios agotados y selecciona el ganador basándose en el porcentaje de probabilidad configurado.
      */
-    function calcularPremioGanador() {
+    async function seleccionarPremioPonderado(premios) {
+        let entregados = {};
+        if (typeof db !== 'undefined') {
+            try {
+                const snap = await db.ref('storeConfig/ruletaStats/entregados').once('value');
+                entregados = snap.val() || {};
+            } catch (e) {
+                console.warn("No se pudo leer ruletaStats/entregados:", e);
+            }
+        }
+
+        const candidatos = [];
+        for (let i = 0; i < premios.length; i++) {
+            const p = premios[i];
+            const pId = String(p.id != null ? p.id : i + 1);
+            const gastados = parseInt(entregados[pId]) || 0;
+            const maxStock = parseInt(p.stockMaximo) || 0; // 0 = ilimitado
+
+            let peso = parseFloat(p.probabilidad);
+            if (isNaN(peso) || peso < 0) peso = 10;
+
+            // Si el premio tiene límite y ya se alcanzó o superó, está AGOTADO (peso = 0)
+            if (maxStock > 0 && gastados >= maxStock) {
+                peso = 0;
+            }
+
+            candidatos.push({
+                index: i,
+                premio: p,
+                peso: peso,
+                gastados: gastados,
+                maxStock: maxStock,
+                agotado: (maxStock > 0 && gastados >= maxStock)
+            });
+        }
+
+        const pesoTotal = candidatos.reduce((acc, c) => acc + c.peso, 0);
+
+        // Si todos los premios disponibles estuvieran agotados, caer en 'sin_premio'
+        if (pesoTotal <= 0) {
+            const sinPremioIdx = premios.findIndex(p => p.tipo === 'sin_premio');
+            return sinPremioIdx !== -1 ? sinPremioIdx : 0;
+        }
+
+        let rand = Math.random() * pesoTotal;
+        for (const c of candidatos) {
+            if (c.peso <= 0) continue;
+            if (rand < c.peso) {
+                return c.index;
+            }
+            rand -= c.peso;
+        }
+
+        return candidatos[candidatos.length - 1].index;
+    }
+
+    /**
+     * Calcula el premio ganador basándose en el índice obtenido o en el ángulo actual
+     */
+    function calcularPremioGanador(indicePredeterminado) {
         const config = window.getRuletaConfig();
         const configPremiosStreaming = config.premios;
 
-        const normalizado = (1.5 * Math.PI - (anguloActual % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-        const arco = (2 * Math.PI) / configPremiosStreaming.length;
-        const indice = Math.floor(normalizado / arco);
+        let indice;
+        if (indicePredeterminado != null && configPremiosStreaming[indicePredeterminado]) {
+            indice = indicePredeterminado;
+        } else {
+            const normalizado = (1.5 * Math.PI - (anguloActual % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI);
+            const arco = (2 * Math.PI) / configPremiosStreaming.length;
+            indice = Math.floor(normalizado / arco);
+        }
 
         premioTemporal = configPremiosStreaming[indice];
 
@@ -526,18 +604,31 @@
         const btnSpin = document.getElementById('ruleta-spin-btn');
         if (btnSpin) btnSpin.disabled = true;
 
-        // Calcular ángulo objetivo: 5 a 8 vueltas completas + ángulo aleatorio
+        // Seleccionar premio ganador según probabilidades y stock disponible en Firebase
+        const indiceGanador = await seleccionarPremioPonderado(config.premios);
+
+        const numSlices = config.premios.length;
+        const arco = (2 * Math.PI) / numSlices;
+
+        // Calcular ángulo exacto para que el sector ganador se detenga bajo el puntero dorado (a 270° o 1.5 * PI)
+        const anguloMedio = (indiceGanador + 0.5) * arco;
+        const jitter = (Math.random() - 0.5) * (arco * 0.4); // Variación sutil dentro del sector
+        const targetNorm = (anguloMedio + jitter + 2 * Math.PI) % (2 * Math.PI);
+        const targetAngleModulo = (1.5 * Math.PI - targetNorm + 4 * Math.PI) % (2 * Math.PI);
+
+        // De 5 a 8 vueltas completas
         const vueltasCompletas = (5 + Math.floor(Math.random() * 4)) * (2 * Math.PI);
-        const anguloExtra = Math.random() * (2 * Math.PI);
-        const anguloObjetivo = anguloActual + vueltasCompletas + anguloExtra;
+        const currentMod = (anguloActual % (2 * Math.PI));
+        let diff = targetAngleModulo - currentMod;
+        if (diff < 0) diff += 2 * Math.PI;
+
+        const anguloObjetivo = anguloActual + vueltasCompletas + diff;
 
         const duracionTotal = 4800; // 4.8 segundos
         const tiempoInicio = performance.now();
         const anguloInicial = anguloActual;
 
         let ultimoSectorSonido = -1;
-        const numSlices = config.premios.length;
-        const arco = (2 * Math.PI) / numSlices;
 
         function animarGiro(tiempoActual) {
             const transcurrido = tiempoActual - tiempoInicio;
@@ -561,7 +652,18 @@
             } else {
                 isGirando = false;
                 if (btnSpin) btnSpin.disabled = false;
-                calcularPremioGanador();
+
+                // Mostrar tarjeta de resultado con el premio ganador obtenido
+                calcularPremioGanador(indiceGanador);
+
+                // Incrementar contador de stock entregado en Firebase si es premio con stock
+                const pGanador = config.premios[indiceGanador];
+                if (pGanador && pGanador.tipo !== 'sin_premio' && typeof db !== 'undefined') {
+                    const pId = String(pGanador.id != null ? pGanador.id : indiceGanador + 1);
+                    db.ref(`storeConfig/ruletaStats/entregados/${pId}`).transaction(curr => {
+                        return (parseInt(curr) || 0) + 1;
+                    }).catch(console.error);
+                }
             }
         }
 
