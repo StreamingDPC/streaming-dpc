@@ -5812,8 +5812,11 @@ async function loadNavRankings() {
         if (sig && !sig.startsWith('0_') && processedSignatures.has(sig)) return;
         if (sig && !sig.startsWith('0_')) processedSignatures.add(sig);
 
-        const d = new Date(s.date || s.fechaCompraOriginal || 0);
-        if (d.getFullYear() !== currentYear) return;
+        const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+        const expMs = Number(s.expirationDate || 0);
+        const startYear = startMs ? new Date(startMs).getFullYear() : 0;
+        const expYear = expMs ? new Date(expMs).getFullYear() : 0;
+        if (startYear !== currentYear && expYear !== currentYear) return;
 
         const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
         const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');

@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.78 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.79 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -9319,13 +9319,119 @@
             const tab = window.currentRankingTab || 'admin';
             const dataStore = window.currentStatsRankingData || { adminClients: [], sellers: [], sellerClients: [] };
 
-            // Caso especial: Podio Navideño
+            // Función que computa SIEMPRE el ranking anual completo (incluyendo todo el historial de ventas activas y vencidas del año)
+        window.getAnnualNavidadRankData = function () {
+            const currentYear = 2026;
+            const adminClients = {};
+            const sellers = {};
+            const sellerClients = {};
+            const processedSigs = new Set();
+
+            function proc(s, defaultSeller, fallbackPhone) {
+                if (!s || s.isPaid === false) return;
+                const cleanP = String(s.clientPhone || fallbackPhone || '').replace(/\D/g, '').replace(/^57/, '');
+                const sId = s.id || s._saleId || '';
+                const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
+                const sig = sId ? (sId + '_' + cleanP) : ((s.fechaCompraOriginal || s.date || 0) + '_' + cleanP + '_' + sProfile);
+                if (sig && !sig.startsWith('0_') && processedSigs.has(sig)) return;
+                if (sig && !sig.startsWith('0_')) processedSigs.add(sig);
+
+                const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+                const expMs = Number(s.expirationDate || 0);
+                const startYear = startMs ? new Date(startMs).getFullYear() : 0;
+                const expYear = expMs ? new Date(expMs).getFullYear() : 0;
+                if (startYear !== currentYear && expYear !== currentYear) return;
+
+                const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
+                const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');
+
+                let cName = (s.clientName || '').trim();
+                if (!cName || cName.toLowerCase() === 'cliente') {
+                    cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
+                }
+
+                let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                const seenItemSigs = new Set();
+                const items = [];
+                rawItems.forEach(it => {
+                    if (!it) return;
+                    const itPlat = (it.name || '').trim().toLowerCase();
+                    const itEmail = (it.email || it.correo || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].email) || '').trim().toLowerCase();
+                    const itProf = (it.profile || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].profile) || '').trim().toLowerCase();
+                    const itSig = `${itPlat}_${itEmail}_${itProf}`;
+                    if (seenItemSigs.has(itSig) && itSig !== '__') return;
+                    seenItemSigs.add(itSig);
+                    items.push(it);
+                });
+
+                let monthsCount = 1;
+                if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
+                    monthsCount = Math.min(12, Math.round(Number(s.months)));
+                } else if (startMs > 0 && expMs > startMs) {
+                    const diffDays = Math.round((expMs - startMs) / 86400000);
+                    if (diffDays >= 45) {
+                        monthsCount = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                    }
+                }
+                const screens = Math.max(1, items.length) * monthsCount;
+                const saleTotal = Number(s.total) || 0;
+
+                if (isAdmin) {
+                    const key = (cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || 'cliente');
+                    if (!adminClients[key]) {
+                        adminClients[key] = { phone: cleanP, name: cName, screens: 0, purchases: 0, spent: 0 };
+                    }
+                    adminClients[key].screens += screens;
+                    adminClients[key].purchases += 1;
+                    adminClients[key].spent += saleTotal;
+                } else {
+                    if (!sellers[sName]) {
+                        sellers[sName] = { name: sName, screens: 0, sales: 0, totalSold: 0 };
+                    }
+                    sellers[sName].screens += screens;
+                    sellers[sName].sales += 1;
+                    sellers[sName].totalSold += saleTotal;
+
+                    const isShared = ['any', 'angie', 'katherin', 'katherine', 'katerin'].some(ex => sName.toLowerCase().trim().startsWith(ex));
+                    const scIdent = (!isShared && cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || cleanP || 'cliente');
+                    const key = `${sName}___${scIdent}`;
+                    if (!sellerClients[key]) {
+                        sellerClients[key] = { phone: cleanP, name: cName, seller: sName, screens: 0, purchases: 0, spent: 0 };
+                    }
+                    sellerClients[key].screens += screens;
+                    sellerClients[key].purchases += 1;
+                    sellerClients[key].spent += saleTotal;
+                }
+            }
+
+            const cMap = window.allClientSalesMap || {};
+            Object.keys(cMap).forEach(p => {
+                const sales = cMap[p] || {};
+                Object.keys(sales).forEach(id => proc(sales[id], '', p));
+            });
+
+            const sMap = window.globalSellerSalesDataStore || {};
+            Object.keys(sMap).forEach(s => {
+                if (s === 'Página Web Oficial' || s.toLowerCase().includes('oficial') || s.toLowerCase() === 'admin') return;
+                const sales = sMap[s] || {};
+                Object.keys(sales).forEach(id => proc(sales[id], s, ''));
+            });
+
+            return {
+                adminClients: Object.values(adminClients).sort((a,b) => b.screens - a.screens),
+                sellers: Object.values(sellers).sort((a,b) => b.screens - a.screens),
+                sellerClients: Object.values(sellerClients).sort((a,b) => b.screens - a.screens)
+            };
+        };
+
+        // Caso especial: Podio Navideño
             if (tab === 'navidad') {
                 if (badgeEl) badgeEl.innerHTML = '<span style="color:#fbbf24; font-weight:700;">🎄 Redención: 25 Dic (08:00 AM) al 31 Dic (11:59 PM)</span>';
                 
-                const sortedAdmin = [...(dataStore.adminClients || [])].sort((a,b) => b.screens - a.screens);
-                const sortedSellers = [...(dataStore.sellers || [])].sort((a,b) => b.screens - a.screens);
-                const sortedSellerClients = [...(dataStore.sellerClients || [])].sort((a,b) => b.screens - a.screens);
+                const annualNavData = window.getAnnualNavidadRankData();
+                const sortedAdmin = annualNavData.adminClients;
+                const sortedSellers = annualNavData.sellers;
+                const sortedSellerClients = annualNavData.sellerClients;
 
                 const prizeConfig = {
                     admin_client: { 1: "Netflix + Crunchyroll + ViX", 2: "Crunchyroll + ViX", 3: "ViX" },
@@ -11318,8 +11424,11 @@
                 if (sig && !sig.startsWith('0_') && processedSigs.has(sig)) return;
                 if (sig && !sig.startsWith('0_')) processedSigs.add(sig);
 
-                const d = new Date(s.date || s.fechaCompraOriginal || 0);
-                if (d.getFullYear() !== currentYear) return;
+                const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+                const expMs = Number(s.expirationDate || 0);
+                const startYear = startMs ? new Date(startMs).getFullYear() : 0;
+                const expYear = expMs ? new Date(expMs).getFullYear() : 0;
+                if (startYear !== currentYear && expYear !== currentYear) return;
 
                 const sName = (s.sellerName || s.seller || defaultSeller || '').trim();
                 const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase().includes('admin') || sName.toLowerCase().includes('oficial');
