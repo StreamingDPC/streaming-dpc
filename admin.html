@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.76 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.77 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -13303,6 +13303,9 @@
                                         let newItem = Object.assign({}, item);
                                         if (capturedHistoryEmails[idx]) {
                                             newItem.specificEmails = capturedHistoryEmails[idx];
+                                            if (capturedHistoryEmails[idx][0] && capturedHistoryEmails[idx][0].platform) {
+                                                newItem.name = capturedHistoryEmails[idx][0].platform;
+                                            }
                                         }
                                         if (capturedHistoryAliases[idx] !== undefined) {
                                             newItem.customName = capturedHistoryAliases[idx] || null;
@@ -16340,6 +16343,7 @@
                                 pass,
                                 profile,
                                 pin,
+                                finalPrice: it.finalPrice || it.price || 0,
                                 isScreenComplete
                             });
                         }
@@ -16382,6 +16386,25 @@
 
             return clientRecords;
         }
+
+        window.updateDbSaleTotalAuto = function (inputEl) {
+            const sBlock = inputEl ? inputEl.closest('.db-sale-block') : null;
+            if (!sBlock) return;
+            const priceInputs = sBlock.querySelectorAll('.db-inp-screen-price');
+            let sum = 0;
+            let countWithPrice = 0;
+            priceInputs.forEach(inp => {
+                const val = parseFloat(inp.value);
+                if (!isNaN(val) && val > 0) {
+                    sum += val;
+                    countWithPrice++;
+                }
+            });
+            const totalInp = sBlock.querySelector('.db-inp-sale-total');
+            if (totalInp && countWithPrice > 0) {
+                totalInp.value = sum;
+            }
+        };
 
         window.renderDatabaseTab = function (showFeedback = false) {
             const container = document.getElementById('db-master-list-container');
@@ -16558,7 +16581,7 @@
                             const missingPass = !sc.pass;
                             screensRowsHtml += `
                                 <div class="db-screen-row" data-item-idx="${sc.itemIdx}" data-screen-idx="${sc.screenIdx}"
-                                    style="display:grid; grid-template-columns: minmax(130px, 1.1fr) minmax(190px, 1.7fr) minmax(130px, 1.1fr) minmax(110px, 0.9fr) minmax(85px, 0.7fr) auto; gap:8px; align-items:end; background:rgba(0,0,0,0.4); padding:10px; border-radius:10px; border:1px solid ${missingEmail || missingPass ? 'rgba(243, 156, 18, 0.45)' : 'rgba(255,255,255,0.08)'}; margin-top:8px;">
+                                    style="display:grid; grid-template-columns: minmax(130px, 1.1fr) minmax(170px, 1.5fr) minmax(120px, 1fr) minmax(100px, 0.85fr) minmax(75px, 0.65fr) minmax(85px, 0.75fr) auto; gap:8px; align-items:end; background:rgba(0,0,0,0.4); padding:10px; border-radius:10px; border:1px solid ${missingEmail || missingPass ? 'rgba(243, 156, 18, 0.45)' : 'rgba(255,255,255,0.08)'}; margin-top:8px;">
                                     <div>
                                         <label style="font-size:0.68rem; color:#2ecc71; font-weight:bold; display:block; margin-bottom:3px;">📺 PLATAFORMA (${escapeAttr(sc.productName)})</label>
                                         <input type="text" class="db-inp-platform" value="${escapeAttr(sc.platform)}" placeholder="Ej: Netflix"
@@ -16588,6 +16611,12 @@
                                         <input type="text" class="db-inp-pin" value="${escapeAttr(sc.pin)}" placeholder="PIN"
                                             oninput="markDbClientDirty('${escapeAttr(client.phone)}')"
                                             style="margin:0; padding:7px 9px; font-size:0.84rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#f1c40f; font-weight:bold; width:100%;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:0.68rem; color:#f1c40f; font-weight:bold; display:block; margin-bottom:3px;">💰 PRECIO ($)</label>
+                                        <input type="number" class="db-inp-screen-price" value="${sc.finalPrice || ''}" placeholder="Ej: 16000"
+                                            oninput="markDbClientDirty('${escapeAttr(client.phone)}'); updateDbSaleTotalAuto(this);"
+                                            style="margin:0; padding:7px 9px; font-size:0.84rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(241,196,15,0.35); color:#f1c40f; font-weight:bold; width:100%;">
                                     </div>
                                     <div style="display:flex; gap:5px; align-items:center;">
                                         <button type="button" onclick="sendDbRowWhatsApp('${escapeAttr(client.phone)}', '${escapeAttr(sale.saleKey)}', ${sc.itemIdx}, ${sc.screenIdx})"
@@ -16619,6 +16648,14 @@
                                     <span style="font-size:0.75rem; color:#888;">Vence:</span>
                                     <input type="date" class="db-inp-sale-exp" value="${expVal}" oninput="markDbClientDirty('${escapeAttr(client.phone)}')"
                                         style="margin:0; padding:3px 7px; font-size:0.76rem; border-radius:6px; background:rgba(0,0,0,0.5); border:1px solid ${expBadgeColor}; color:white; width:auto; font-weight:bold;">
+                                    <span style="font-size:0.75rem; color:#f1c40f; font-weight:bold; margin-left:4px;">💰 Total:</span>
+                                    <div style="display:inline-flex; align-items:center; gap:2px;">
+                                        <span style="font-size:0.8rem; color:#f1c40f; font-weight:bold;">$</span>
+                                        <input type="number" class="db-inp-sale-total" value="${sale.total || ''}" placeholder="Ej: 79000"
+                                            oninput="markDbClientDirty('${escapeAttr(client.phone)}')"
+                                            title="Valor total de la compra o combo"
+                                            style="margin:0; padding:3px 7px; font-size:0.78rem; border-radius:6px; background:rgba(0,0,0,0.5); border:1px solid rgba(241, 196, 15, 0.4); color:#f1c40f; font-weight:bold; width:85px;">
+                                    </div>
                                 </div>
                                 <div style="display:flex; gap:6px; align-items:center;">
                                     <button type="button" onclick="addDbScreenToSale('${escapeAttr(client.phone)}', '${escapeAttr(sale.saleKey)}')"
@@ -16843,6 +16880,8 @@
                     const pass = (row.querySelector('.db-inp-pass')?.value || '').trim();
                     const profile = (row.querySelector('.db-inp-profile')?.value || '').trim();
                     const pin = (row.querySelector('.db-inp-pin')?.value || '').trim();
+                    const priceRaw = (row.querySelector('.db-inp-screen-price')?.value || '').trim();
+                    const screenPrice = priceRaw ? parseFloat(priceRaw) : null;
 
                     if (!itemsArr[itemIdx]) {
                         itemsArr[itemIdx] = {
@@ -16853,9 +16892,13 @@
                         };
                     }
 
-                    // Si es producto individual de 1 pantalla, actualizar también el nombre si el admin lo editó
-                    if (itemsArr.length === 1 && screenRows.length === 1 && plat) {
+                    // Actualizar SIEMPRE el nombre de la plataforma del ítem con el valor editado
+                    if (plat) {
                         itemsArr[itemIdx].name = plat;
+                    }
+                    if (screenPrice !== null && !isNaN(screenPrice)) {
+                        itemsArr[itemIdx].finalPrice = screenPrice;
+                        itemsArr[itemIdx].price = screenPrice;
                     }
 
                     itemsArr[itemIdx].specificEmails.push({
@@ -16876,7 +16919,17 @@
                 if (firstPassFound) origSale.password = firstPassFound;
                 if (firstProfileFound) origSale.profile = firstProfileFound;
 
+                // Guardar total de la venta (manual o suma de precios de pantalla)
+                const totalInp = sBlock.querySelector('.db-inp-sale-total');
+                if (totalInp && totalInp.value.trim() !== '') {
+                    origSale.total = parseFloat(totalInp.value.trim()) || 0;
+                } else {
+                    const autoSum = itemsArr.reduce((acc, it) => acc + (Number(it.finalPrice) || Number(it.price) || 0), 0);
+                    if (autoSum > 0) origSale.total = autoSum;
+                }
+
                 // Guardar en clientSales
+
                 updates[`clientSales/${targetPhoneKey}/${saleKey}`] = origSale;
 
                 // Sincronizar también en sellerSales si pertenece a un vendedor
@@ -16898,6 +16951,7 @@
                                 date: origSale.date,
                                 expirationDate: origSale.expirationDate,
                                 items: origSale.items,
+                                total: origSale.total || 0,
                                 email: origSale.email || '',
                                 password: origSale.password || '',
                                 profile: origSale.profile || ''
