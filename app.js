@@ -5836,7 +5836,21 @@ async function loadNavRankings() {
             seenItemSigs.add(itSig);
             items.push(it);
         });
-        const screens = Math.max(1, items.length);
+        // Calcular meses de la suscripción (por meses configurados o por diferencia de fechas acumuladas)
+        let monthsCount = 1;
+        if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
+            monthsCount = Math.min(12, Math.round(Number(s.months)));
+        } else {
+            const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+            const expMs = Number(s.expirationDate || 0);
+            if (startMs > 0 && expMs > startMs) {
+                const diffDays = Math.round((expMs - startMs) / 86400000);
+                if (diffDays >= 45) {
+                    monthsCount = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                }
+            }
+        }
+        const screens = Math.max(1, items.length) * monthsCount;
 
         if (isAdmin) {
             const key = (cleanPhone && cleanPhone.length >= 7) ? cleanPhone : (cName.toLowerCase() || 'cliente');
