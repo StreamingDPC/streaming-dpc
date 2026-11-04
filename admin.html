@@ -417,7 +417,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.79 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.80 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3106,6 +3106,29 @@
                                 <button class="save-btn" onclick="saveConfig()"
                                     style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);"
                                     title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                            </div>
+
+                            <!-- Bloque interactivo para Activar / Desactivar Pestañas -->
+                            <div style="margin-top: 1.2rem; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom: 0.9rem;">
+                                    <div>
+                                        <h4 style="margin:0; font-size:0.92rem; color:#2ecc71; display:flex; align-items:center; gap:8px;">
+                                            <i class="fa-solid fa-power-off"></i> Estado de Pestañas (Encender / Apagar)
+                                        </h4>
+                                        <p style="margin:3px 0 0 0; font-size:0.78rem; color:#aaa;">Haz clic en el interruptor de cualquier pestaña para activarla u ocultarla en la tienda.</p>
+                                    </div>
+                                    <div style="display:flex; gap:6px;">
+                                        <button type="button" onclick="setAllTabsVisibility(true)" class="btn btn-sm" style="background:rgba(46,204,113,0.15); border:1px solid #2ecc71; color:#2ecc71; padding:5px 11px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+                                            <i class="fa-solid fa-check-double"></i> Encender Todas
+                                        </button>
+                                        <button type="button" onclick="setAllTabsVisibility(false)" class="btn btn-sm" style="background:rgba(231,76,60,0.15); border:1px solid #e74c3c; color:#ff7675; padding:5px 11px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">
+                                            <i class="fa-solid fa-ban"></i> Apagar Todas
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="tabs-toggle-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:10px;">
+                                    <!-- Rellenado dinámicamente -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -6819,6 +6842,9 @@
                 if (document.getElementById('conf-tabOrder')) {
                     document.getElementById('conf-tabOrder').value = (storeConfig && storeConfig.tabOrder) ? storeConfig.tabOrder.join(',') : 'promociones_finde,promociones,premio_navideno,individual,combos2,combos3,combos4,combos5,ventas_extras,estrenos,all';
                 }
+                if (typeof renderTabsToggleGrid === 'function') {
+                    renderTabsToggleGrid();
+                }
                 if (document.getElementById('conf-paymentMethodsEnabled')) {
                     document.getElementById('conf-paymentMethodsEnabled').value = (storeConfig && storeConfig.paymentMethodsEnabled !== false) ? 'true' : 'false';
                 }
@@ -7118,7 +7144,10 @@
                 if (document.getElementById('conf-incentiveMes')) storeConfig.incentiveMes = parseInt(document.getElementById('conf-incentiveMes').value) || 0;
 
                 if (document.getElementById('conf-tabOrder')) {
-                    storeConfig.tabOrder = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim());
+                    storeConfig.tabOrder = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                if (!Array.isArray(storeConfig.disabledTabs)) {
+                    storeConfig.disabledTabs = [];
                 }
                 if (document.getElementById('conf-paymentMethodsEnabled')) {
                     storeConfig.paymentMethodsEnabled = document.getElementById('conf-paymentMethodsEnabled').value === "true";
@@ -16211,6 +16240,100 @@
         // =========================================================================
         // 🗄️ BASE DE DATOS MAESTRA DE CLIENTES Y PANTALLAS (v3.9.33)
         // =========================================================================
+        // =========================================================================
+        // 📑 GESTIÓN DE VISIBILIDAD DE PESTAÑAS (ENCENDER / APAGAR)
+        // =========================================================================
+        const ALL_STORE_TABS = [
+            { key: 'promociones_finde', label: 'Promoción fin de semana', icon: 'fa-tags' },
+            { key: 'promociones', label: 'Promociones del Mes', icon: 'fa-fire' },
+            { key: 'premio_navideno', label: '🎁 Premio Navideño', icon: 'fa-gift' },
+            { key: 'individual', label: 'Individual (Pantallas)', icon: 'fa-tv' },
+            { key: 'combos2', label: 'Combos 2 Pantallas', icon: 'fa-layer-group' },
+            { key: 'combos3', label: 'Combos 3 Pantallas', icon: 'fa-layer-group' },
+            { key: 'combos4', label: 'Combos 4 Pantallas', icon: 'fa-layer-group' },
+            { key: 'combos5', label: 'Combos 5 Pantallas', icon: 'fa-layer-group' },
+            { key: 'ventas_extras', label: 'Ventas Extras', icon: 'fa-shop' },
+            { key: 'estrenos', label: '🎬 Estrenos del mes', icon: 'fa-film' },
+            { key: 'polla', label: 'Polla Deportiva', icon: 'fa-trophy' },
+            { key: 'all', label: 'Todos los Productos', icon: 'fa-border-all' }
+        ];
+
+        window.renderTabsToggleGrid = function () {
+            const container = document.getElementById('tabs-toggle-grid');
+            if (!container) return;
+            const disabledTabs = (storeConfig && Array.isArray(storeConfig.disabledTabs)) ? storeConfig.disabledTabs : [];
+
+            let html = '';
+            ALL_STORE_TABS.forEach(tab => {
+                const isEnabled = !disabledTabs.includes(tab.key);
+                html += `
+                    <div class="tab-toggle-item" style="background: rgba(0,0,0,0.35); border: 1px solid ${isEnabled ? 'rgba(46, 204, 113, 0.45)' : 'rgba(231, 76, 60, 0.4)'}; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all 0.2s;">
+                        <div style="min-width: 0;">
+                            <div style="font-weight: 700; font-size: 0.85rem; color: ${isEnabled ? '#fff' : '#888'}; display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                <i class="fa-solid ${tab.icon}" style="color:${isEnabled ? '#2ecc71' : '#e74c3c'}; font-size:0.9rem;"></i>
+                                <span>${tab.label}</span>
+                            </div>
+                            <div style="font-size: 0.70rem; color: #666; font-family: monospace; margin-top:2px;">${tab.key}</div>
+                        </div>
+                        <button type="button" onclick="toggleTabVisibility('${tab.key}')"
+                            title="${isEnabled ? 'Clic para APAGAR esta pestaña' : 'Clic para ENCENDER esta pestaña'}"
+                            style="cursor: pointer; padding: 5px 11px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; border: 1px solid ${isEnabled ? '#2ecc71' : '#e74c3c'}; background: ${isEnabled ? 'rgba(46, 204, 113, 0.18)' : 'rgba(231, 76, 60, 0.15)'}; color: ${isEnabled ? '#2ecc71' : '#ff7675'}; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                            <i class="fa-solid ${isEnabled ? 'fa-toggle-on' : 'fa-toggle-off'}" style="font-size: 0.95rem;"></i>
+                            <span>${isEnabled ? 'ENCENDIDA' : 'APAGADA'}</span>
+                        </button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        };
+
+        window.toggleTabVisibility = async function (tabKey) {
+            if (!storeConfig) storeConfig = {};
+            if (!Array.isArray(storeConfig.disabledTabs)) {
+                storeConfig.disabledTabs = [];
+            }
+            const idx = storeConfig.disabledTabs.indexOf(tabKey);
+            let isNowEnabled = false;
+            if (idx !== -1) {
+                storeConfig.disabledTabs.splice(idx, 1);
+                isNowEnabled = true;
+            } else {
+                storeConfig.disabledTabs.push(tabKey);
+                isNowEnabled = false;
+            }
+
+            renderTabsToggleGrid();
+
+            try {
+                await db.ref('storeConfig/disabledTabs').set(storeConfig.disabledTabs);
+                const tInfo = ALL_STORE_TABS.find(t => t.key === tabKey);
+                const label = tInfo ? tInfo.label : tabKey;
+                if (typeof showDbToast === 'function') {
+                    showDbToast(`${isNowEnabled ? '🟢 Pestaña Activada' : '🔴 Pestaña Ocultada'}: ${label}`);
+                }
+            } catch (e) {
+                console.error('Error guardando estado de pestaña:', e);
+            }
+        };
+
+        window.setAllTabsVisibility = async function (enableAll) {
+            if (!storeConfig) storeConfig = {};
+            if (enableAll) {
+                storeConfig.disabledTabs = [];
+            } else {
+                storeConfig.disabledTabs = ALL_STORE_TABS.map(t => t.key);
+            }
+            renderTabsToggleGrid();
+            try {
+                await db.ref('storeConfig/disabledTabs').set(storeConfig.disabledTabs);
+                if (typeof showDbToast === 'function') {
+                    showDbToast(enableAll ? '🟢 Todas las pestañas encendidas' : '🔴 Todas las pestañas apagadas');
+                }
+            } catch (e) {
+                console.error('Error guardando estado masivo de pestañas:', e);
+            }
+        };
+
         const _dbDirtyPhones = new Set();
 
         function showDbToast(msg, isError = false) {

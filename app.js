@@ -279,7 +279,7 @@ function setupConfigUI() {
                 }
             }
             const tabsArray = Array.from(tabsContainer.querySelectorAll('.tab-btn'));
-            tabsArray.sort((a, b) => {
+                        tabsArray.sort((a, b) => {
                 const idxA = order.indexOf(a.dataset.tab);
                 const idxB = order.indexOf(b.dataset.tab);
                 if (idxA === -1 && idxB === -1) return 0;
@@ -288,6 +288,31 @@ function setupConfigUI() {
                 return idxA - idxB;
             });
             tabsArray.forEach(tab => tabsContainer.appendChild(tab));
+        }
+    }
+
+    // Dynamic Tab Visibility (Encendido / Apagado desde Panel Admin)
+    const disabledTabs = (storeConfig && Array.isArray(storeConfig.disabledTabs)) ? storeConfig.disabledTabs : [];
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const tabKey = btn.dataset.tab;
+        if (!tabKey) return;
+        if (disabledTabs.includes(tabKey)) {
+            btn.style.display = 'none';
+        } else {
+            if (btn.style.display === 'none' && tabKey !== 'ventas_extras') {
+                btn.style.display = '';
+            }
+        }
+    });
+
+    // Si la pestaña que estaba activa por defecto quedó oculta/apagada, activar la primera pestaña visible
+    const currActive = document.querySelector('.tab-btn.active');
+    if (currActive && (currActive.style.display === 'none' || disabledTabs.includes(currActive.dataset.tab))) {
+        currActive.classList.remove('active');
+        const firstVis = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none' && !disabledTabs.includes(b.dataset.tab));
+        if (firstVis) {
+            firstVis.classList.add('active');
+            renderProducts(firstVis.dataset.tab);
         }
     }
 
