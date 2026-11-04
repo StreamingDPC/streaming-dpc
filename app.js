@@ -514,26 +514,38 @@ function setupConfigUI() {
         }
     }
 
-    // Ventas Extras Tab Visibility
+        // Ventas Extras Tab Visibility
     const tabVentasExtras = document.getElementById('tab-ventas-extras');
     if (tabVentasExtras) {
-        let showVentasExtras = false;
-        let targetSeller = null;
-        if (publicSellerRef) targetSeller = publicSellerRef;
-        else if (isSellerMode) targetSeller = currentSellerName;
+        const disabledTabs = (storeConfig && Array.isArray(storeConfig.disabledTabs)) ? storeConfig.disabledTabs : [];
+        if (disabledTabs.includes('ventas_extras')) {
+            tabVentasExtras.style.setProperty('display', 'none', 'important');
+        } else {
+            let showVentasExtras = false;
+            let targetSeller = null;
+            if (publicSellerRef) targetSeller = publicSellerRef;
+            else if (isSellerMode) targetSeller = currentSellerName;
 
-        if (targetSeller) {
-            const sellers = storeConfig.sellers || [];
-            const profile = sellers.find(s => s.name === targetSeller);
-            if (profile && profile.extraSalesEnabled === true) {
+            if (targetSeller) {
+                const sellers = storeConfig.sellers || [];
+                const profile = sellers.find(s => s.name === targetSeller);
+                if (profile && profile.extraSalesEnabled === true) {
+                    showVentasExtras = true;
+                }
+            } else {
                 showVentasExtras = true;
             }
-        } else {
-            // Global admin can always see
-            showVentasExtras = true;
+            if (showVentasExtras) {
+                tabVentasExtras.style.removeProperty('display');
+                tabVentasExtras.style.display = 'inline-block';
+            } else {
+                tabVentasExtras.style.setProperty('display', 'none', 'important');
+            }
         }
-        tabVentasExtras.style.display = showVentasExtras ? 'inline-block' : 'none';
     }
+
+    // Asegurar última palabra en la visibilidad de pestañas
+    applyTabsVisibility();
 }
 
 window.moveBannerSlider = function (dir) {
