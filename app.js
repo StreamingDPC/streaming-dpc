@@ -199,6 +199,46 @@ function init() {
     }
 }
 
+function applyTabsVisibility() {
+    const disabledTabs = (storeConfig && Array.isArray(storeConfig.disabledTabs)) ? storeConfig.disabledTabs : [];
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const tabKey = btn.dataset.tab;
+        if (!tabKey) return;
+        
+        if (disabledTabs.includes(tabKey)) {
+            btn.style.setProperty('display', 'none', 'important');
+        } else {
+            if (tabKey === 'ventas_extras') {
+                if (storeConfig.extrasEnabled !== false) {
+                    btn.style.removeProperty('display');
+                } else {
+                    btn.style.setProperty('display', 'none', 'important');
+                }
+            } else if (tabKey === 'polla') {
+                if (storeConfig.pollaEnabled !== false) {
+                    btn.style.removeProperty('display');
+                } else {
+                    btn.style.setProperty('display', 'none', 'important');
+                }
+            } else {
+                btn.style.removeProperty('display');
+            }
+        }
+    });
+
+    // Si la pestaña que estaba activa quedó oculta/apagada, activar la primera pestaña visible
+    const currActive = document.querySelector('.tab-btn.active');
+    if (currActive && (currActive.style.display === 'none' || disabledTabs.includes(currActive.dataset.tab))) {
+        currActive.classList.remove('active');
+        const firstVis = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none' && !disabledTabs.includes(b.dataset.tab));
+        if (firstVis) {
+            firstVis.classList.add('active');
+            renderProducts(firstVis.dataset.tab);
+        }
+    }
+}
+
 function setupConfigUI() {
     // Maintenance Mode Check
     const maintenanceOverlay = document.getElementById('maintenance-overlay');
@@ -291,30 +331,8 @@ function setupConfigUI() {
         }
     }
 
-    // Dynamic Tab Visibility (Encendido / Apagado desde Panel Admin)
-    const disabledTabs = (storeConfig && Array.isArray(storeConfig.disabledTabs)) ? storeConfig.disabledTabs : [];
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        const tabKey = btn.dataset.tab;
-        if (!tabKey) return;
-        if (disabledTabs.includes(tabKey)) {
-            btn.style.display = 'none';
-        } else {
-            if (btn.style.display === 'none' && tabKey !== 'ventas_extras') {
-                btn.style.display = '';
-            }
-        }
-    });
-
-    // Si la pestaña que estaba activa por defecto quedó oculta/apagada, activar la primera pestaña visible
-    const currActive = document.querySelector('.tab-btn.active');
-    if (currActive && (currActive.style.display === 'none' || disabledTabs.includes(currActive.dataset.tab))) {
-        currActive.classList.remove('active');
-        const firstVis = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none' && !disabledTabs.includes(b.dataset.tab));
-        if (firstVis) {
-            firstVis.classList.add('active');
-            renderProducts(firstVis.dataset.tab);
-        }
-    }
+        // Dynamic Tab Visibility (Encendido / Apagado desde Panel Admin)
+    applyTabsVisibility();
 
     // Bind Footer Links
     let waLinkHref = null;
@@ -5710,17 +5728,9 @@ const loadInitialData = () => {
         const pObj = prodsSnap.val() || [];
         products = Array.isArray(pObj) ? pObj : Object.values(pObj);
 
-        if (storeConfig.pollaEnabled === false) {
-            const pollaTab = document.querySelector('.tab-btn[data-tab="polla"]');
-            if (pollaTab) pollaTab.style.display = 'none';
-            const openPollaBtn = document.getElementById('open-polla-btn');
-            if (openPollaBtn) openPollaBtn.style.display = 'none';
-        } else {
-            const pollaTab = document.querySelector('.tab-btn[data-tab="polla"]');
-            if (pollaTab) pollaTab.style.display = '';
-            const openPollaBtn = document.getElementById('open-polla-btn');
-            if (openPollaBtn) openPollaBtn.style.display = '';
-        }
+                applyTabsVisibility();
+        const openPollaBtn = document.getElementById('open-polla-btn');
+        if (openPollaBtn) openPollaBtn.style.display = (storeConfig.pollaEnabled === false || (storeConfig.disabledTabs && storeConfig.disabledTabs.includes('polla'))) ? 'none' : '';
 
         if (publicSellerRef) {
             db.ref(`sellerStores/${publicSellerRef}`).once('value').then(sp => {
@@ -5744,8 +5754,9 @@ loadInitialData();
 
 // PASO 2: En vivo — solo escuchar cambios de storeConfig y products (NO toda la DB)
 db.ref('storeConfig').on('value', (snap) => {
-    if (!window.appInitialized) return; // Ignorar antes del primer init
     storeConfig = snap.val() || {};
+    applyTabsVisibility();
+    if (!window.appInitialized) return;
     setupConfigUI();
     const activeTabBtn = document.querySelector('.tab-btn.active');
     if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
