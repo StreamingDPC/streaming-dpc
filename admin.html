@@ -391,15 +391,29 @@
             firebase.initializeApp(fwConfig);
         }
 
-        firebase.auth().onAuthStateChanged((user) => {
+        firebase.auth().onAuthStateChanged(async (user) => {
             if (!user) {
                 // Kick out unauthenticated access
                 window.location.href = 'login.html';
+                return;
+            }
+            try {
+                const snap = await firebase.database().ref('storeConfig/adminOtpEnabled').once('value');
+                const isOtpEnabled = snap.val() !== false;
+                if (isOtpEnabled) {
+                    const isVerified = sessionStorage.getItem('adminOtpVerified') === 'true';
+                    if (!isVerified) {
+                        window.location.href = 'login.html?step=otp';
+                    }
+                }
+            } catch (e) {
+                console.warn('Error verificando OTP:', e);
             }
         });
 
         // Ensure original logout overrides clear firebase session
         window.logout = function () {
+            sessionStorage.removeItem('adminOtpVerified');
             firebase.auth().signOut().then(() => {
                 window.location.href = 'login.html';
             });
@@ -417,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.82 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.83 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -3129,6 +3143,43 @@
                                 <div id="tabs-toggle-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:10px;">
                                     <!-- Rellenado dinámicamente -->
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN: SEGURIDAD OTP / 2FA SOLO ADMIN -->
+                    <div class="form-grid" style="margin-bottom: 1rem; border-top: 1px solid var(--glass-border); padding-top:1.2rem;">
+                        <div class="form-col" style="grid-column: 1 / -1;">
+                            <h3 style="margin-bottom: 0.4rem; color: #2ecc71; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Seguridad OTP / Verificación en Dos Pasos (Solo Admin)
+                            </h3>
+                            <p style="font-size:0.84rem; color:#a0a0a0; margin:0 0 1rem 0; line-height:1.4;">
+                                Exige un código dinámico de 6 dígitos enviado a tu WhatsApp personal al iniciar sesión como Administrador en el panel. Incluye opción de PIN maestro de respaldo.
+                            </p>
+                        </div>
+                        <div class="form-col">
+                            <label>Estado de Seguridad OTP (2FA)</label>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <select id="conf-adminOtpEnabled" style="flex:1;">
+                                    <option value="true">🟢 Activado (Recomendado)</option>
+                                    <option value="false">🔴 Desactivado</option>
+                                </select>
+                                <button class="save-btn" onclick="saveConfig()" style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);" title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <label>📱 Celular WhatsApp para recibir Código OTP</label>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <input type="text" id="conf-adminOtpPhone" placeholder="Ej: 573155182545 o 3134431432" style="flex:1;">
+                                <button class="save-btn" onclick="saveConfig()" style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);" title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <label>🔑 PIN Maestro de Respaldo (6 dígitos)</label>
+                            <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <input type="password" id="conf-adminMasterPin" placeholder="Ej: 701128" maxlength="10" style="flex:1; letter-spacing:2px; font-weight:bold;">
+                                <button class="save-btn" onclick="saveConfig()" style="margin:0; padding:10px 15px; width:auto; background:var(--accent-primary);" title="Guardar"><i class="fa-solid fa-floppy-disk"></i></button>
                             </div>
                         </div>
                     </div>
@@ -6842,6 +6893,15 @@
                 if (document.getElementById('conf-tabOrder')) {
                     document.getElementById('conf-tabOrder').value = (storeConfig && storeConfig.tabOrder) ? storeConfig.tabOrder.join(',') : 'promociones_finde,promociones,premio_navideno,individual,combos2,combos3,combos4,combos5,ventas_extras,estrenos,all';
                 }
+                if (document.getElementById('conf-adminOtpEnabled')) {
+                    document.getElementById('conf-adminOtpEnabled').value = (storeConfig && storeConfig.adminOtpEnabled === false) ? 'false' : 'true';
+                }
+                if (document.getElementById('conf-adminOtpPhone')) {
+                    document.getElementById('conf-adminOtpPhone').value = (storeConfig && storeConfig.adminOtpPhone) || (storeConfig && storeConfig.whatsappNumber) || '573155182545';
+                }
+                if (document.getElementById('conf-adminMasterPin')) {
+                    document.getElementById('conf-adminMasterPin').value = (storeConfig && storeConfig.adminMasterPin) || '701128';
+                }
                 if (typeof renderTabsToggleGrid === 'function') {
                     renderTabsToggleGrid();
                 }
@@ -7145,6 +7205,15 @@
 
                 if (document.getElementById('conf-tabOrder')) {
                     storeConfig.tabOrder = document.getElementById('conf-tabOrder').value.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                if (document.getElementById('conf-adminOtpEnabled')) {
+                    storeConfig.adminOtpEnabled = document.getElementById('conf-adminOtpEnabled').value === 'true';
+                }
+                if (document.getElementById('conf-adminOtpPhone')) {
+                    storeConfig.adminOtpPhone = document.getElementById('conf-adminOtpPhone').value.trim();
+                }
+                if (document.getElementById('conf-adminMasterPin')) {
+                    storeConfig.adminMasterPin = document.getElementById('conf-adminMasterPin').value.trim() || '701128';
                 }
                 if (!Array.isArray(storeConfig.disabledTabs)) {
                     storeConfig.disabledTabs = [];
