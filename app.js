@@ -825,7 +825,8 @@ const SMART_PLATFORMS = [
 let _smartSearchState = {
     selectedPlatforms: new Set(),
     selectedMonths: 'all',
-    query: ''
+    query: '',
+    showLargerCombos: false
 };
 
 function isSmartSearchActive() {
@@ -851,7 +852,13 @@ function toggleSmartPlatform(platId) {
     } else {
         _smartSearchState.selectedPlatforms.add(platId);
     }
+    _smartSearchState.showLargerCombos = false;
     updateSmartSearchChipsUI();
+    applySmartSearch();
+}
+
+function toggleSmartShowLargerCombos(show) {
+    _smartSearchState.showLargerCombos = !!show;
     applySmartSearch();
 }
 
@@ -906,6 +913,7 @@ function resetSmartSearch(silent) {
     _smartSearchState.selectedPlatforms.clear();
     _smartSearchState.selectedMonths = 'all';
     _smartSearchState.query = '';
+    _smartSearchState.showLargerCombos = false;
 
     const input = document.getElementById('smart-search-input');
     if (input) input.value = '';
@@ -954,6 +962,24 @@ function matchesDuration(product, months) {
     return true;
 }
 
+function getProductScreenCount(product) {
+    if (!product) return 1;
+    if (product.category === 'individual') return 1;
+    if (product.category === 'combos2') return 2;
+    if (product.category === 'combos3') return 3;
+    if (product.category === 'combos4') return 4;
+    if (product.category === 'combos5') return 5;
+    // Si está en 'promociones' u otra categoría:
+    const fullText = (product.name || '') + ' ' + (product.desc || '');
+    const screenMatch = fullText.match(/\b([1-6])\s*pantallas?\b/i);
+    if (screenMatch) {
+        return parseInt(screenMatch[1], 10);
+    }
+    const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
+    const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
+    return Math.max(1, parts.length);
+}
+
 function applySmartSearch() {
     const hasPlatforms = _smartSearchState.selectedPlatforms.size > 0;
     const hasMonths = _smartSearchState.selectedMonths !== 'all';
@@ -999,15 +1025,45 @@ function applySmartSearch() {
     const selectedPlatObjs = SMART_PLATFORMS.filter(p => _smartSearchState.selectedPlatforms.has(p.id));
     let matchedProducts = [];
     let isPartialMatch = false;
+    let largerCombosCount = 0;
+    const N = selectedPlatObjs.length;
 
-    if (selectedPlatObjs.length > 0) {
-        // 1. Coincidencia EXACTA (todas las plataformas seleccionadas)
-        matchedProducts = baseList.filter(prod => {
+    if (N > 0) {
+        // 1. Coincidencia de productos que contienen TODAS las plataformas seleccionadas
+        const allMatches = baseList.filter(prod => {
             return selectedPlatObjs.every(plat => matchesPlatformItem(prod, plat));
         });
 
-        // 2. Si no hay coincidencia con todas a la vez, buscar coincidencias parciales inteligentes ordenadas por relevancia
-        if (matchedProducts.length === 0) {
+        if (allMatches.length > 0) {
+            // Filtrar exactamente por el número de pantallas seleccionadas:
+            // 1 selección -> Individual (1 pantalla)
+            // 2 selecciones -> Combos de 2 pantallas
+            // 3 selecciones -> Combos de 3 pantallas
+            // 4 selecciones -> Combos de 4 pantallas
+            // 5 o más -> Combos de 5 o más pantallas
+            const exactSizeMatches = allMatches.filter(prod => {
+                const sc = getProductScreenCount(prod);
+                return N >= 5 ? sc >= 5 : sc === N;
+            });
+
+            const largerMatches = allMatches.filter(prod => {
+                const sc = getProductScreenCount(prod);
+                return sc > N;
+            });
+            largerCombosCount = largerMatches.length;
+
+            if (exactSizeMatches.length > 0 && !_smartSearchState.showLargerCombos) {
+                // Modo principal: Mostrar exactamente los combos del tamaño seleccionado
+                matchedProducts = exactSizeMatches;
+            } else if (exactSizeMatches.length > 0 && _smartSearchState.showLargerCombos) {
+                // Modo expandido: Mostrar los exactos primero y luego los mayores
+                matchedProducts = allMatches;
+            } else {
+                // Si no existe combo de ese tamaño exacto pero sí combos mayores que las contienen
+                matchedProducts = allMatches;
+            }
+        } else {
+            // 2. Si no hay coincidencia con todas a la vez, buscar coincidencias parciales inteligentes ordenadas por relevancia
             isPartialMatch = true;
             const scored = [];
             baseList.forEach(prod => {
@@ -1031,6 +1087,13 @@ function applySmartSearch() {
     const durLabel = hasMonths ? ` • ${_smartSearchState.selectedMonths} Meses` : '';
     const queryLabel = hasQuery ? ` • "${_smartSearchState.query}"` : '';
 
+    let sizeLabel = '';
+    if (N === 1) sizeLabel = 'pantalla(s) individual(es)';
+    else if (N === 2) sizeLabel = 'combo(s) de 2 pantallas';
+    else if (N === 3) sizeLabel = 'combo(s) de 3 pantallas';
+    else if (N === 4) sizeLabel = 'combo(s) de 4 pantallas';
+    else if (N >= 5) sizeLabel = `combo(s) de ${N} pantallas`;
+
     const resultsBar = document.getElementById('smart-search-results-bar');
     const resultsSummary = document.getElementById('smart-results-summary');
 
@@ -1043,9 +1106,27 @@ function applySmartSearch() {
                     No hay combo con todas juntas (<strong>${platNames}</strong>${durLabel}${queryLabel}), pero encontramos <strong>${matchedProducts.length}</strong> opciones cercanas:
                 `;
             } else {
+                let toggleLargerBtn = '';
+                if (largerCombosCount > 0) {
+                    if (_smartSearchState.showLargerCombos) {
+                        toggleLargerBtn = `
+                            <button type="button" class="smart-toggle-larger-btn" onclick="toggleSmartShowLargerCombos(false)" style="margin-left:8px; background:rgba(0,210,211,0.2); border:1px solid #00d2d3; color:#00d2d3; border-radius:12px; padding:3px 10px; font-size:0.75rem; cursor:pointer;">
+                                <i class="fa-solid fa-compress"></i> Ver solo de ${N} pantallas
+                            </button>
+                        `;
+                    } else {
+                        toggleLargerBtn = `
+                            <button type="button" class="smart-toggle-larger-btn" onclick="toggleSmartShowLargerCombos(true)" style="margin-left:8px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); color:#ffffff; border-radius:12px; padding:3px 10px; font-size:0.75rem; cursor:pointer;">
+                                <i class="fa-solid fa-layer-group"></i> Ver combos de más pantallas (+${largerCombosCount})
+                            </button>
+                        `;
+                    }
+                }
+
                 resultsSummary.innerHTML = `
                     <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
-                    Encontramos <strong>${matchedProducts.length}</strong> producto(s) para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
+                    Encontramos <strong>${matchedProducts.length}</strong> ${sizeLabel || 'producto(s)'} para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
+                    ${toggleLargerBtn}
                 `;
             }
         } else {
