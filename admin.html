@@ -1760,24 +1760,24 @@
                         </div>
                     </div>
 
-                    <!-- Múltiples Fotos / Galería -->
+                    <!-- Múltiples Fotos y Videos / Galería -->
                     <div style="background:rgba(0,0,0,0.4); border:1px dashed var(--glass-border); border-radius:12px; padding:14px; margin-bottom:1rem;">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
                             <label style="font-weight:bold; color:white; font-size:0.9rem; display:flex; align-items:center; gap:6px;">
-                                <i class="fa-solid fa-images" style="color:#00d2d3;"></i> Adjuntar Fotos / Imágenes de la Promoción
+                                <i class="fa-solid fa-photo-film" style="color:#00d2d3;"></i> Adjuntar Videos y Fotos de la Promoción
                             </label>
                             <div style="display:flex; gap:8px;">
-                                <input type="file" id="mkt-file-input" accept="image/*" multiple style="display:none;" onchange="handleMktPhotoUpload(this)">
+                                <input type="file" id="mkt-file-input" accept="image/*,video/mp4,video/*" multiple style="display:none;" onchange="handleMktPhotoUpload(this)">
                                 <button type="button" class="btn-icon" onclick="document.getElementById('mkt-file-input').click()" style="width:auto; padding:6px 12px; border-radius:8px; font-size:0.85rem; background:rgba(0,210,211,0.15); color:#00d2d3; border:1px solid #00d2d3;">
-                                    <i class="fa-solid fa-upload"></i> Subir Fotos desde PC
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Subir Video / Foto desde PC
                                 </button>
                             </div>
                         </div>
-                        <input type="text" id="mkt-photo-urls-input" placeholder="O pega URLs de imágenes separadas por coma (Ej: https://i.ibb.co/foto1.jpg, https://...)" oninput="syncMktPhotoUrls()" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px; background:rgba(0,0,0,0.5); border:1px solid var(--glass-border); color:white; font-size:0.85rem;">
+                        <input type="text" id="mkt-photo-urls-input" placeholder="O pega URLs de videos o imágenes (Ej: https://.../video.mp4, https://.../foto.jpg o rutas locales)" oninput="syncMktPhotoUrls()" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px; background:rgba(0,0,0,0.5); border:1px solid var(--glass-border); color:white; font-size:0.85rem;">
                         
                         <!-- Galería de miniaturas -->
                         <div id="mkt-photos-preview-gallery" style="display:flex; gap:10px; flex-wrap:wrap; min-height:40px; align-items:center;">
-                            <span id="mkt-no-photos-msg" style="font-size:0.8rem; color:#777;">(Sin fotos adjuntas. Puedes agregar varias fotos de tus promociones o combos)</span>
+                            <span id="mkt-no-photos-msg" style="font-size:0.8rem; color:#777;">(Sin archivos adjuntos. Puedes agregar videos .mp4 y fotos de tus promociones)</span>
                         </div>
                     </div>
                 </div>
@@ -15842,8 +15842,10 @@
             if (!fileInput.files || fileInput.files.length === 0) return;
 
             Array.from(fileInput.files).forEach(file => {
-                if (file.size > 2 * 1024 * 1024) {
-                    alert(`La imagen "${file.name}" supera los 2MB. Por favor selecciona imágenes más ligeras.`);
+                const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4');
+                const maxSize = isVideo ? (15 * 1024 * 1024) : (4 * 1024 * 1024);
+                if (file.size > maxSize) {
+                    alert(`El archivo "${file.name}" supera los ${isVideo ? '15MB' : '4MB'}.\nPara videos pesados recomendamos alojarlo en la nube o colocar su enlace web directo.`);
                     return;
                 }
                 const reader = new FileReader();
@@ -15863,8 +15865,8 @@
             const input = document.getElementById('mkt-photo-urls-input');
             if (!input) return;
 
-            const urls = input.value.split(/[,\n]/).map(u => u.trim()).filter(u => u.startsWith('http://') || u.startsWith('https://'));
-            const uploadedBase64 = _mktState.photos.filter(p => p.startsWith('data:image'));
+            const urls = input.value.split(/[,\n]/).map(u => u.trim()).filter(u => u.startsWith('http://') || u.startsWith('https://') || /^[a-zA-Z]:\\/.test(u));
+            const uploadedBase64 = _mktState.photos.filter(p => p.startsWith('data:'));
             const combined = [...uploadedBase64];
             urls.forEach(u => {
                 if (!combined.includes(u)) combined.push(u);
@@ -15875,7 +15877,7 @@
 
         window.removeMktPhoto = function (index) {
             _mktState.photos.splice(index, 1);
-            const remainingUrls = _mktState.photos.filter(p => p.startsWith('http'));
+            const remainingUrls = _mktState.photos.filter(p => p.startsWith('http') || /^[a-zA-Z]:\\/.test(p));
             const input = document.getElementById('mkt-photo-urls-input');
             if (input) input.value = remainingUrls.join(', ');
             renderMktPhotosPreview();
@@ -15887,18 +15889,37 @@
 
             gallery.innerHTML = '';
             if (_mktState.photos.length === 0) {
-                gallery.innerHTML = '<span id="mkt-no-photos-msg" style="font-size:0.8rem; color:#777;">(Sin fotos adjuntas. Puedes agregar varias fotos de tus promociones o combos)</span>';
+                gallery.innerHTML = '<span id="mkt-no-photos-msg" style="font-size:0.8rem; color:#777;">(Sin archivos adjuntos. Puedes agregar videos .mp4 y fotos de tus promociones)</span>';
                 return;
             }
 
-            _mktState.photos.forEach((photoUrl, idx) => {
+            _mktState.photos.forEach((mediaUrl, idx) => {
+                const lower = mediaUrl.toLowerCase();
+                const isVideo = lower.includes('.mp4') || mediaUrl.startsWith('data:video') || lower.includes('.mov');
                 const thumb = document.createElement('div');
                 thumb.className = 'mkt-photo-thumb';
-                thumb.title = `Foto ${idx + 1}`;
-                thumb.innerHTML = `
-                    <img src="${photoUrl}" alt="Foto ${idx + 1}" onerror="this.src='assets/logo.png'">
-                    <button type="button" class="mkt-photo-del" onclick="removeMktPhoto(${idx})" title="Eliminar foto">✕</button>
-                `;
+                thumb.style.position = 'relative';
+                thumb.style.borderRadius = '8px';
+                thumb.style.overflow = 'hidden';
+                thumb.style.border = isVideo ? '1.5px solid #ffb703' : '1px solid var(--glass-border)';
+                thumb.style.boxShadow = isVideo ? '0 0 10px rgba(255, 183, 3, 0.3)' : 'none';
+                thumb.title = `${isVideo ? 'Video' : 'Foto'} ${idx + 1}`;
+
+                if (isVideo) {
+                    thumb.innerHTML = `
+                        <div style="width:72px; height:72px; background:linear-gradient(135deg, #0f172a, #1e293b); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#ffb703; text-align:center; padding:4px;">
+                            <i class="fa-solid fa-circle-play fa-2x" style="margin-bottom:4px; color:#ffb703;"></i>
+                            <span style="font-weight:bold; font-size:0.68rem; line-height:1; color:#fff;">Video ${idx + 1}</span>
+                            <span style="font-size:0.58rem; color:#94a3b8; margin-top:2px;">MP4</span>
+                        </div>
+                        <button type="button" class="mkt-photo-del" onclick="removeMktPhoto(${idx})" title="Eliminar video" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.8); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:0.65rem; cursor:pointer;">✕</button>
+                    `;
+                } else {
+                    thumb.innerHTML = `
+                        <img src="${mediaUrl}" alt="Foto ${idx + 1}" onerror="this.src='assets/logo.png'" style="width:72px; height:72px; object-fit:cover; display:block;">
+                        <button type="button" class="mkt-photo-del" onclick="removeMktPhoto(${idx})" title="Eliminar foto" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.8); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:0.65rem; cursor:pointer;">✕</button>
+                    `;
+                }
                 gallery.appendChild(thumb);
             });
         }
@@ -16197,12 +16218,15 @@
                 .replace(/\{telefono\}|\{celular\}/gi, target.phone || '')
                 .replace(/\{pantallas\}|\{pantalla\}/gi, (target.platforms && target.platforms.length > 0) ? target.platforms.join(', ') : (target.isSellerSelf ? 'panel de ventas' : 'pantallas de streaming'));
 
-            // Si es directo y tiene fotos, agregar los enlaces directos
+            // Si es directo y tiene multimedia (videos o fotos), colocar primero los enlaces multimedia y el texto al final
             if (mode === 'direct' && _mktState.photos.length > 0) {
-                personalizedText += "\n\n📸 *FOTOS DE LA PROMOCIÓN:*";
+                let mediaHeader = "🎬 *ARCHIVOS DE LA PROMOCIÓN:*";
                 _mktState.photos.forEach((url, i) => {
-                    personalizedText += `\n🔗 Foto ${i + 1}: ${url}`;
+                    const isVid = url.toLowerCase().includes('.mp4') || url.startsWith('data:video') || url.toLowerCase().includes('.mov');
+                    mediaHeader += `\n${isVid ? '🎥 Video' : '📸 Foto'} ${i + 1}: ${url}`;
                 });
+                // Texto de la oferta al final
+                personalizedText = mediaHeader + "\n\n" + personalizedText;
             }
 
             // Despachar el mensaje
@@ -16210,7 +16234,7 @@
                 const adminPhone = storeConfig.whatsappNumber || '';
                 let cleanAdmin = adminPhone.toString().replace(/\D/g, '');
                 if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
-                const command = `CMD_MKT@@@TEL:${target.phone}@@@TX:${personalizedText}@@@IMG:${_mktState.photos.join(',')}`;
+                const command = `CMD_MKT@@@TEL:${target.phone}@@@TX:${personalizedText}@@@MEDIA:${_mktState.photos.join(',')}`;
                 window.openWhatsapp(cleanAdmin, command);
             } else {
                 let waPhone = target.phone.replace(/\D/g, '');
