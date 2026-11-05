@@ -8,7 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Panel de Administración | Streaming DPC</title>
-    <link rel="stylesheet" href="style.css?v=3.7.2">
+    <link rel="stylesheet" href="style.css?v=3.9.93">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.89 (Control de Recordatorios Enviados y Botón Apagado Ruleta)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.93 (Buscador Inteligente en Crear Cliente Manual)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -888,6 +888,60 @@
                                 style="flex:1; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white;">
                         </div>
                     </div>
+
+                    <!-- Buscador Inteligente para Asignar Pantallas / Combos -->
+                    <div class="form-col" style="grid-column: 1 / -1; margin-bottom: 0.5rem;">
+                        <div class="smart-search-box" style="margin: 0; padding: 1.1rem 1.3rem; border: 1px solid rgba(0, 210, 211, 0.35); background: rgba(18, 18, 26, 0.9); border-radius: 16px;">
+                            <div class="smart-search-header" style="margin-bottom: 0.8rem;">
+                                <div class="smart-search-title-wrap">
+                                    <span class="smart-search-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Buscador Inteligente</span>
+                                    <h4 style="margin: 4px 0 2px 0; font-size: 1rem; color: #fff;">Filtrar Pantalla o Combo por Plataforma:</h4>
+                                    <p style="margin: 0; font-size: 0.78rem; color: #94a3b8;">Toca las plataformas con 1 clic para encontrar el combo exacto de inmediato:</p>
+                                </div>
+                                <div class="smart-search-input-wrap" style="max-width: 280px;">
+                                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                    <input type="text" id="admin-manual-search-input" placeholder="Buscar por texto (ej: 2 meses)..." oninput="onAdminManualSearchInput(this.value)">
+                                    <button type="button" id="admin-manual-clear-text-btn" style="display:none;" onclick="clearAdminManualSearchText()" title="Borrar">✕</button>
+                                </div>
+                            </div>
+
+                            <!-- Chips de Plataformas con 1 Clic -->
+                            <div class="smart-platform-chips" id="admin-manual-platform-chips" style="gap: 6px; margin-bottom: 0.8rem;">
+                                <!-- Se inyecta dinámicamente -->
+                            </div>
+
+                            <!-- Sub-barra: Duración y Botón Limpiar -->
+                            <div class="smart-search-subbar" style="padding-top: 0.5rem;">
+                                <div class="smart-duration-filters" id="admin-manual-duration-filters">
+                                    <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;"><i class="fa-solid fa-clock"></i> Duración:</span>
+                                    <button type="button" class="duration-chip active" data-months="all" onclick="selectAdminManualDuration('all')">Todos</button>
+                                    <button type="button" class="duration-chip" data-months="1" onclick="selectAdminManualDuration('1')">1 Mes</button>
+                                    <button type="button" class="duration-chip" data-months="2" onclick="selectAdminManualDuration('2')">2 Meses</button>
+                                    <button type="button" class="duration-chip" data-months="3" onclick="selectAdminManualDuration('3')">3 Meses</button>
+                                </div>
+                                <button type="button" id="admin-manual-reset-btn" class="smart-reset-btn" style="display:none;" onclick="resetAdminManualSearch()">
+                                    <i class="fa-solid fa-rotate-left"></i> Limpiar Filtro
+                                </button>
+                            </div>
+
+                            <!-- Barra de Estado / Resumen -->
+                            <div id="admin-manual-results-bar" class="smart-results-bar" style="display:none; margin-top: 0.8rem; padding: 8px 12px;">
+                                <div id="admin-manual-results-summary" class="smart-results-text" style="font-size: 0.84rem;"></div>
+                                <button type="button" class="smart-results-close-btn" onclick="resetAdminManualSearch()" style="font-size: 0.75rem; padding: 3px 10px;">
+                                    ✕ Ver Todo
+                                </button>
+                            </div>
+
+                            <!-- Botones rápidos de selección de productos coincidentes -->
+                            <div id="admin-manual-quick-picks" style="display:none; margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.8rem;">
+                                <div style="font-size: 0.76rem; color: #00d2d3; font-weight: 700; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-hand-pointer"></i> Clic directo para seleccionar y asignar:
+                                </div>
+                                <div id="admin-manual-quick-picks-list" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-col" style="grid-column: 1 / -1;">
                         <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
                         <select id="manual-client-product" multiple
@@ -14362,9 +14416,324 @@
             });
         };
 
+        // =====================================================
+        // BUSCADOR INTELIGENTE EN CREAR CLIENTE NUEVO MANUALMENTE
+        // =====================================================
+        const ADMIN_SMART_PLATFORMS = [
+            { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
+            { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
+            { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
+            { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
+            { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
+            { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
+            { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
+            { id: 'apple', name: 'Apple TV', icon: '<i class="fa-brands fa-apple"></i>', re: /\bapple(\s*tv)?\b/i },
+            { id: 'spotify', name: 'Spotify', icon: '<i class="fa-brands fa-spotify"></i>', re: /\bspotify\b/i },
+            { id: 'youtube', name: 'YouTube', icon: '<i class="fa-brands fa-youtube"></i>', re: /\byoutube\b/i }
+        ];
+
+        let _adminManualSearchState = {
+            selectedPlatforms: new Set(),
+            selectedMonths: 'all',
+            query: ''
+        };
+
+        window.isAnyAdminManualFilterActive = function () {
+            return _adminManualSearchState.selectedPlatforms.size > 0 || _adminManualSearchState.selectedMonths !== 'all' || _adminManualSearchState.query.trim().length > 0;
+        };
+
+        window.initAdminManualSmartSearch = function () {
+            const container = document.getElementById('admin-manual-platform-chips');
+            if (!container) return;
+
+            if (container.children.length === 0) {
+                container.innerHTML = ADMIN_SMART_PLATFORMS.map(p => `
+                    <button type="button" class="platform-chip" data-platform="${p.id}" onclick="toggleAdminManualPlatform('${p.id}')">
+                        <span class="chip-icon">${p.icon}</span>
+                        <span class="chip-name">${p.name}</span>
+                        <span class="chip-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                `).join('');
+            }
+        };
+
+        window.toggleAdminManualPlatform = function (platId) {
+            if (_adminManualSearchState.selectedPlatforms.has(platId)) {
+                _adminManualSearchState.selectedPlatforms.delete(platId);
+            } else {
+                _adminManualSearchState.selectedPlatforms.add(platId);
+            }
+            updateAdminManualChipsUI();
+            applyAdminManualSmartSearch();
+        };
+
+        window.updateAdminManualChipsUI = function () {
+            const chips = document.querySelectorAll('#admin-manual-platform-chips .platform-chip');
+            chips.forEach(chip => {
+                const id = chip.dataset.platform;
+                if (_adminManualSearchState.selectedPlatforms.has(id)) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+
+            const hasFilters = isAnyAdminManualFilterActive();
+            const resetBtn = document.getElementById('admin-manual-reset-btn');
+            if (resetBtn) {
+                resetBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+            }
+        };
+
+        window.onAdminManualSearchInput = function (val) {
+            _adminManualSearchState.query = (val || '').trim();
+            const clearBtn = document.getElementById('admin-manual-clear-text-btn');
+            if (clearBtn) {
+                clearBtn.style.display = _adminManualSearchState.query.length > 0 ? 'inline-flex' : 'none';
+            }
+            updateAdminManualChipsUI();
+            applyAdminManualSmartSearch();
+        };
+
+        window.clearAdminManualSearchText = function () {
+            const input = document.getElementById('admin-manual-search-input');
+            if (input) input.value = '';
+            onAdminManualSearchInput('');
+        };
+
+        window.selectAdminManualDuration = function (months) {
+            _adminManualSearchState.selectedMonths = months || 'all';
+            const chips = document.querySelectorAll('#admin-manual-duration-filters .duration-chip');
+            chips.forEach(c => {
+                if (c.dataset.months === months) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+            updateAdminManualChipsUI();
+            applyAdminManualSmartSearch();
+        };
+
+        window.resetAdminManualSearch = function () {
+            _adminManualSearchState.selectedPlatforms.clear();
+            _adminManualSearchState.selectedMonths = 'all';
+            _adminManualSearchState.query = '';
+
+            const input = document.getElementById('admin-manual-search-input');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('admin-manual-clear-text-btn');
+            if (clearBtn) clearBtn.style.display = 'none';
+
+            const dChips = document.querySelectorAll('#admin-manual-duration-filters .duration-chip');
+            dChips.forEach(c => {
+                if (c.dataset.months === 'all') c.classList.add('active');
+                else c.classList.remove('active');
+            });
+
+            updateAdminManualChipsUI();
+
+            const resultsBar = document.getElementById('admin-manual-results-bar');
+            if (resultsBar) resultsBar.style.display = 'none';
+
+            const quickPicks = document.getElementById('admin-manual-quick-picks');
+            if (quickPicks) quickPicks.style.display = 'none';
+
+            if (typeof renderManualClientProducts === 'function') {
+                renderManualClientProducts();
+            }
+        };
+
+        function getAdminProductScreenCount(product) {
+            if (!product) return 1;
+            if (product.category === 'individual') return 1;
+            if (product.category === 'combos2') return 2;
+            if (product.category === 'combos3') return 3;
+            if (product.category === 'combos4') return 4;
+            if (product.category === 'combos5') return 5;
+            const fullText = (product.name || '') + ' ' + (product.desc || '');
+            const screenMatch = fullText.match(/\b([1-6])\s*pantallas?\b/i);
+            if (screenMatch) {
+                return parseInt(screenMatch[1], 10);
+            }
+            const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
+            const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
+            return Math.max(1, parts.length);
+        }
+
+        function matchesAdminPlatformItem(product, plat) {
+            const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+            return plat.re.test(text);
+        }
+
+        function matchesAdminDuration(product, months) {
+            if (months === 'all') return true;
+            const mNum = parseInt(months, 10);
+            if (product.months) {
+                return parseInt(product.months, 10) === mNum;
+            }
+            if (mNum === 1) return !/(2|3|6|12)\s*mes/i.test(product.name || '');
+            if (mNum === 2) return /2\s*mes/i.test(product.name || '');
+            if (mNum === 3) return /3\s*mes/i.test(product.name || '');
+            return true;
+        }
+
+        window.applyAdminManualSmartSearch = function () {
+            const hasPlatforms = _adminManualSearchState.selectedPlatforms.size > 0;
+            const hasMonths = _adminManualSearchState.selectedMonths !== 'all';
+            const hasQuery = _adminManualSearchState.query.length > 0;
+
+            const select1 = document.getElementById('manual-client-product');
+            const resultsBar = document.getElementById('admin-manual-results-bar');
+            const resultsSummary = document.getElementById('admin-manual-results-summary');
+            const quickPicks = document.getElementById('admin-manual-quick-picks');
+            const quickPicksList = document.getElementById('admin-manual-quick-picks-list');
+
+            if (!hasPlatforms && !hasMonths && !hasQuery) {
+                if (resultsBar) resultsBar.style.display = 'none';
+                if (quickPicks) quickPicks.style.display = 'none';
+                if (typeof renderManualClientProducts === 'function') {
+                    renderManualClientProducts();
+                }
+                return;
+            }
+
+            if (!dynamicProducts || !select1) return;
+
+            let baseList = dynamicProducts.filter(p => p && p.active !== false && p.category !== 'ventas_extras');
+
+            if (hasQuery) {
+                const qTerms = _adminManualSearchState.query.toLowerCase().split(/\s+/).filter(Boolean);
+                baseList = baseList.filter(p => {
+                    const pTxt = ((p.name || '') + ' ' + (p.brand || '') + ' ' + (p.desc || '')).toLowerCase();
+                    return qTerms.every(term => pTxt.includes(term));
+                });
+            }
+
+            if (hasMonths) {
+                baseList = baseList.filter(p => matchesAdminDuration(p, _adminManualSearchState.selectedMonths));
+            }
+
+            const selectedPlatObjs = ADMIN_SMART_PLATFORMS.filter(p => _adminManualSearchState.selectedPlatforms.has(p.id));
+            let matchedProducts = [];
+            const N = selectedPlatObjs.length;
+
+            if (N > 0) {
+                const allMatches = baseList.filter(prod => {
+                    return selectedPlatObjs.every(plat => matchesAdminPlatformItem(prod, plat));
+                });
+
+                const exactSizeMatches = allMatches.filter(prod => {
+                    const sc = getAdminProductScreenCount(prod);
+                    return N >= 5 ? sc >= 5 : sc === N;
+                });
+
+                if (exactSizeMatches.length > 0) {
+                    matchedProducts = exactSizeMatches;
+                } else {
+                    matchedProducts = [];
+                }
+            } else {
+                matchedProducts = baseList;
+            }
+
+            const platNames = selectedPlatObjs.map(p => p.name).join(' + ');
+            const durLabel = hasMonths ? ` • ${_adminManualSearchState.selectedMonths} Meses` : '';
+            const queryLabel = hasQuery ? ` • "${_adminManualSearchState.query}"` : '';
+
+            let sizeLabel = '';
+            if (N === 1) sizeLabel = 'pantalla(s) individual(es)';
+            else if (N === 2) sizeLabel = 'combo(s) de 2 pantallas';
+            else if (N === 3) sizeLabel = 'combo(s) de 3 pantallas';
+            else if (N === 4) sizeLabel = 'combo(s) de 4 pantallas';
+            else if (N >= 5) sizeLabel = `combo(s) de ${N} pantallas`;
+
+            if (resultsBar && resultsSummary) {
+                resultsBar.style.display = 'flex';
+                if (matchedProducts.length > 0) {
+                    resultsSummary.innerHTML = `
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
+                        Encontramos <strong>${matchedProducts.length}</strong> ${sizeLabel || 'producto(s)'} para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
+                    `;
+                } else {
+                    resultsSummary.innerHTML = `
+                        <i class="fa-solid fa-circle-exclamation" style="color:#ff4d4d;"></i> 
+                        <strong>No hay combo con todas juntas</strong> (${platNames || 'tu búsqueda'}${durLabel}${queryLabel}).
+                    `;
+                }
+            }
+
+            if (matchedProducts.length > 0) {
+                let optHtml = `<option value="">-- Selecciona una pantalla (${matchedProducts.length} disponibles) --</option>`;
+                matchedProducts.forEach(p => {
+                    optHtml += `<option value="${p.id}" ${matchedProducts.length === 1 ? 'selected' : ''}>${p.name} ($${(p.price || 0).toLocaleString()})</option>`;
+                });
+                select1.innerHTML = optHtml;
+
+                if (matchedProducts.length === 1) {
+                    select1.value = matchedProducts[0].id.toString();
+                }
+                if (typeof updateManualEmailsUI === 'function') {
+                    updateManualEmailsUI('manual');
+                }
+
+                if (quickPicks && quickPicksList) {
+                    quickPicks.style.display = 'block';
+                    quickPicksList.innerHTML = matchedProducts.map(p => `
+                        <button type="button" onclick="selectAdminManualQuickProduct('${p.id}')" style="background: rgba(0, 210, 211, 0.15); border: 1px solid #00d2d3; color: white; padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.2s ease;">
+                            <i class="fa-solid fa-tv" style="color: #00d2d3;"></i> 
+                            <span><strong>${p.name}</strong> ($${(p.price || 0).toLocaleString()})</span>
+                            <span style="font-size:0.7rem; background:#00d2d3; color:black; font-weight:800; padding:2px 6px; border-radius:10px;">Elegir</span>
+                        </button>
+                    `).join('');
+                }
+            } else {
+                select1.innerHTML = `<option value="" disabled selected style="color:#ff4d4d;">⚠️ No hay combo con todas juntas (${platNames || 'búsqueda'})</option>`;
+                if (quickPicks) quickPicks.style.display = 'none';
+                if (typeof updateManualEmailsUI === 'function') {
+                    updateManualEmailsUI('manual');
+                }
+            }
+        };
+
+        window.selectAdminManualQuickProduct = function (prodId) {
+            const select1 = document.getElementById('manual-client-product');
+            if (select1) {
+                select1.value = prodId.toString();
+                Array.from(select1.options).forEach(opt => {
+                    opt.selected = (opt.value.toString() === prodId.toString());
+                });
+                if (typeof updateManualEmailsUI === 'function') {
+                    updateManualEmailsUI('manual');
+                }
+            }
+            const quickPicksList = document.getElementById('admin-manual-quick-picks-list');
+            if (quickPicksList) {
+                const btns = quickPicksList.querySelectorAll('button');
+                btns.forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${prodId}'`)) {
+                        btn.style.background = 'rgba(0, 210, 211, 0.4)';
+                        btn.style.borderColor = '#ffffff';
+                    } else {
+                        btn.style.background = 'rgba(0, 210, 211, 0.15)';
+                        btn.style.borderColor = '#00d2d3';
+                    }
+                });
+            }
+        };
+
         window.renderManualClientProducts = function () {
             const select1 = document.getElementById('manual-client-product');
             const select2 = document.getElementById('edit-client-add-product');
+
+            if (typeof initAdminManualSmartSearch === 'function') {
+                initAdminManualSmartSearch();
+            }
+
+            if (typeof isAnyAdminManualFilterActive === 'function' && isAnyAdminManualFilterActive()) {
+                applyAdminManualSmartSearch();
+                return;
+            }
 
             if (dynamicProducts) {
                 let html = '';
