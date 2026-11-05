@@ -336,49 +336,108 @@ function formatComboNameFromSlots(specificEmails) {
 
 const COMBO_PRICE_CATALOG = [
     // Combos de 6 plataformas
-    { keys: ['netflix', 'disney', 'max', 'paramount', 'prime', 'vix'], client: 57000, seller: 45000 },
-    { keys: ['netflix', 'disney', 'max', 'paramount', 'prime', 'crunchy'], client: 66000, seller: 48000 },
+    { keys: ['disney', 'max', 'netflix', 'paramount', 'prime', 'vix'], client: 70000, seller: 58000 },
+    { keys: ['crunchy', 'disney', 'max', 'netflix', 'paramount', 'prime'], client: 73000, seller: 61000 },
+    { keys: ['crunchy', 'disney', 'max', 'netflix', 'paramount', 'vix'], client: 73000, seller: 61000 },
     // Combos de 5 plataformas
-    { keys: ['netflix', 'disney', 'max', 'paramount', 'prime'], client: 49000, seller: 42000 },
-    { keys: ['netflix', 'disney', 'prime', 'vix', 'iptv'], client: 60000, seller: 50000 },
-    { keys: ['netflix', 'disney', 'max', 'vix', 'prime'], client: 55000, seller: 45000 },
-    { keys: ['netflix', 'disney', 'paramount', 'vix', 'prime'], client: 57000, seller: 47000 },
+    { keys: ['crunchy', 'disney', 'max', 'paramount', 'prime'], client: 57000, seller: 50000 },
+    { keys: ['disney', 'max', 'netflix', 'prime', 'vix'], client: 56000, seller: 46000 },
+    { keys: ['disney', 'netflix', 'paramount', 'prime', 'vix'], client: 58000, seller: 48000 },
+    { keys: ['disney', 'max', 'netflix', 'paramount', 'prime'], client: 62000, seller: 52000 },
+    { keys: ['crunchy', 'disney', 'max', 'netflix', 'paramount'], client: 65000, seller: 55000 },
+    { keys: ['disney', 'iptv', 'netflix', 'prime', 'vix'], client: 60000, seller: 50000 },
     // Combos de 4 plataformas
-    { keys: ['netflix', 'disney', 'max', 'prime'], client: 43000, seller: 35000 },
-    { keys: ['netflix', 'disney', 'paramount', 'prime'], client: 49000, seller: 41000 },
-    { keys: ['netflix', 'disney', 'max', 'paramount'], client: 43000, seller: 37000 },
-    { keys: ['netflix', 'disney', 'max', 'crunchy'], client: 50000, seller: 42000 },
-    { keys: ['netflix', 'disney', 'paramount', 'crunchy'], client: 52000, seller: 44000 },
-    { keys: ['disney', 'max', 'paramount', 'prime'], client: 38000, seller: 30000 },
+    { keys: ['disney', 'max', 'prime', 'vix'], client: 40000, seller: 32000 },
+    { keys: ['max', 'paramount', 'prime', 'vix'], client: 42000, seller: 34000 },
+    { keys: ['crunchy', 'disney', 'max', 'netflix'], client: 51000, seller: 43000 },
+    { keys: ['crunchy', 'disney', 'netflix', 'paramount'], client: 53000, seller: 45000 },
+    { keys: ['disney', 'netflix', 'paramount', 'prime'], client: 50000, seller: 42000 },
+    { keys: ['max', 'netflix', 'prime', 'vix'], client: 44000, seller: 36000 },
+    { keys: ['disney', 'max', 'netflix', 'paramount'], client: 54000, seller: 46000 },
+    { keys: ['disney', 'max', 'netflix', 'prime'], client: 48000, seller: 40000 },
+    { keys: ['disney', 'max', 'paramount', 'prime'], client: 46000, seller: 38000 },
     // Combos de 3 plataformas
-    { keys: ['netflix', 'disney', 'prime'], client: 32000, seller: 25000 },
-    { keys: ['netflix', 'disney', 'max'], client: 37000, seller: 31000 },
-    { keys: ['netflix', 'disney', 'paramount'], client: 33000, seller: 27000 },
-    { keys: ['netflix', 'disney', 'crunchy'], client: 29000, seller: 26000 },
-    { keys: ['netflix', 'max', 'prime'], client: 35000, seller: 29000 },
-    { keys: ['netflix', 'paramount', 'prime'], client: 37000, seller: 31000 },
-    { keys: ['netflix', 'vix', 'prime'], client: 31000, seller: 25000 },
+    { keys: ['disney', 'max', 'paramount'], client: 38000, seller: 32000 },
     { keys: ['disney', 'max', 'prime'], client: 32000, seller: 26000 },
-    { keys: ['disney', 'paramount', 'prime'], client: 26000, seller: 20000 },
+    { keys: ['disney', 'max', 'vix'], client: 32000, seller: 26000 },
+    { keys: ['crunchy', 'max', 'prime'], client: 31000, seller: 25000 },
+    { keys: ['max', 'paramount', 'prime'], client: 34000, seller: 28000 },
+    { keys: ['crunchy', 'max', 'vix'], client: 31000, seller: 25000 },
+    { keys: ['max', 'paramount', 'vix'], client: 34000, seller: 28000 },
+    { keys: ['crunchy', 'disney', 'netflix'], client: 39000, seller: 33000 },
+    { keys: ['crunchy', 'max', 'netflix'], client: 39000, seller: 33000 },
+    { keys: ['max', 'netflix', 'paramount'], client: 42000, seller: 36000 },
+    { keys: ['max', 'netflix', 'prime'], client: 36000, seller: 30000 },
+    { keys: ['netflix', 'paramount', 'prime'], client: 38000, seller: 32000 }, // Netflix + Paramount + Prime Video (Oficial $32.000 vendedor)
+    { keys: ['crunchy', 'netflix', 'vix'], client: 35000, seller: 29000 },
+    { keys: ['netflix', 'prime', 'vix'], client: 32000, seller: 26000 },
+    { keys: ['disney', 'netflix', 'prime'], client: 36000, seller: 30000 },
+    { keys: ['disney', 'max', 'netflix'], client: 40000, seller: 34000 },
+    { keys: ['disney', 'netflix', 'paramount'], client: 42000, seller: 36000 },
+    { keys: ['disney', 'paramount', 'prime'], client: 34000, seller: 28000 },
+    { keys: ['apple', 'netflix', 'vix'], client: 41000, seller: 35000 },
+    { keys: ['apple', 'netflix', 'spotify'], client: 47000, seller: 42000 },
     // Combos de 2 plataformas
-    { keys: ['netflix', 'disney'], client: 25000, seller: 21000 },
-    { keys: ['netflix', 'max'], client: 25000, seller: 21000 },
-    { keys: ['netflix', 'prime'], client: 23000, seller: 17000 },
-    { keys: ['netflix', 'paramount'], client: 29000, seller: 24000 },
-    { keys: ['netflix', 'vix'], client: 23000, seller: 19000 },
-    { keys: ['netflix', 'crunchy'], client: 26000, seller: 22000 },
-    { keys: ['disney', 'prime'], client: 20000, seller: 16000 },
+    { keys: ['apple', 'paramount'], client: 31000, seller: 27000 },
+    { keys: ['crunchy', 'disney'], client: 23000, seller: 19000 },
     { keys: ['disney', 'max'], client: 24000, seller: 20000 },
     { keys: ['disney', 'paramount'], client: 26000, seller: 22000 },
-    { keys: ['disney', 'crunchy'], client: 17000, seller: 13000 },
+    { keys: ['disney', 'prime'], client: 20000, seller: 16000 },
     { keys: ['disney', 'vix'], client: 20000, seller: 16000 },
+    { keys: ['max', 'paramount'], client: 26000, seller: 22000 },
     { keys: ['max', 'prime'], client: 20000, seller: 16000 },
     { keys: ['max', 'vix'], client: 20000, seller: 16000 },
-    { keys: ['max', 'paramount'], client: 26000, seller: 22000 },
-    { keys: ['prime', 'paramount'], client: 22000, seller: 18000 },
-    { keys: ['prime', 'crunchy'], client: 19000, seller: 15000 },
+    { keys: ['crunchy', 'netflix'], client: 27000, seller: 23000 },
+    { keys: ['disney', 'netflix'], client: 28000, seller: 24000 },
+    { keys: ['max', 'netflix'], client: 28000, seller: 24000 },
+    { keys: ['netflix', 'paramount'], client: 30000, seller: 25000 },
+    { keys: ['netflix', 'prime'], client: 24000, seller: 20000 },
+    { keys: ['netflix', 'vix'], client: 24000, seller: 20000 },
+    { keys: ['crunchy', 'prime'], client: 19000, seller: 15000 },
+    { keys: ['paramount', 'prime'], client: 22000, seller: 18000 },
     { keys: ['prime', 'vix'], client: 16000, seller: 12000 }
 ];
+
+function buildDynamicComboCatalog(products) {
+    if (!Array.isArray(products) || products.length === 0) return [];
+    function getKeys(name) {
+        const n = String(name || '').toLowerCase();
+        const keys = [];
+        if (n.includes('netflix')) keys.push('netflix');
+        if (n.includes('disney') || n.includes('dixney')) keys.push('disney');
+        if (n.includes('max') || n.includes('hbo')) keys.push('max');
+        if (n.includes('prime') || n.includes('amazon')) keys.push('prime');
+        if (n.includes('paramount')) keys.push('paramount');
+        if (n.includes('crunchy')) keys.push('crunchy');
+        if (n.includes('vix')) keys.push('vix');
+        if (n.includes('iptv') || n.includes('magis') || n.includes('flujo')) keys.push('iptv');
+        if (n.includes('apple')) keys.push('apple');
+        if (n.includes('spotify') || n.includes('sp')) keys.push('spotify');
+        if (n.includes('youtube')) keys.push('youtube');
+        return keys.sort();
+    }
+    const combos1m = products.filter(p => {
+        if (!p || !p.name || p.active === false) return false;
+        if (p.months && Number(p.months) > 1) return false;
+        if (/\b[23]\s*mes/i.test(p.name)) return false;
+        const keys = getKeys(p.name);
+        return keys.length >= 2;
+    });
+    const comboMap = new Map();
+    combos1m.forEach(p => {
+        const keys = getKeys(p.name);
+        const sig = keys.join(':::');
+        const isPrivate = /privad/i.test(p.name);
+        const clientPrice = Number(p.price || 0);
+        const sellerPrice = Number(p.sellerPrice !== undefined && p.sellerPrice > 0 ? p.sellerPrice : p.price);
+        if (!comboMap.has(sig) || (!isPrivate && comboMap.get(sig).isPrivate)) {
+            comboMap.set(sig, { keys, client: clientPrice, seller: sellerPrice, name: p.name, isPrivate });
+        }
+    });
+    const arr = Array.from(comboMap.values());
+    arr.sort((a, b) => b.keys.length - a.keys.length);
+    return arr;
+}
 
 function getPlatformKey(pName) {
     const s = String(pName || '').toLowerCase();
@@ -396,7 +455,7 @@ function getPlatformKey(pName) {
     return 'other';
 }
 
-function calculateScreensPrice(screens, isSeller) {
+function calculateScreensPrice(screens, isSeller, dynamicCatalog = null) {
     if (!screens || screens.length === 0) return 0;
     if (screens.length === 1) {
         const p = screens[0].platform || screens[0].name || screens[0];
@@ -412,8 +471,12 @@ function calculateScreensPrice(screens, isSeller) {
         platformList.push({ key: k, raw: rawPlat });
     });
 
+    const activeCombos = (Array.isArray(dynamicCatalog) && dynamicCatalog.length > 0)
+        ? dynamicCatalog
+        : COMBO_PRICE_CATALOG;
+
     let bestCombo = null;
-    for (const combo of COMBO_PRICE_CATALOG) {
+    for (const combo of activeCombos) {
         if (combo.keys.every(k => (counts[k] || 0) >= 1)) {
             bestCombo = combo;
             break;
@@ -697,16 +760,19 @@ async function syncExcelToFirebase(customBuffer = null) {
         return { success: false, message: 'No se encontraron registros activos en el Excel.' };
     }
 
-    // Descargar estado actual de Firebase
-    const [csResp, cpResp, ssResp] = await Promise.all([
+    // Descargar estado actual de Firebase (incluyendo catálogo oficial de productos)
+    const [csResp, cpResp, ssResp, prodResp] = await Promise.all([
         axios.get(`${FIREBASE_DB_URL}/clientSales.json`),
         axios.get(`${FIREBASE_DB_URL}/clientProfiles.json`),
-        axios.get(`${FIREBASE_DB_URL}/sellerSales.json`)
+        axios.get(`${FIREBASE_DB_URL}/sellerSales.json`),
+        axios.get(`${FIREBASE_DB_URL}/products.json`).catch(() => ({ data: null }))
     ]);
 
     const clientSales = csResp.data || {};
     const clientProfiles = cpResp.data || {};
     const sellerSales = ssResp.data || {};
+    const rawProducts = prodResp?.data ? (Array.isArray(prodResp.data) ? prodResp.data : Object.values(prodResp.data)) : [];
+    const dynamicCombos = buildDynamicComboCatalog(rawProducts);
 
     // Agrupar pantallas del Excel por (teléfono + cliente normalizado + fecha de inicio + fecha de fin)
     // para que cuando sea el mismo cliente pero fechas diferentes las pantallas queden divididas individualmente y no en combo.
@@ -1249,7 +1315,7 @@ async function syncExcelToFirebase(customBuffer = null) {
                         return (a.profile || '').localeCompare(b.profile || '');
                     });
                     it.name = formatComboNameFromSlots(it.specificEmails);
-                    it.finalPrice = calculateScreensPrice(it.specificEmails, isSellerSale);
+                    it.finalPrice = calculateScreensPrice(it.specificEmails, isSellerSale, dynamicCombos);
                 }
             });
 
@@ -1341,7 +1407,7 @@ async function syncExcelToFirebase(customBuffer = null) {
             let newItems = [];
             if (phoneRecs.length > 1) {
                 const comboName = formatComboNameFromSlots(phoneRecs);
-                const comboTotal = calculateScreensPrice(phoneRecs, isSellerSale);
+                const comboTotal = calculateScreensPrice(phoneRecs, isSellerSale, dynamicCombos);
                 newItems = [{
                     id: 'excel_combo_' + Date.now(),
                     name: comboName,
