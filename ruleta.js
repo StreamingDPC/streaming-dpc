@@ -670,6 +670,9 @@
             }
             phone = clean;
             localStorage.setItem('dpc_ruleta_guest_phone', clean);
+            // Re-vincular listener de auto-reset y sincronizar giros con el teléfono identificado
+            setupRuletaAutoResetListener();
+            await sincronizarIntentosConNube();
         }
 
         // Consultar intentos antifraude registrados en la nube (evita trucos de modo incógnito o borrar cookies)
@@ -1288,6 +1291,7 @@
         }
 
         setupRuletaAutoResetListener();
+        await sincronizarIntentosConNube();
         actualizarVisibilidadBotonReset();
         actualizarUIIntentos();
         window.dibujarRuleta();
@@ -1302,11 +1306,6 @@
         const resBox = document.getElementById('resultado-premio');
         if (resBox) resBox.style.display = 'none';
     };
-
-
-    /**
-     * Resetea los intentos del usuario actual (o de un teléfono específico)
-     */
 
 
     /**
@@ -1366,7 +1365,7 @@
     function limpiarStatsLocalesRuleta() {
         try {
             Object.keys(localStorage).forEach(k => {
-                if (k.startsWith('dpc_ruleta_stats_') || k.startsWith('dpc_ruleta_guest_')) {
+                if (k.startsWith('dpc_ruleta_stats_')) {
                     localStorage.removeItem(k);
                 }
             });
@@ -1381,14 +1380,92 @@
     }
 
     /**
+     * Sincroniza en tiempo real los giros locales con Firebase
+     */
+    async function sincronizarIntentosConNube() {
+        if (typeof db === 'undefined') return;
+        const hoy = getTodayKey();
+        const myId = getCurrentUserIdentifier();
+        const guestPhone = (localStorage.getItem('dpc_ruleta_guest_phone') || '').replace(/\D/g, '').replace(/^57/, '');
+        const clientPhone = (localStorage.getItem('clientPhone') || '').replace(/\D/g, '').replace(/^57/, '');
+        const targetPhone = (myId && myId !== 'invitado') ? myId : (guestPhone || clientPhone);
+
+        // 1. Verificar reset global de la tienda
+        try {
+            const snapG = await db.ref('storeConfig/ruletaStats/lastGlobalReset').once('value');
+            const gTs = snapG.val();
+            const localTs = parseInt(localStorage.getItem('dpc_ruleta_last_reset_ts') || '0');
+            if (gTs && gTs > localTs) {
+                localStorage.setItem('dpc_ruleta_last_reset_ts', String(gTs));
+                limpiarStatsLocalesRuleta();
+                return;
+            }
+        } catch (e) {}
+
+        if (!targetPhone || targetPhone === 'invitado') return;
+
+        // 2. Verificar reset individual en Firebase
+        try {
+            const rSnap = await db.ref(`clientProfiles/_ruleta_resets/${targetPhone}`).once('value');
+            const rTs = rSnap.val();
+            const localUserTs = parseInt(localStorage.getItem(`dpc_ruleta_user_reset_ts_${targetPhone}`) || localStorage.getItem('dpc_ruleta_user_reset_ts') || '0');
+            if (rTs && rTs > localUserTs) {
+                localStorage.setItem(`dpc_ruleta_user_reset_ts_${targetPhone}`, String(rTs));
+                localStorage.setItem('dpc_ruleta_user_reset_ts', String(rTs));
+                limpiarStatsLocalesRuleta();
+                return;
+            }
+        } catch (e) {}
+
+        // 3. Verificar logs de giros del día en Firebase
+        try {
+            const logSnap = await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${targetPhone}`).once('value');
+            const logData = logSnap.val();
+            const stats = getEstadisticasUsuario();
+
+            if (!logData) {
+                // Si en Firebase no hay log pero localmente marcaba giros o premios, fue reseteado por el admin
+                if (stats.intentosHoy > 0 || stats.premioAceptado) {
+                    console.log("⚡ Giros reseteados en la nube para:", targetPhone);
+                    limpiarStatsLocalesRuleta();
+                }
+            } else {
+                let updated = false;
+                if (typeof logData.giros === 'number' && stats.intentosHoy !== logData.giros) {
+                    stats.intentosHoy = logData.giros;
+                    updated = true;
+                }
+                if (logData.aceptoPremio && !stats.premioAceptado) {
+                    stats.premioAceptado = true;
+                    updated = true;
+                }
+                if (updated) {
+                    guardarEnStorage(stats);
+                    actualizarUIIntentos();
+                }
+            }
+        } catch (e) {}
+    }
+
+    /**
      * Listener en tiempo real desde Firebase para auto-resetear la ruleta cuando el admin lo solicite
      */
+    let _activeRuletaListeners = [];
     function setupRuletaAutoResetListener() {
         if (typeof db === 'undefined') return;
 
+        // Desvincular listeners anteriores para evitar fugas de memoria o duplicados
+        try {
+            _activeRuletaListeners.forEach(ref => {
+                if (ref && typeof ref.off === 'function') ref.off();
+            });
+            _activeRuletaListeners = [];
+        } catch (e) {}
+
         // A. Escuchar reset global (tienda completa)
         try {
-            db.ref('storeConfig/ruletaStats/lastGlobalReset').on('value', snap => {
+            const refGlobal = db.ref('storeConfig/ruletaStats/lastGlobalReset');
+            refGlobal.on('value', snap => {
                 const val = snap.val();
                 if (!val) return;
                 const localTs = parseInt(localStorage.getItem('dpc_ruleta_last_reset_ts') || '0');
@@ -1398,24 +1475,68 @@
                     console.log("⚡ Auto-reset global de Ruleta ejecutado desde Firebase!");
                 }
             });
+            _activeRuletaListeners.push(refGlobal);
         } catch (e) {}
 
-        // B. Escuchar reset de este usuario o vendedor específico
-        try {
-            const myId = getCurrentUserIdentifier();
-            if (myId) {
-                db.ref(`clientProfiles/_ruleta_resets/${myId}`).on('value', snap => {
+        // B. Escuchar reset individual por teléfono, nombre o invitado
+        const myId = getCurrentUserIdentifier();
+        const guestPhone = (localStorage.getItem('dpc_ruleta_guest_phone') || '').replace(/\D/g, '').replace(/^57/, '');
+        const clientPhone = (localStorage.getItem('clientPhone') || '').replace(/\D/g, '').replace(/^57/, '');
+        const idsToListen = new Set([myId, guestPhone, clientPhone, 'invitado'].filter(Boolean));
+
+        idsToListen.forEach(idTarget => {
+            try {
+                const refUser = db.ref(`clientProfiles/_ruleta_resets/${idTarget}`);
+                refUser.on('value', snap => {
                     const val = snap.val();
                     if (!val) return;
-                    const localUserTs = parseInt(localStorage.getItem('dpc_ruleta_user_reset_ts') || '0');
+                    const localUserTs = parseInt(localStorage.getItem(`dpc_ruleta_user_reset_ts_${idTarget}`) || localStorage.getItem('dpc_ruleta_user_reset_ts') || '0');
                     if (val > localUserTs) {
+                        localStorage.setItem(`dpc_ruleta_user_reset_ts_${idTarget}`, String(val));
                         localStorage.setItem('dpc_ruleta_user_reset_ts', String(val));
                         limpiarStatsLocalesRuleta();
-                        console.log("⚡ Auto-reset individual de Ruleta ejecutado desde Firebase para:", myId);
+                        console.log("⚡ Auto-reset individual de Ruleta ejecutado desde Firebase para:", idTarget);
                     }
                 });
-            }
-        } catch (e) {}
+                _activeRuletaListeners.push(refUser);
+            } catch (e) {}
+        });
+
+        // C. Escuchar en tiempo real cambios o eliminación de _ruleta_logs de hoy
+        const hoy = getTodayKey();
+        const targetPhone = (myId && myId !== 'invitado') ? myId : (guestPhone || clientPhone);
+        if (targetPhone && targetPhone !== 'invitado') {
+            try {
+                const refLog = db.ref(`clientProfiles/_ruleta_logs/${hoy}/${targetPhone}`);
+                refLog.on('value', snap => {
+                    const val = snap.val();
+                    const stats = getEstadisticasUsuario();
+                    if (!val) {
+                        // El nodo fue eliminado en Firebase por el Administrador -> Resetear giros locales inmediatamente
+                        if (stats.intentosHoy > 0 || stats.premioAceptado) {
+                            console.log("⚡ Auto-reset por eliminación de _ruleta_logs detectado para:", targetPhone);
+                            limpiarStatsLocalesRuleta();
+                        }
+                    } else {
+                        // Sincronizar giros en tiempo real
+                        let changed = false;
+                        if (typeof val.giros === 'number' && stats.intentosHoy !== val.giros) {
+                            stats.intentosHoy = val.giros;
+                            changed = true;
+                        }
+                        if (val.aceptoPremio && !stats.premioAceptado) {
+                            stats.premioAceptado = true;
+                            changed = true;
+                        }
+                        if (changed) {
+                            guardarEnStorage(stats);
+                            actualizarUIIntentos();
+                        }
+                    }
+                });
+                _activeRuletaListeners.push(refLog);
+            } catch (e) {}
+        }
     }
 
     window.resetearIntentosActuales = async function (phoneTarget) {

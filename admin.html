@@ -10901,9 +10901,29 @@
             const hoy = getRuletaTodayKeyAdmin();
             if (typeof db !== 'undefined') {
                 try {
+                    const nowTs = Date.now();
+                    // 1. Eliminar logs de giros de hoy en Firebase (con y sin prefijo 57)
                     await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                    await db.ref(`clientProfiles/_ruleta_logs/${hoy}/57${cleanPhone}`).remove();
+
+                    // 2. Disparar señal en tiempo real para auto-reset en el navegador del cliente
+                    await db.ref(`clientProfiles/_ruleta_resets/${cleanPhone}`).set(nowTs);
+                    await db.ref(`clientProfiles/_ruleta_resets/57${cleanPhone}`).set(nowTs);
+                    if (query && query !== cleanPhone) {
+                        await db.ref(`clientProfiles/_ruleta_resets/${query}`).set(nowTs);
+                    }
+
+                    // 3. Limpiar almacenamiento local si se está probando en el mismo navegador
+                    try {
+                        Object.keys(localStorage).forEach(k => {
+                            if (k.includes(cleanPhone) || (k.startsWith('dpc_ruleta_') && localStorage.getItem('dpc_ruleta_guest_phone') === cleanPhone)) {
+                                localStorage.removeItem(k);
+                            }
+                        });
+                    } catch(e) {}
+
                     inp.value = '';
-                    alert(`✅ ¡Giros reiniciados con éxito para el cliente con teléfono ${cleanPhone}!`);
+                    alert(`✅ ¡Giros reiniciados con éxito para el cliente (${cleanPhone})!\n\nEl cliente ya tiene 3/3 giros disponibles inmediatamente.`);
                     cargarLogsRuletaAdminHoy();
                 } catch(e) {
                     alert("Error al resetear en Firebase: " + e.message);
@@ -10938,8 +10958,23 @@
             if (confirm(`¿Resetear los giros de hoy para ${nombre || phone}?`)) {
                 if (typeof db !== 'undefined') {
                     try {
-                        await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${phone}`).remove();
-                        alert(`✅ Giros reiniciados para ${nombre || phone}.`);
+                        const cleanPhone = String(phone).replace(/\D/g, '').replace(/^57/, '');
+                        const nowTs = Date.now();
+                        await db.ref(`clientProfiles/_ruleta_logs/${hoy}/${cleanPhone}`).remove();
+                        await db.ref(`clientProfiles/_ruleta_logs/${hoy}/57${cleanPhone}`).remove();
+                        await db.ref(`clientProfiles/_ruleta_resets/${cleanPhone}`).set(nowTs);
+                        await db.ref(`clientProfiles/_ruleta_resets/57${cleanPhone}`).set(nowTs);
+                        if (nombre) {
+                            await db.ref(`clientProfiles/_ruleta_resets/${nombre}`).set(nowTs);
+                        }
+                        try {
+                            Object.keys(localStorage).forEach(k => {
+                                if (k.includes(cleanPhone) || (k.startsWith('dpc_ruleta_') && localStorage.getItem('dpc_ruleta_guest_phone') === cleanPhone)) {
+                                    localStorage.removeItem(k);
+                                }
+                            });
+                        } catch(e) {}
+                        alert(`✅ Giros reiniciados para ${nombre || phone}. Ya cuenta con 3/3 giros disponibles.`);
                         cargarLogsRuletaAdminHoy();
                     } catch(e) {
                         alert("Error: " + e.message);
