@@ -857,7 +857,7 @@
 
                 // Registrar giro en historial de Firebase
                 if (typeof db !== 'undefined') {
-                    registrarGiroRuletaHistory(pGanador, indiceGanador);
+                    registrarGiroRuletaHistory(pGanador, indiceGanador, phone);
                 }
             }
         }
@@ -874,10 +874,10 @@
     /**
      * Registra cada giro individual de la ruleta en Firebase para trazabilidad e impacto estadístico
      */
-    async function registrarGiroRuletaHistory(pGanador, indiceGanador) {
+    async function registrarGiroRuletaHistory(pGanador, indiceGanador, phoneOverride) {
         if (typeof db === 'undefined') return;
         try {
-            const phone = getCurrentUserIdentifier();
+            const phone = phoneOverride || getCurrentUserIdentifier();
             const isSeller = (typeof isSellerMode !== 'undefined' && isSellerMode) || localStorage.getItem('isSellerMode') === 'true';
             const sellerName = (typeof currentSellerName !== 'undefined' && currentSellerName) || localStorage.getItem('sellerName') || '';
 

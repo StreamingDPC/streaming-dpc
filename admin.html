@@ -9350,7 +9350,8 @@
                 'admin': 'btn-rank-admin',
                 'sellers': 'btn-rank-sellers',
                 'seller-clients': 'btn-rank-seller-clients',
-                'navidad': 'btn-rank-navidad'
+                'navidad': 'btn-rank-navidad',
+                'ruleta': 'btn-rank-ruleta'
             };
             const btn = document.getElementById(btnMap[tab]);
             if (btn) btn.classList.add('active');
@@ -9363,6 +9364,11 @@
             const sortBox = document.getElementById('ranking-sort-box');
             if (sortBox) {
                 sortBox.style.display = (tab === 'navidad' || tab === 'ruleta') ? 'none' : 'flex';
+            }
+
+            const searchWrap = document.getElementById('ranking-search')?.parentElement;
+            if (searchWrap) {
+                searchWrap.style.display = (tab === 'ruleta') ? 'none' : 'flex';
             }
 
             renderRankingTab();
@@ -9419,6 +9425,15 @@
             if (!container) return;
 
             const tab = window.currentRankingTab || 'admin';
+
+            // Caso especial: Ruleta de la Suerte (Historial e Impacto)
+            if (tab === 'ruleta') {
+                if (typeof window.renderRuletaStatsDashboard === 'function') {
+                    window.renderRuletaStatsDashboard(container, badgeEl);
+                }
+                return;
+            }
+
             const dataStore = window.currentStatsRankingData || { adminClients: [], sellers: [], sellerClients: [] };
 
             // Función que computa SIEMPRE el ranking anual completo (incluyendo todo el historial de ventas activas y vencidas del año)
