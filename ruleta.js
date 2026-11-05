@@ -813,6 +813,11 @@
                         return (parseInt(curr) || 0) + 1;
                     }).catch(console.error);
                 }
+
+                // Registrar giro en historial de Firebase
+                if (typeof db !== 'undefined') {
+                    registrarGiroRuletaHistory(pGanador, indiceGanador);
+                }
             }
         }
 
@@ -822,6 +827,95 @@
     /**
      * Obtiene el nombre real del cliente buscando en perfiles, ventas de Firebase o rankings
      */
+    
+    let ultimoGiroRuletaKey = null;
+
+    /**
+     * Registra cada giro individual de la ruleta en Firebase para trazabilidad e impacto estadístico
+     */
+    async function registrarGiroRuletaHistory(pGanador, indiceGanador) {
+        if (typeof db === 'undefined') return;
+        try {
+            const phone = getCurrentUserIdentifier();
+            const isSeller = (typeof isSellerMode !== 'undefined' && isSellerMode) || localStorage.getItem('isSellerMode') === 'true';
+            const sellerName = (typeof currentSellerName !== 'undefined' && currentSellerName) || localStorage.getItem('sellerName') || '';
+
+            let nombre = '';
+            let rol = 'Invitado';
+            let vendedorAsignado = '';
+
+            if (isSeller && sellerName) {
+                rol = 'Vendedor';
+                nombre = sellerName;
+            } else if (phone && phone !== 'invitado') {
+                nombre = await obtenerNombreCliente(phone);
+                // Determinar si es cliente de vendedor o directo
+                if (typeof allClientSalesMap !== 'undefined' && allClientSalesMap[phone]) {
+                    const sKeys = Object.keys(allClientSalesMap[phone]);
+                    if (sKeys.length > 0) {
+                        const lastSale = allClientSalesMap[phone][sKeys[sKeys.length - 1]];
+                        if (lastSale && lastSale.sellerName && lastSale.sellerName !== 'Página Web Oficial' && lastSale.sellerName !== 'Admin') {
+                            rol = 'Cliente de Vendedor';
+                            vendedorAsignado = lastSale.sellerName;
+                        } else {
+                            rol = 'Cliente Directo';
+                        }
+                    }
+                } else if (typeof globalSellerSalesDataStore !== 'undefined') {
+                    for (const s of Object.keys(globalSellerSalesDataStore)) {
+                        const sales = globalSellerSalesDataStore[s] || {};
+                        for (const sid of Object.keys(sales)) {
+                            const sale = sales[sid];
+                            if (sale && String(sale.clientPhone || '').replace(/\D/g, '').endsWith(phone)) {
+                                rol = 'Cliente de Vendedor';
+                                vendedorAsignado = s;
+                                if (!nombre && sale.clientName) nombre = sale.clientName;
+                                break;
+                            }
+                        }
+                        if (vendedorAsignado) break;
+                    }
+                }
+                if (rol === 'Invitado') {
+                    rol = 'Cliente Directo';
+                }
+            }
+
+            if (!nombre || nombre.toLowerCase() === 'cliente') {
+                nombre = localStorage.getItem('dpc_ruleta_guest_name') || (isSeller ? sellerName : (phone !== 'invitado' ? ('Cliente ' + phone.slice(-4)) : 'Invitado'));
+            }
+
+            const hoy = getTodayKey();
+            const spinKey = db.ref('clientProfiles/_ruleta_giros_history').push().key;
+            ultimoGiroRuletaKey = spinKey;
+
+            const spinRecord = {
+                id: spinKey,
+                timestamp: Date.now(),
+                fecha: new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }),
+                fechaKey: hoy,
+                phone: phone || 'invitado',
+                nombre: nombre,
+                rol: rol, // 'Vendedor' | 'Cliente de Vendedor' | 'Cliente Directo' | 'Invitado'
+                vendedorAsignado: vendedorAsignado || '',
+                premioId: pGanador.id != null ? pGanador.id : (indiceGanador + 1),
+                premioLabel: pGanador.label || pGanador.servicio || 'Premio',
+                servicio: pGanador.servicio || '',
+                tipo: pGanador.tipo || 'descuento',
+                descuentoPorcentaje: pGanador.descuentoPorcentaje || 0,
+                color: pGanador.color || '#ffb703',
+                estado: pGanador.tipo === 'sin_premio' ? 'sin_premio' : 'no_reclamado',
+                aceptoPremio: false,
+                ticketId: null,
+                codigoTicket: null
+            };
+
+            await db.ref('clientProfiles/_ruleta_giros_history/' + spinKey).set(spinRecord);
+        } catch (e) {
+            console.warn('[RULETA] Error registrando giro en Firebase:', e);
+        }
+    }
+
     async function obtenerNombreCliente(phone) {
         const cleanPhone = String(phone || '').replace(/\D/g, '').replace(/^57/, '');
 
@@ -930,6 +1024,14 @@
     window.reintentarGiro = function () {
         const resBox = document.getElementById("resultado-premio");
         if (resBox) resBox.style.display = "none";
+        if (ultimoGiroRuletaKey && typeof db !== 'undefined') {
+            db.ref(`clientProfiles/_ruleta_giros_history/${ultimoGiroRuletaKey}`).once('value').then(snap => {
+                const val = snap.val();
+                if (val && val.estado === 'no_reclamado') {
+                    db.ref(`clientProfiles/_ruleta_giros_history/${ultimoGiroRuletaKey}/estado`).set('descartado_reintento').catch(() => {});
+                }
+            }).catch(() => {});
+        }
     };
 
     /**
@@ -956,6 +1058,19 @@
             };
             db.ref(`clientProfiles/_ruleta_tickets/${ticketIdNum}`).set(ticketPayload).catch(console.error);
             db.ref(`ruleta_tickets/${ticketIdNum}`).set(ticketPayload).catch(() => {});
+
+            if (ultimoGiroRuletaKey) {
+                db.ref(`clientProfiles/_ruleta_giros_history/${ultimoGiroRuletaKey}`).update({
+                    estado: 'reclamado',
+                    aceptoPremio: true,
+                    ticketId: ticketIdNum,
+                    codigoTicket: codigoTicket,
+                    reclamadoAt: Date.now(),
+                    reclamadoFecha: fecha,
+                    nombre: usuario.nombre || 'Cliente',
+                    phone: telCliente
+                }).catch(console.error);
+            }
 
             // Bloquear giros adicionales en la nube para este teléfono
             if (telCliente && telCliente.length >= 10) {

@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.83 (Ruleta de Premios y Promociones de Fin de Semana)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.84 (Historial e Impacto de Ruleta Navideña)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -1393,8 +1393,8 @@
                             <button id="btn-rank-navidad" class="rank-tab-btn" onclick="switchRankingTab('navidad')" style="color:#fbbf24; border-color:rgba(251,191,36,0.35);">
                                 <i class="fa-solid fa-gift" style="color:#ef4444;"></i> 🎄 Premio Navideño
                             </button>
-                            <button id="btn-rank-ruleta" type="button" class="rank-tab-btn" onclick="openRuletaAdminModal()" style="color:#ffb703; border-color:rgba(255,183,3,0.4); background:rgba(255,183,3,0.12); font-weight:700;">
-                                <i class="fa-solid fa-dharmachakra"></i> 🎰 Ruleta Premios
+                            <button id="btn-rank-ruleta" type="button" class="rank-tab-btn" onclick="switchRankingTab('ruleta')" style="color:#ffb703; border-color:rgba(255,183,3,0.4); background:rgba(255,183,3,0.12); font-weight:700;">
+                                <i class="fa-solid fa-dharmachakra"></i> 🎰 Ruleta (Historial e Impacto)
                             </button>
                         </div>
                     </div>
@@ -3818,6 +3818,10 @@
                     <span id="admin-ruleta-autosave-badge" style="font-size:0.8rem; padding:5px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; background:rgba(46,204,113,0.15); color:#2ecc71; border:1px solid #2ecc71; font-weight:700;">
                         <i class="fa-solid fa-cloud-check"></i> Sincronizado en Nube
                     </span>
+                    <button type="button" onclick="closeRuletaAdminModal(); switchTab('stats', document.querySelector('[data-tab=stats]')); switchRankingTab('ruleta');" class="save-btn"
+                        style="margin:0; width:auto; padding:7px 15px; background:rgba(56,189,248,0.2); border:1px solid #38bdf8; color:#38bdf8; font-size:0.85rem; font-weight:700; border-radius:8px; cursor:pointer;" title="Ver Historial de Giros e Impacto de la Ruleta">
+                        <i class="fa-solid fa-chart-pie"></i> Ver Estadísticas e Impacto
+                    </button>
                     <button type="button" onclick="saveRuletaAdminConfig(true)" class="save-btn"
                         style="margin:0; width:auto; padding:7px 20px; background:#ffb703; color:black; font-size:0.85rem; font-weight:800; box-shadow:0 3px 12px rgba(255,183,3,0.35); border-radius:8px; cursor:pointer;">
                         <i class="fa-solid fa-floppy-disk"></i> Guardar Todo
@@ -9358,7 +9362,7 @@
 
             const sortBox = document.getElementById('ranking-sort-box');
             if (sortBox) {
-                sortBox.style.display = (tab === 'navidad') ? 'none' : 'flex';
+                sortBox.style.display = (tab === 'navidad' || tab === 'ruleta') ? 'none' : 'flex';
             }
 
             renderRankingTab();
@@ -18328,6 +18332,441 @@
                 alert('❌ Error al leer el archivo Excel: ' + err.message);
             }
         };
+    
+        // ============================================================================
+        // 🎰 HISTORIAL Y DASHBOARD DE IMPACTO DE LA RULETA NAVIDEÑA (ESTADÍSTICAS)
+        // ============================================================================
+        window._cachedRuletaSpinsData = [];
+
+        window.renderRuletaStatsDashboard = async function (container, badgeEl) {
+            if (!container) return;
+            container.innerHTML = '<div style="text-align:center; padding:2.5rem; color:#ffb703;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p style="margin-top:10px; font-weight:600;">Cargando historial de giros y métricas de impacto de la Ruleta...</p></div>';
+
+            try {
+                // Consultar en paralelo giros detallados, tickets y logs
+                const [histSnap, tickSnap, logSnap] = await Promise.all([
+                    db.ref('clientProfiles/_ruleta_giros_history').once('value'),
+                    db.ref('clientProfiles/_ruleta_tickets').once('value'),
+                    db.ref('clientProfiles/_ruleta_logs').once('value')
+                ]);
+
+                const history = histSnap.val() || {};
+                const tickets = tickSnap.val() || {};
+                const logs = logSnap.val() || {};
+
+                const allSpins = [];
+                const seenTicketIds = new Set();
+                const seenSpinIds = new Set();
+
+                // 1. Giros detallados registrados
+                Object.keys(history).forEach(k => {
+                    const item = history[k];
+                    if (!item) return;
+                    allSpins.push({ ...item, _key: k });
+                    seenSpinIds.add(k);
+                    if (item.ticketId) seenTicketIds.add(item.ticketId);
+                });
+
+                // 2. Tickets generados que no estén enlazados a un giro previo (compatibilidad retroactiva)
+                Object.keys(tickets).forEach(tId => {
+                    if (seenTicketIds.has(tId)) return;
+                    const t = tickets[tId];
+                    if (!t) return;
+                    const premio = t.premio || {};
+                    const usuario = t.usuario || {};
+                    const phone = usuario.telefono ? String(usuario.telefono).replace(/\D/g, '').replace(/^57/, '') : 'Sin registrar';
+                    
+                    // Resolver rol
+                    let rol = 'Cliente Directo';
+                    let vendedorAsignado = '';
+                    if (typeof allClientSalesMap !== 'undefined' && allClientSalesMap[phone]) {
+                        const sKeys = Object.keys(allClientSalesMap[phone]);
+                        if (sKeys.length > 0) {
+                            const lastSale = allClientSalesMap[phone][sKeys[sKeys.length - 1]];
+                            if (lastSale && lastSale.sellerName && lastSale.sellerName !== 'Página Web Oficial' && lastSale.sellerName !== 'Admin') {
+                                rol = 'Cliente de Vendedor';
+                                vendedorAsignado = lastSale.sellerName;
+                            }
+                        }
+                    }
+
+                    allSpins.push({
+                        id: tId,
+                        timestamp: t.timestamp || Date.now(),
+                        fecha: t.fecha || new Date(t.timestamp || Date.now()).toLocaleString('es-CO'),
+                        phone: phone,
+                        nombre: usuario.nombre || 'Cliente',
+                        rol: rol,
+                        vendedorAsignado: vendedorAsignado,
+                        premioLabel: premio.label || premio.servicio || 'Premio Especial',
+                        servicio: premio.servicio || '',
+                        tipo: premio.tipo || 'descuento',
+                        descuentoPorcentaje: premio.descuentoPorcentaje || 0,
+                        color: premio.color || '#ffb703',
+                        estado: 'reclamado',
+                        aceptoPremio: true,
+                        ticketId: tId,
+                        codigoTicket: t.codigoCompleto || tId
+                    });
+                });
+
+                // 3. Giros registrados en logs diarios sin ticket (giros de clientes que no reclamaron)
+                Object.keys(logs).forEach(dayKey => {
+                    const dayObj = logs[dayKey] || {};
+                    Object.keys(dayObj).forEach(phone => {
+                        const item = dayObj[phone] || {};
+                        const girosCount = parseInt(item.giros) || 0;
+                        const hasClaimed = item.aceptoPremio === true || (item.ultimoTicket && seenTicketIds.has(item.ultimoTicket));
+                        
+                        // Si ya tiene ticket o ya está en allSpins, no duplicar
+                        const alreadyCounted = allSpins.filter(s => s.phone === phone && (s.fechaKey === dayKey || (s.fecha && s.fecha.includes(dayKey))));
+                        if (alreadyCounted.length < girosCount) {
+                            const missingSpins = girosCount - alreadyCounted.length;
+                            for (let i = 0; i < missingSpins; i++) {
+                                allSpins.push({
+                                    id: 'log_' + dayKey + '_' + phone + '_' + i,
+                                    timestamp: item.ultimaActividad || (new Date(dayKey).getTime() + 12 * 3600000),
+                                    fecha: new Date(item.ultimaActividad || dayKey).toLocaleString('es-CO'),
+                                    fechaKey: dayKey,
+                                    phone: phone,
+                                    nombre: item.nombre || 'Cliente',
+                                    rol: 'Cliente Directo',
+                                    vendedorAsignado: '',
+                                    premioLabel: item.ultimoPremio || 'Giro Registrado',
+                                    tipo: 'descuento',
+                                    descuentoPorcentaje: 0,
+                                    color: '#ffb703',
+                                    estado: 'no_reclamado',
+                                    aceptoPremio: false,
+                                    ticketId: null,
+                                    codigoTicket: null
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // Ordenar del más reciente al más antiguo
+                allSpins.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+                window._cachedRuletaSpinsData = allSpins;
+
+                // Calcular KPIs de impacto
+                const totalGiros = allSpins.length;
+                const premiosConcedidos = allSpins.filter(s => s.tipo !== 'sin_premio').length;
+                const premiosAceptados = allSpins.filter(s => s.estado === 'reclamado' || s.aceptoPremio).length;
+                const premiosDescartados = premiosConcedidos - premiosAceptados;
+                const sinPremio = allSpins.filter(s => s.tipo === 'sin_premio').length;
+                const tasaConversion = premiosConcedidos > 0 ? Math.round((premiosAceptados / premiosConcedidos) * 100) : 0;
+
+                const uniquePhones = new Set(allSpins.map(s => s.phone).filter(p => p && p !== 'invitado'));
+                const vendedoresUnicos = new Set(allSpins.filter(s => s.rol === 'Vendedor').map(s => s.nombre || s.phone));
+                const clientesUnicos = uniquePhones.size;
+
+                if (badgeEl) badgeEl.textContent = `${totalGiros} giros registrados`;
+
+                // Construcción de la interfaz
+                container.innerHTML = `
+                    <div style="padding: 1.2rem; background: rgba(15, 23, 42, 0.7); border-radius: 12px;">
+                        
+                        <!-- Encabezado de Métricas -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1rem;">
+                            <div>
+                                <h3 style="margin:0; color:#ffb703; display:flex; align-items:center; gap:8px; font-size:1.15rem;">
+                                    <i class="fa-solid fa-dharmachakra"></i> Historial de Giros e Impacto de la Ruleta
+                                </h3>
+                                <p style="margin:4px 0 0 0; color:#94a3b8; font-size:0.83rem;">
+                                    Monitorea quiénes están girando la ruleta, cuántos premios han aprovechado y contacta a los clientes que no han reclamado su ticket.
+                                </p>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" onclick="downloadRuletaStatsCSV()" class="save-btn" 
+                                    style="margin:0; width:auto; padding:7px 14px; background:#10b981; color:white; font-size:0.82rem; font-weight:700; border-radius:8px;" 
+                                    title="Exportar reporte a Excel/CSV">
+                                    <i class="fa-solid fa-file-excel"></i> Exportar CSV
+                                </button>
+                                <button type="button" onclick="openRuletaAdminModal()" class="save-btn" 
+                                    style="margin:0; width:auto; padding:7px 14px; background:linear-gradient(135deg, #ffb703, #fb8500); color:#111; font-size:0.82rem; font-weight:800; border-radius:8px;"
+                                    title="Modificar premios, stock y probabilidades">
+                                    <i class="fa-solid fa-sliders"></i> Configurar Premios
+                                </button>
+                                <button type="button" onclick="renderRankingTab()" class="save-btn" 
+                                    style="margin:0; width:auto; padding:7px 12px; background:rgba(255,255,255,0.08); color:white; font-size:0.82rem; border-radius:8px;" 
+                                    title="Recargar giros">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tarjetas de Impacto (KPIs) -->
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:1.5rem;">
+                            
+                            <div style="background:rgba(255, 183, 3, 0.08); border:1px solid rgba(255, 183, 3, 0.3); border-radius:12px; padding:1rem; text-align:center;">
+                                <div style="font-size:0.75rem; color:#cbd5e1; text-transform:uppercase; font-weight:bold;">
+                                    <i class="fa-solid fa-rotate" style="color:#ffb703;"></i> Total Giros
+                                </div>
+                                <div style="font-size:1.8rem; font-weight:800; color:#ffb703; margin-top:4px;">${totalGiros}</div>
+                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">${clientesUnicos} clientes / ${vendedoresUnicos.size} vendedores</div>
+                            </div>
+
+                            <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:1rem; text-align:center;">
+                                <div style="font-size:0.75rem; color:#cbd5e1; text-transform:uppercase; font-weight:bold;">
+                                    <i class="fa-solid fa-gift" style="color:#38bdf8;"></i> Premios Concedidos
+                                </div>
+                                <div style="font-size:1.8rem; font-weight:800; color:#38bdf8; margin-top:4px;">${premiosConcedidos}</div>
+                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">Descuentos y Pantallas Gratis</div>
+                            </div>
+
+                            <div style="background:rgba(46, 204, 113, 0.08); border:1px solid rgba(46, 204, 113, 0.3); border-radius:12px; padding:1rem; text-align:center;">
+                                <div style="font-size:0.75rem; color:#cbd5e1; text-transform:uppercase; font-weight:bold;">
+                                    <i class="fa-solid fa-circle-check" style="color:#2ecc71;"></i> Premios Aprovechados
+                                </div>
+                                <div style="font-size:1.8rem; font-weight:800; color:#2ecc71; margin-top:4px;">${premiosAceptados}</div>
+                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">Tickets auténticos generados</div>
+                            </div>
+
+                            <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.3); border-radius:12px; padding:1rem; text-align:center;">
+                                <div style="font-size:0.75rem; color:#cbd5e1; text-transform:uppercase; font-weight:bold;">
+                                    <i class="fa-solid fa-chart-pie" style="color:#ef4444;"></i> Tasa de Aceptación
+                                </div>
+                                <div style="font-size:1.8rem; font-weight:800; color:#ef4444; margin-top:4px;">${tasaConversion}%</div>
+                                <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">${premiosDescartados} premios no reclamados</div>
+                            </div>
+                        </div>
+
+                        <!-- Filtros de Búsqueda y Segmentación -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px;">
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; flex:1;">
+                                <input type="text" id="ruleta-filter-search" placeholder="🔍 Buscar por cliente, celular, premio o ticket..." 
+                                    oninput="filterRuletaSpinsTable()" 
+                                    style="flex:1; min-width:200px; max-width:320px; padding:7px 12px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:white; font-size:0.84rem;">
+                                
+                                <select id="ruleta-filter-rol" onchange="filterRuletaSpinsTable()" 
+                                    style="padding:7px 10px; border-radius:8px; background:#1e272e; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem;">
+                                    <option value="ALL">👥 Todos los Roles</option>
+                                    <option value="Cliente Directo">👤 Clientes Directos</option>
+                                    <option value="Vendedor">👔 Vendedores</option>
+                                    <option value="Cliente de Vendedor">💼 Clientes de Vendedores</option>
+                                    <option value="Invitado">❓ Invitados</option>
+                                </select>
+
+                                <select id="ruleta-filter-estado" onchange="filterRuletaSpinsTable()" 
+                                    style="padding:7px 10px; border-radius:8px; background:#1e272e; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem;">
+                                    <option value="ALL">🎯 Todos los Estados</option>
+                                    <option value="reclamado">🟢 Aprovechó Premio (Ticket)</option>
+                                    <option value="no_reclamado">🟡 No Reclamó / Siguió Girando</option>
+                                    <option value="sin_premio">⚪ Sin Premio (Sigue intentando)</option>
+                                </select>
+                            </div>
+                            <span id="ruleta-filter-count-badge" style="font-size:0.8rem; color:#aaa; font-weight:600;">
+                                Mostrando ${totalGiros} giros
+                            </span>
+                        </div>
+
+                        <!-- Tabla de Historial Detallado -->
+                        <div id="ruleta-spins-table-wrap" style="overflow-x:auto;">
+                            <!-- Renderizado en filterRuletaSpinsTable -->
+                        </div>
+                    </div>
+                `;
+
+                window.filterRuletaSpinsTable();
+
+            } catch (err) {
+                console.error('[RULETA-STATS] Error cargando datos:', err);
+                container.innerHTML = `<div style="color:#ef4444; padding:2rem; text-align:center;"><i class="fa-solid fa-triangle-exclamation"></i> Error al cargar estadísticas de la ruleta: ${err.message}</div>`;
+            }
+        };
+
+        window.filterRuletaSpinsTable = function () {
+            const tableWrap = document.getElementById('ruleta-spins-table-wrap');
+            const countBadge = document.getElementById('ruleta-filter-count-badge');
+            if (!tableWrap) return;
+
+            const q = (document.getElementById('ruleta-filter-search')?.value || '').toLowerCase().trim();
+            const rolFilter = document.getElementById('ruleta-filter-rol')?.value || 'ALL';
+            const estadoFilter = document.getElementById('ruleta-filter-estado')?.value || 'ALL';
+
+            const filtered = (window._cachedRuletaSpinsData || []).filter(item => {
+                // Filtro texto
+                if (q) {
+                    const matchText = (
+                        (item.nombre || '') + ' ' +
+                        (item.phone || '') + ' ' +
+                        (item.premioLabel || '') + ' ' +
+                        (item.ticketId || '') + ' ' +
+                        (item.codigoTicket || '') + ' ' +
+                        (item.vendedorAsignado || '')
+                    ).toLowerCase();
+                    if (!matchText.includes(q)) return false;
+                }
+
+                // Filtro Rol
+                if (rolFilter !== 'ALL') {
+                    if (item.rol !== rolFilter) return false;
+                }
+
+                // Filtro Estado
+                if (estadoFilter !== 'ALL') {
+                    if (estadoFilter === 'reclamado' && !item.aceptoPremio && item.estado !== 'reclamado') return false;
+                    if (estadoFilter === 'no_reclamado' && (item.aceptoPremio || item.estado === 'reclamado' || item.tipo === 'sin_premio')) return false;
+                    if (estadoFilter === 'sin_premio' && item.tipo !== 'sin_premio') return false;
+                }
+
+                return true;
+            });
+
+            if (countBadge) countBadge.textContent = `Mostrando ${filtered.length} de ${(window._cachedRuletaSpinsData || []).length} giros`;
+
+            if (filtered.length === 0) {
+                tableWrap.innerHTML = '<div style="text-align:center; padding:2rem; color:#94a3b8;">No se encontraron giros con los filtros seleccionados.</div>';
+                return;
+            }
+
+            let html = `
+                <table class="rank-table" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+                    <thead>
+                        <tr>
+                            <th style="padding:10px 8px; text-align:center;">#</th>
+                            <th style="padding:10px 8px; text-align:left;">Fecha / Hora</th>
+                            <th style="padding:10px 8px; text-align:left;">Participante</th>
+                            <th style="padding:10px 8px; text-align:left;">Premio Obtenido</th>
+                            <th style="padding:10px 8px; text-align:center;">Impacto / Aceptación</th>
+                            <th style="padding:10px 8px; text-align:center;">Acción WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filtered.forEach((item, idx) => {
+                const cleanPhone = String(item.phone || '').replace(/\D/g, '').replace(/^57/, '');
+                
+                // Rol badge
+                let rolBadge = '';
+                if (item.rol === 'Vendedor') {
+                    rolBadge = '<span style="background:rgba(155, 89, 182, 0.2); border:1px solid #9b59b6; color:#d2b4de; padding:1px 6px; border-radius:4px; font-size:0.70rem; font-weight:700;">👔 Vendedor</span>';
+                } else if (item.rol === 'Cliente de Vendedor') {
+                    rolBadge = `<span style="background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:1px 6px; border-radius:4px; font-size:0.70rem; font-weight:600;">💼 Cliente de ${escapeAttr(item.vendedorAsignado || 'Vendedor')}</span>`;
+                } else {
+                    rolBadge = '<span style="background:rgba(52, 152, 219, 0.15); border:1px solid #3498db; color:#3498db; padding:1px 6px; border-radius:4px; font-size:0.70rem;">👤 Cliente Directo</span>';
+                }
+
+                // Premio chip
+                let premioChip = '';
+                if (item.tipo === 'sin_premio') {
+                    premioChip = '<span style="color:#94a3b8; font-weight:600;">😢 Sigue Intentando</span>';
+                } else if (item.tipo === 'pantalla_gratis') {
+                    premioChip = `<span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; padding:2px 8px; border-radius:6px; font-weight:800;">🎉 GRATIS ${escapeAttr(item.servicio || item.premioLabel)}</span>`;
+                } else {
+                    premioChip = `<span style="background:rgba(255, 183, 3, 0.15); border:1px solid #ffb703; color:#ffb703; padding:2px 8px; border-radius:6px; font-weight:700;">🔥 ${escapeAttr(item.premioLabel)}</span>`;
+                }
+
+                // Estado / Decisión
+                let estadoBadge = '';
+                let waActionBtn = '';
+
+                if (item.aceptoPremio || item.estado === 'reclamado') {
+                    estadoBadge = `
+                        <div style="display:inline-flex; flex-direction:column; align-items:center; gap:2px;">
+                            <span style="background:rgba(46, 204, 113, 0.18); border:1px solid #2ecc71; color:#2ecc71; padding:3px 8px; border-radius:6px; font-weight:800; font-size:0.76rem;">
+                                <i class="fa-solid fa-circle-check"></i> ¡APROVECHÓ PREMIO!
+                            </span>
+                            <span style="font-size:0.70rem; color:#aaa; font-family:monospace;">Ticket: <b>#${item.ticketId || 'OK'}</b></span>
+                        </div>
+                    `;
+
+                    const waMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Confirmamos tu ticket de la Ruleta Navideña *${item.ticketId || ''}* (${item.premioLabel}). Estamos listos para entregarte tu premio. 🎁`;
+                    waActionBtn = cleanPhone && cleanPhone !== 'invitado' ? `
+                        <a href="https://api.whatsapp.com/send?phone=57${cleanPhone}&text=${encodeURIComponent(waMsg)}" target="_blank"
+                            style="display:inline-flex; align-items:center; gap:4px; background:rgba(37, 211, 102, 0.15); border:1px solid #25D366; color:#25D366; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                            <i class="fa-brands fa-whatsapp"></i> Chat Ticket
+                        </a>
+                    ` : '<span style="color:#666;">-</span>';
+
+                } else if (item.tipo === 'sin_premio') {
+                    estadoBadge = `
+                        <span style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; padding:3px 8px; border-radius:6px; font-size:0.75rem;">
+                            ⚪ Sin Premio (Sigue intentando)
+                        </span>
+                    `;
+                    waActionBtn = '<span style="color:#555; font-size:0.75rem;">Sin premio</span>';
+
+                } else {
+                    // Ganó pero NO lo reclamó (Siguió girando o descartó)
+                    estadoBadge = `
+                        <div style="display:inline-flex; flex-direction:column; align-items:center; gap:2px;">
+                            <span style="background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.76rem;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> No lo reclamó
+                            </span>
+                            <span style="font-size:0.68rem; color:#888;">(Descartó / Siguió girando)</span>
+                        </div>
+                    `;
+
+                    const rescueMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Vimos que en la Ruleta Navideña ganaste *${item.premioLabel}* pero no reclamaste tu ticket. 🎁 ¡Aún puedes aprovecharlo hoy para tu compra o renovación! ¿Deseas activarlo ahora?`;
+                    waActionBtn = cleanPhone && cleanPhone !== 'invitado' ? `
+                        <a href="https://api.whatsapp.com/send?phone=57${cleanPhone}&text=${encodeURIComponent(rescueMsg)}" target="_blank"
+                            title="Rescatar venta enviando recordatorio del premio"
+                            style="display:inline-flex; align-items:center; gap:4px; background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                            <i class="fa-brands fa-whatsapp"></i> Rescatar Venta
+                        </a>
+                    ` : '<span style="color:#666;">-</span>';
+                }
+
+                html += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05); background:${idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent'};">
+                        <td style="padding:10px 8px; text-align:center; color:#888; font-weight:bold;">${idx + 1}</td>
+                        <td style="padding:10px 8px; color:#cbd5e1; white-space:nowrap; font-size:0.78rem;">${item.fecha || 'N/A'}</td>
+                        <td style="padding:10px 8px;">
+                            <div style="font-weight:700; color:white; font-size:0.86rem;">${escapeAttr(item.nombre || 'Cliente')}</div>
+                            <div style="font-size:0.74rem; color:#94a3b8; display:flex; align-items:center; gap:6px; margin-top:2px;">
+                                <span>📱 ${cleanPhone ? ('+57 ' + cleanPhone) : 'Invitado'}</span>
+                                ${rolBadge}
+                            </div>
+                        </td>
+                        <td style="padding:10px 8px;">${premioChip}</td>
+                        <td style="padding:10px 8px; text-align:center;">${estadoBadge}</td>
+                        <td style="padding:10px 8px; text-align:center;">${waActionBtn}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            tableWrap.innerHTML = html;
+        };
+
+        window.downloadRuletaStatsCSV = function () {
+            const data = window._cachedRuletaSpinsData || [];
+            if (data.length === 0) return alert('No hay giros para exportar.');
+
+            let csv = '﻿#ID,Fecha,Cliente / Participante,Celular,Rol,Vendedor Asignado,Premio,Tipo Premio,Descuento (%),Estado,Acepto Premio,Ticket ID,Codigo Ticket\r\n';
+            data.forEach((s, idx) => {
+                const idStr = s.id || ('giro_' + (idx + 1));
+                const fechaStr = (s.fecha || '').replace(/,/g, '');
+                const nom = (s.nombre || 'Cliente').replace(/,/g, ' ');
+                const phone = s.phone || '';
+                const rol = s.rol || 'Cliente';
+                const vAsignado = s.vendedorAsignado || '';
+                const premio = (s.premioLabel || '').replace(/,/g, ' ');
+                const tipo = s.tipo || '';
+                const desc = s.descuentoPorcentaje || 0;
+                const estado = s.aceptoPremio ? 'Aceptado Ticket' : (s.tipo === 'sin_premio' ? 'Sin Premio' : 'No Reclamado');
+                const acepto = s.aceptoPremio ? 'SI' : 'NO';
+                const tId = s.ticketId || '';
+                const cTicket = s.codigoTicket || '';
+
+                csv += `"${idStr}","${fechaStr}","${nom}","${phone}","${rol}","${vAsignado}","${premio}","${tipo}",${desc},"${estado}","${acepto}","${tId}","${cTicket}"\r\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Ruleta_Historial_Impacto_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        };
+
     </script>
 </body>
 
