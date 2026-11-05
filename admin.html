@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.85 (Marketing Multimedia con Video MP4)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.86 (Marketing Multimedia & Rutas Locales Robot)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -15841,11 +15841,43 @@
         window.handleMktPhotoUpload = function (fileInput) {
             if (!fileInput.files || fileInput.files.length === 0) return;
 
+            const mode = document.querySelector('input[name="mkt-send-mode"]:checked')?.value || 'interactive';
+
             Array.from(fileInput.files).forEach(file => {
                 const isVideo = file.type.startsWith('video') || file.name.toLowerCase().endsWith('.mp4');
+
+                // Si está en Modo Robot Local o es un Video, lo ideal para el Robot es la ruta en PC (evita about:blank#blocked)
+                if (mode === 'robot' || isVideo) {
+                    const lastFolder = localStorage.getItem('last_mkt_folder') || 'F:\\';
+                    const promptPath = prompt(`📁 Archivo seleccionado: "${file.name}"\n\n🤖 Para que tu Robot Local envíe este ${isVideo ? 'Video' : 'Archivo'} en ALTA RESOLUCIÓN sin que Chrome se bloquee ("about:blank#blocked"), ingresa la carpeta donde está guardado en tu PC:\n\n(Ejemplo: F:\\ o F:\\CMR Whatsapp\\ o C:\\Users\\...\\Desktop\\)`, lastFolder);
+                    
+                    if (promptPath !== null) {
+                        let cleanFolder = promptPath.trim();
+                        if (cleanFolder && !cleanFolder.endsWith('\\') && !cleanFolder.endsWith('/')) {
+                            cleanFolder += '\\';
+                        }
+                        localStorage.setItem('last_mkt_folder', cleanFolder);
+                        const fullLocalPath = cleanFolder + file.name;
+
+                        // Quitar versiones base64 previas y agregar la ruta local
+                        _mktState.photos = _mktState.photos.filter(p => !p.startsWith('data:'));
+                        if (!_mktState.photos.includes(fullLocalPath)) {
+                            _mktState.photos.push(fullLocalPath);
+                        }
+
+                        const txtInput = document.getElementById('mkt-photo-urls-input');
+                        if (txtInput) {
+                            txtInput.value = _mktState.photos.filter(p => !p.startsWith('data:')).join(', ');
+                        }
+                        renderMktPhotosPreview();
+                        return;
+                    }
+                }
+
+                // Modo directo / interactivo con fotos normales
                 const maxSize = isVideo ? (15 * 1024 * 1024) : (4 * 1024 * 1024);
                 if (file.size > maxSize) {
-                    alert(`El archivo "${file.name}" supera los ${isVideo ? '15MB' : '4MB'}.\nPara videos pesados recomendamos alojarlo en la nube o colocar su enlace web directo.`);
+                    alert(`El archivo "${file.name}" supera los ${isVideo ? '15MB' : '4MB'}.\nPara archivos pesados te sugerimos escribir su ruta local (ej: F:\\video.mp4).`);
                     return;
                 }
                 const reader = new FileReader();
@@ -15913,6 +15945,16 @@
                             <span style="font-size:0.58rem; color:#94a3b8; margin-top:2px;">MP4</span>
                         </div>
                         <button type="button" class="mkt-photo-del" onclick="removeMktPhoto(${idx})" title="Eliminar video" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.8); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:0.65rem; cursor:pointer;">✕</button>
+                    `;
+                } else if (/^[a-zA-Z]:\\/.test(mediaUrl)) {
+                    const fileName = mediaUrl.split(/[\/\\]/).pop();
+                    thumb.innerHTML = `
+                        <div style="width:72px; height:72px; background:linear-gradient(135deg, #0f172a, #1e293b); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#00d2d3; text-align:center; padding:4px;">
+                            <i class="fa-solid fa-image fa-2x" style="margin-bottom:4px; color:#00d2d3;"></i>
+                            <span style="font-weight:bold; font-size:0.62rem; color:#fff; max-width:65px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${fileName}">${fileName}</span>
+                            <span style="font-size:0.55rem; color:#94a3b8; margin-top:2px;">PC Local</span>
+                        </div>
+                        <button type="button" class="mkt-photo-del" onclick="removeMktPhoto(${idx})" title="Eliminar foto" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.8); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:0.65rem; cursor:pointer;">✕</button>
                     `;
                 } else {
                     thumb.innerHTML = `
@@ -16070,6 +16112,12 @@
             }
             if (mode !== 'interactive' && !promoText) {
                 return alert('⚠️ Debes escribir el texto de la promoción para enviar.');
+            }
+
+            // Validar que en Modo Robot no haya multimedia base64 pesado para evitar error "about:blank#blocked"
+            if (mode === 'robot' && _mktState.photos.some(p => p.startsWith('data:'))) {
+                alert('⚠️ ATENCIÓN: Tienes un video o foto cargado como archivo en memoria del navegador (base64).\n\nSi se envía por WhatsApp Web, Chrome bloquea la ventana con el error "about:blank#blocked" por exceso de tamaño en el enlace.\n\n👉 SOLUCIÓN:\n1. Elimina la miniatura actual con la [✕].\n2. En la casilla de texto escribe la ruta exacta del archivo en tu PC (Ejemplo: F:\\video.mp4 o F:\\CMR Whatsapp\\video.mp4).\n\nDe esta forma el Robot Local lo toma directo desde tu disco duro sin límites de tamaño y sin bloqueos.');
+                return;
             }
 
             const dailyLimit = parseInt(document.getElementById('mkt-daily-limit')?.value) || 40;
