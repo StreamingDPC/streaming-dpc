@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.88 (Rescate de Ruleta con Precios y Descuentos Calculados)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.89 (Control de Recordatorios Enviados y Botón Apagado Ruleta)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -18694,7 +18694,9 @@
                                     style="padding:7px 10px; border-radius:8px; background:#1e272e; color:white; border:1px solid rgba(255,255,255,0.15); font-size:0.82rem;">
                                     <option value="ALL">🎯 Todos los Estados</option>
                                     <option value="reclamado">🟢 Aprovechó Premio (Ticket)</option>
-                                    <option value="no_reclamado">🟡 No Reclamó / Siguió Girando</option>
+                                    <option value="no_reclamado">🟡 No Reclamó (Todos)</option>
+                                    <option value="no_reclamado_pendientes">⏳ No Reclamó (Pendientes por Recordar)</option>
+                                    <option value="no_reclamado_recordados">☑️ No Reclamó (Ya Recordados)</option>
                                     <option value="sin_premio">⚪ Sin Premio (Sigue intentando)</option>
                                 </select>
                             </div>
@@ -18748,8 +18750,16 @@
 
                 // Filtro Estado
                 if (estadoFilter !== 'ALL') {
+                    const cleanPhone = String(item.phone || '').replace(/\D/g, '').replace(/^57/, '');
+                    const spinId = item.id || item._key || '';
+                    const isRec = item.recordado === true || 
+                        (spinId && localStorage.getItem('dpc_ruleta_rec_' + spinId) === 'true') ||
+                        (cleanPhone && localStorage.getItem('dpc_ruleta_rec_' + cleanPhone) === 'true');
+
                     if (estadoFilter === 'reclamado' && !item.aceptoPremio && item.estado !== 'reclamado') return false;
                     if (estadoFilter === 'no_reclamado' && (item.aceptoPremio || item.estado === 'reclamado' || item.tipo === 'sin_premio')) return false;
+                    if (estadoFilter === 'no_reclamado_pendientes' && (item.aceptoPremio || item.estado === 'reclamado' || item.tipo === 'sin_premio' || isRec)) return false;
+                    if (estadoFilter === 'no_reclamado_recordados' && (!isRec || item.aceptoPremio || item.estado === 'reclamado' || item.tipo === 'sin_premio')) return false;
                     if (estadoFilter === 'sin_premio' && item.tipo !== 'sin_premio') return false;
                 }
 
@@ -18915,23 +18925,47 @@
 
                 } else {
                     // Ganó pero NO lo reclamó (Siguió girando o descartó)
+                    const spinId = item.id || item._key || (`spin_${idx}`);
+                    const isRecordado = item.recordado === true || 
+                        (spinId && localStorage.getItem('dpc_ruleta_rec_' + spinId) === 'true') ||
+                        (cleanPhone && localStorage.getItem('dpc_ruleta_rec_' + cleanPhone) === 'true');
+
                     estadoBadge = `
                         <div style="display:inline-flex; flex-direction:column; align-items:center; gap:2px;">
-                            <span style="background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.76rem;">
-                                <i class="fa-solid fa-clock-rotate-left"></i> No lo reclamó
+                            <span style="background:${isRecordado ? 'rgba(148, 163, 184, 0.15)' : 'rgba(243, 156, 18, 0.15)'}; border:1px solid ${isRecordado ? '#64748b' : '#f39c12'}; color:${isRecordado ? '#94a3b8' : '#f39c12'}; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.76rem;">
+                                <i class="${isRecordado ? 'fa-solid fa-check-double' : 'fa-solid fa-clock-rotate-left'}"></i> ${isRecordado ? 'Recordatorio Enviado' : 'No lo reclamó'}
                             </span>
-                            <span style="font-size:0.68rem; color:#888;">(Descartó / Siguió girando)</span>
+                            <span style="font-size:0.68rem; color:#888;">${isRecordado ? '(Ya contactado)' : '(Descartó / Siguió girando)'}</span>
                         </div>
                     `;
 
                     const rescueMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Vimos que en la Ruleta Navideña ganaste *${item.premioLabel}* pero no reclamaste tu ticket. 🎁 ¡Aún puedes aprovecharlo hoy para tu compra o renovación!${precioBloque}\n\n¿Deseas activarlo ahora?`;
-                    waActionBtn = cleanPhone && cleanPhone !== 'invitado' ? `
-                        <a href="https://api.whatsapp.com/send?phone=57${cleanPhone}&text=${encodeURIComponent(rescueMsg)}" target="_blank"
-                            title="Rescatar venta enviando recordatorio del premio con precio y descuento"
-                            style="display:inline-flex; align-items:center; gap:4px; background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none;">
-                            <i class="fa-brands fa-whatsapp"></i> Rescatar Venta
-                        </a>
-                    ` : '<span style="color:#666;">-</span>';
+                    
+                    if (!cleanPhone || cleanPhone === 'invitado') {
+                        waActionBtn = '<span style="color:#666;">-</span>';
+                    } else if (isRecordado) {
+                        waActionBtn = `
+                            <div id="box-rescue-${spinId}" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(255, 255, 255, 0.04); border:1px solid rgba(255, 255, 255, 0.12); color:#94a3b8; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:600; opacity:0.65;" title="Ya le enviaste recordatorio a este cliente">
+                                    <i class="fa-solid fa-check" style="color:#2ecc71;"></i> Recordado
+                                </span>
+                                <a href="javascript:void(0)" onclick="marcarYEnviarRescateRuleta('${spinId}', '${cleanPhone}', \`${escapeAttr(encodeURIComponent(rescueMsg))}\`, true)"
+                                    title="Volver a abrir chat en WhatsApp"
+                                    style="color:#64748b; font-size:0.70rem; text-decoration:underline;">Reenviar</a>
+                            </div>
+                        `;
+                    } else {
+                        waActionBtn = `
+                            <div id="box-rescue-${spinId}" style="display:inline-flex; align-items:center; justify-content:center;">
+                                <a href="javascript:void(0)" id="btn-rescue-${spinId}"
+                                    onclick="marcarYEnviarRescateRuleta('${spinId}', '${cleanPhone}', \`${escapeAttr(encodeURIComponent(rescueMsg))}\`)"
+                                    title="Rescatar venta enviando recordatorio del premio con precio y descuento"
+                                    style="display:inline-flex; align-items:center; gap:4px; background:rgba(243, 156, 18, 0.18); border:1px solid #f39c12; color:#f39c12; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none; cursor:pointer; transition:all 0.2s ease;">
+                                    <i class="fa-brands fa-whatsapp"></i> Rescatar Venta
+                                </a>
+                            </div>
+                        `;
+                    }
                 }
 
                 html += `
@@ -18958,6 +18992,50 @@
             `;
 
             tableWrap.innerHTML = html;
+        };
+
+        window.marcarYEnviarRescateRuleta = function (spinId, phone, encodedMsg, isReenvio) {
+            if (!phone || phone === 'invitado') return;
+
+            // 1. Guardar en memoria local inmediata
+            localStorage.setItem('dpc_ruleta_rec_' + spinId, 'true');
+            localStorage.setItem('dpc_ruleta_rec_' + phone, 'true');
+
+            // 2. Guardar en Firebase para persistencia permanente
+            if (typeof db !== 'undefined' && spinId && !spinId.startsWith('spin_')) {
+                db.ref('clientProfiles/_ruleta_giros_history/' + spinId + '/recordado').set(true);
+                db.ref('clientProfiles/_ruleta_giros_history/' + spinId + '/recordadoAt').set(Date.now());
+            }
+
+            // 3. Actualizar memoria en vivo de la tabla
+            if (window._cachedRuletaSpinsData) {
+                const found = window._cachedRuletaSpinsData.find(x => (x.id === spinId || x._key === spinId));
+                if (found) {
+                    found.recordado = true;
+                    found.recordadoAt = Date.now();
+                }
+            }
+
+            // 4. Apagar visualmente el botón de inmediato
+            const containerBox = document.getElementById('box-rescue-' + spinId);
+            if (containerBox) {
+                containerBox.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(255, 255, 255, 0.04); border:1px solid rgba(255, 255, 255, 0.12); color:#94a3b8; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:600; opacity:0.65;" title="Recordatorio enviado">
+                        <i class="fa-solid fa-check" style="color:#2ecc71;"></i> Recordado
+                    </span>
+                    <a href="javascript:void(0)" onclick="marcarYEnviarRescateRuleta('${spinId}', '${phone}', '${encodedMsg}', true)"
+                        title="Volver a abrir chat en WhatsApp"
+                        style="color:#64748b; font-size:0.70rem; text-decoration:underline;">Reenviar</a>
+                `;
+            }
+
+            // 5. Abrir WhatsApp
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '57' + cleanPhone;
+            else if (!cleanPhone.startsWith('57') && cleanPhone.length === 10) cleanPhone = '57' + cleanPhone;
+
+            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
+            window.open(waUrl, '_blank');
         };
 
         window.downloadRuletaStatsCSV = function () {
