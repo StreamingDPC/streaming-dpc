@@ -282,35 +282,49 @@
      * - Línea Superior: Nombre del servicio / producto / texto principal
      * - Línea Inferior: Descuento / beneficio (ej: 30% DCTO, ¡GRATIS!, etc.)
      */
-    function parsePrizeLines(premio) {
+    /**
+     * Parsea y optimiza los textos de cada premio en 2 líneas perfectamente balanceadas
+     * - Línea Superior: Servicio / Producto (ej: Netflix, Paramount, ViX, Crunchyroll)
+     * - Línea Inferior: Descuento / Premio (ej: 11% DCTO, ¡GRATIS!, etc.)
+     */
+    function parsePrizeLines(premio, numSlices = 8) {
         if (!premio) return { lineaSuperior: '', lineaDescuento: '' };
         if (premio.textoSuperior && premio.descuentoAbajo) {
             return { lineaSuperior: premio.textoSuperior, lineaDescuento: premio.descuentoAbajo };
         }
 
         const lbl = (premio.label || '').trim();
-        const servLimpio = (premio.servicio || '')
-            .replace(/premium|estándar|estandar|fan/gi, '')
+        let servLimpio = (premio.servicio || '')
+            .replace(/premium|estándar|estandar|fan|cuenta completa/gi, '')
             .trim();
-        
+
+        // Limpieza y abreviación inteligente para sectores densos (ruleta con muchos premios)
+        if (/cualquier/i.test(servLimpio) || /cualquier/i.test(lbl)) {
+            servLimpio = (numSlices >= 9) ? 'Cualquiera' : 'Cualquier Pantalla';
+        } else if (/bono/i.test(servLimpio) || /bono/i.test(lbl)) {
+            servLimpio = (numSlices >= 9) ? 'Bono' : 'Bono General';
+        }
+
         let lineaSuperior = '';
         let lineaDescuento = '';
 
         if (premio.tipo === 'pantalla_gratis') {
-            lineaSuperior = servLimpio ? `Pantalla ${servLimpio}` : 'Pantalla';
-            if (lineaSuperior.length > 13 && servLimpio) {
-                lineaSuperior = servLimpio; // Ej: "Crunchyroll"
+            // En ruletas de 9+ sectores, usar el nombre directo del servicio sin "Pantalla" para que no se desborde
+            if (numSlices >= 9) {
+                lineaSuperior = servLimpio || 'Pantalla';
+            } else {
+                lineaSuperior = servLimpio ? `Pantalla ${servLimpio}` : 'Pantalla';
             }
-            lineaDescuento = '¡GRATIS! 🎁';
+            lineaDescuento = '¡GRATIS!';
         } else if (premio.tipo === 'descuento_servicio') {
             lineaSuperior = servLimpio || 'Pantalla';
             lineaDescuento = (premio.descuentoPorcentaje ? `${premio.descuentoPorcentaje}% DCTO` : 'DESCUENTO');
         } else if (premio.tipo === 'cupon_general') {
-            lineaSuperior = (servLimpio && !['ninguno', 'cualquier pantalla'].includes(servLimpio.toLowerCase())) ? servLimpio : 'Bono General';
-            lineaDescuento = (premio.descuentoPorcentaje ? `${premio.descuentoPorcentaje}% DCTO` : '15% DCTO');
+            lineaSuperior = servLimpio || ((numSlices >= 9) ? 'Bono' : 'Bono General');
+            lineaDescuento = (premio.descuentoPorcentaje ? `${premio.descuentoPorcentaje}% DCTO` : '10% DCTO');
         } else if (premio.tipo === 'sin_premio') {
             lineaSuperior = 'Sigue';
-            lineaDescuento = 'Intentando 😢';
+            lineaDescuento = 'Intentando';
         } else {
             if (lbl.includes('DCTO')) {
                 const parts = lbl.split(/DCTO/i);
@@ -331,8 +345,10 @@
             }
         }
 
-        if (lineaSuperior.length > 15) lineaSuperior = lineaSuperior.substring(0, 14) + '...';
-        if (lineaDescuento.length > 15) lineaDescuento = lineaDescuento.substring(0, 14) + '...';
+        // Truncar con elipsis si excede el largo seguro según la densidad de premios
+        const maxLen = (numSlices >= 10) ? 12 : 15;
+        if (lineaSuperior.length > maxLen) lineaSuperior = lineaSuperior.substring(0, maxLen - 1) + '…';
+        if (lineaDescuento.length > maxLen) lineaDescuento = lineaDescuento.substring(0, maxLen - 1) + '…';
 
         return { lineaSuperior, lineaDescuento };
     }
@@ -386,18 +402,21 @@
             ctx.save();
             ctx.rotate(anguloInicio + arco / 2);
 
-            // Posición centrada en la zona visible del sector (totalmente fuera del botón central GIRAR)
-            const rTexto = radius * 0.68;
+            // Posición centrada a lo largo del sector (ligeramente más hacia el exterior donde el sector es más amplio)
+            const rTexto = radius * (numSlices >= 10 ? 0.74 : 0.70);
             ctx.translate(rTexto, 0);
-            ctx.rotate(Math.PI / 2); // Orientar horizontal a lo ancho del sector
+            ctx.rotate(Math.PI / 2); // Orientar a lo ancho del sector
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const { lineaSuperior, lineaDescuento } = parsePrizeLines(premio);
+            const { lineaSuperior, lineaDescuento } = parsePrizeLines(premio, numSlices);
+
+            // Ancho máximo garantizado dentro del sector (deja margen de seguridad de 12% para evitar cualquier solapamiento)
+            const anchoMaxSector = (2 * rTexto * Math.sin(arco / 2)) * 0.88;
 
             // Sombra para contraste y legibilidad impecable sobre cualquier color de fondo
             ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-            ctx.shadowBlur = 5;
+            ctx.shadowBlur = 4;
             ctx.shadowOffsetX = 1;
             ctx.shadowOffsetY = 1;
 
@@ -410,20 +429,39 @@
                 ctx.rotate(Math.PI);
             }
 
+            // Calibrar tamaños de fuente y separación vertical dinámicamente según la cantidad de premios
+            let fontSuperior = 'bold 12px Outfit, sans-serif';
+            let fontDescuento = 'bold 11px Outfit, sans-serif';
+            let yDist = 7.5;
+
+            if (numSlices >= 12) {
+                fontSuperior = (lineaSuperior.length > 9) ? 'bold 8.5px Outfit, sans-serif' : 'bold 9.5px Outfit, sans-serif';
+                fontDescuento = 'bold 8.5px Outfit, sans-serif';
+                yDist = 6;
+            } else if (numSlices >= 9) {
+                fontSuperior = (lineaSuperior.length > 9) ? 'bold 9px Outfit, sans-serif' : 'bold 10px Outfit, sans-serif';
+                fontDescuento = 'bold 9px Outfit, sans-serif';
+                yDist = 6.5;
+            } else if (numSlices >= 7) {
+                fontSuperior = (lineaSuperior.length > 10) ? 'bold 10.5px Outfit, sans-serif' : 'bold 11.5px Outfit, sans-serif';
+                fontDescuento = 'bold 10.5px Outfit, sans-serif';
+                yDist = 7;
+            }
+
             // Para que la línea del servicio siempre esté arriba y el descuento abajo visualmente
-            const ySuperior = isInvertido ? 9 : -9;
-            const yDescuento = isInvertido ? -9 : 9;
+            const ySuperior = isInvertido ? yDist : -yDist;
+            const yDescuento = isInvertido ? -yDist : yDist;
 
-            // Renglón 1: Texto en la parte superior
+            // Renglón 1: Texto en la parte superior (con ancho máximo para evitar desbordes)
             ctx.fillStyle = '#ffffff';
-            ctx.font = (lineaSuperior.length > 11) ? 'bold 11.5px Outfit, sans-serif' : 'bold 13px Outfit, sans-serif';
-            ctx.fillText(lineaSuperior, 0, ySuperior);
+            ctx.font = fontSuperior;
+            ctx.fillText(lineaSuperior, 0, ySuperior, anchoMaxSector);
 
-            // Renglón 2: Descuento abajo del texto
+            // Renglón 2: Descuento abajo del texto (con ancho máximo para evitar desbordes)
             if (lineaDescuento) {
                 ctx.fillStyle = (premio.tipo === 'pantalla_gratis') ? '#4ade80' : '#fef08a';
-                ctx.font = 'bold 11.5px Outfit, sans-serif';
-                ctx.fillText(lineaDescuento, 0, yDescuento);
+                ctx.font = fontDescuento;
+                ctx.fillText(lineaDescuento, 0, yDescuento, anchoMaxSector);
             }
 
             ctx.restore();
