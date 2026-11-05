@@ -1024,59 +1024,31 @@ function applySmartSearch() {
     // Si hay plataformas seleccionadas:
     const selectedPlatObjs = SMART_PLATFORMS.filter(p => _smartSearchState.selectedPlatforms.has(p.id));
     let matchedProducts = [];
-    let isPartialMatch = false;
-    let largerCombosCount = 0;
     const N = selectedPlatObjs.length;
 
     if (N > 0) {
-        // 1. Coincidencia de productos que contienen TODAS las plataformas seleccionadas
+        // 1. Coincidencia estricta: productos que contienen TODAS las plataformas seleccionadas
         const allMatches = baseList.filter(prod => {
             return selectedPlatObjs.every(plat => matchesPlatformItem(prod, plat));
         });
 
-        if (allMatches.length > 0) {
-            // Filtrar exactamente por el número de pantallas seleccionadas:
-            // 1 selección -> Individual (1 pantalla)
-            // 2 selecciones -> Combos de 2 pantallas
-            // 3 selecciones -> Combos de 3 pantallas
-            // 4 selecciones -> Combos de 4 pantallas
-            // 5 o más -> Combos de 5 o más pantallas
-            const exactSizeMatches = allMatches.filter(prod => {
-                const sc = getProductScreenCount(prod);
-                return N >= 5 ? sc >= 5 : sc === N;
-            });
+        // 2. Filtrar exactamente por el número de pantallas seleccionadas:
+        // 1 selección -> Individual (1 pantalla)
+        // 2 selecciones -> Combos de 2 pantallas
+        // 3 selecciones -> Combos de 3 pantallas
+        // 4 selecciones -> Combos de 4 pantallas
+        // 5 o más -> Combos de 5 o más pantallas
+        const exactSizeMatches = allMatches.filter(prod => {
+            const sc = getProductScreenCount(prod);
+            return N >= 5 ? sc >= 5 : sc === N;
+        });
 
-            const largerMatches = allMatches.filter(prod => {
-                const sc = getProductScreenCount(prod);
-                return sc > N;
-            });
-            largerCombosCount = largerMatches.length;
-
-            if (exactSizeMatches.length > 0 && !_smartSearchState.showLargerCombos) {
-                // Modo principal: Mostrar exactamente los combos del tamaño seleccionado
-                matchedProducts = exactSizeMatches;
-            } else if (exactSizeMatches.length > 0 && _smartSearchState.showLargerCombos) {
-                // Modo expandido: Mostrar los exactos primero y luego los mayores
-                matchedProducts = allMatches;
-            } else {
-                // Si no existe combo de ese tamaño exacto pero sí combos mayores que las contienen
-                matchedProducts = allMatches;
-            }
+        if (exactSizeMatches.length > 0) {
+            matchedProducts = exactSizeMatches;
         } else {
-            // 2. Si no hay coincidencia con todas a la vez, buscar coincidencias parciales inteligentes ordenadas por relevancia
-            isPartialMatch = true;
-            const scored = [];
-            baseList.forEach(prod => {
-                let matchCount = 0;
-                selectedPlatObjs.forEach(plat => {
-                    if (matchesPlatformItem(prod, plat)) matchCount++;
-                });
-                if (matchCount > 0) {
-                    scored.push({ prod, matchCount });
-                }
-            });
-            scored.sort((a, b) => b.matchCount - a.matchCount);
-            matchedProducts = scored.map(s => s.prod);
+            // Si el cliente eligió plataformas salteadas y NO existe el combo de ese tamaño,
+            // no mostramos nada para que no se confunda y busque las que sí existen.
+            matchedProducts = [];
         }
     } else {
         matchedProducts = baseList;
@@ -1100,44 +1072,24 @@ function applySmartSearch() {
     if (resultsBar && resultsSummary) {
         resultsBar.style.display = 'flex';
         if (matchedProducts.length > 0) {
-            if (isPartialMatch) {
-                resultsSummary.innerHTML = `
-                    <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i> 
-                    No hay combo con todas juntas (<strong>${platNames}</strong>${durLabel}${queryLabel}), pero encontramos <strong>${matchedProducts.length}</strong> opciones cercanas:
-                `;
-            } else {
-                let toggleLargerBtn = '';
-                if (largerCombosCount > 0) {
-                    if (_smartSearchState.showLargerCombos) {
-                        toggleLargerBtn = `
-                            <button type="button" class="smart-toggle-larger-btn" onclick="toggleSmartShowLargerCombos(false)" style="margin-left:8px; background:rgba(0,210,211,0.2); border:1px solid #00d2d3; color:#00d2d3; border-radius:12px; padding:3px 10px; font-size:0.75rem; cursor:pointer;">
-                                <i class="fa-solid fa-compress"></i> Ver solo de ${N} pantallas
-                            </button>
-                        `;
-                    } else {
-                        toggleLargerBtn = `
-                            <button type="button" class="smart-toggle-larger-btn" onclick="toggleSmartShowLargerCombos(true)" style="margin-left:8px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); color:#ffffff; border-radius:12px; padding:3px 10px; font-size:0.75rem; cursor:pointer;">
-                                <i class="fa-solid fa-layer-group"></i> Ver combos de más pantallas (+${largerCombosCount})
-                            </button>
-                        `;
-                    }
-                }
-
-                resultsSummary.innerHTML = `
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
-                    Encontramos <strong>${matchedProducts.length}</strong> ${sizeLabel || 'producto(s)'} para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
-                    ${toggleLargerBtn}
-                `;
-            }
+            resultsSummary.innerHTML = `
+                <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
+                Encontramos <strong>${matchedProducts.length}</strong> ${sizeLabel || 'producto(s)'} para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
+            `;
         } else {
             resultsSummary.innerHTML = `
                 <i class="fa-solid fa-circle-exclamation" style="color:#ff4d4d;"></i> 
-                No encontramos productos para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}.
+                <strong>No hay combo con todas juntas</strong> (${platNames || 'tu búsqueda'}${durLabel}${queryLabel}).
             `;
         }
     }
 
-    renderProductCards(matchedProducts, 'No se encontraron combos o pantallas con estos filtros.');
+    renderProductCards(
+        matchedProducts, 
+        N > 0 
+            ? `No hay combo con todas juntas para (${platNames}). Prueba seleccionando otra combinación.` 
+            : 'No se encontraron combos o pantallas con estos filtros.'
+    );
 
     // Scroll suave en móvil si es necesario
     const resultsElem = document.getElementById('smart-search-section');
