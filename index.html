@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Streaming DPC - Premium Screens</title>
     <meta name="description" content="Venta de pantallas y combos de streaming: Netflix, Disney+, HBO Max y más.">
-    <link rel="stylesheet" href="style.css?v=3.9.56">
+    <link rel="stylesheet" href="style.css?v=3.9.90">
     <link rel="stylesheet" href="ruleta.css?v=3.9.60">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -103,6 +103,52 @@
             <h1>Tus pantallas favoritas en un solo lugar</h1>
             <p>Disfruta del mejor contenido premium con los mejores precios.</p>
         </div>
+
+        <!-- Buscador Inteligente & Constructor de Combos con 1 Clic -->
+        <section id="smart-search-section" class="smart-search-box">
+            <div class="smart-search-header">
+                <div class="smart-search-title-wrap">
+                    <span class="smart-search-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Buscador Inteligente</span>
+                    <h2 class="smart-search-title">¿Qué pantallas buscas?</h2>
+                    <p class="smart-search-subtitle">Toca las plataformas con 1 clic para ver de inmediato los combos disponibles:</p>
+                </div>
+                <div class="smart-search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="smart-search-input" placeholder="O escribe aquí (ej: 2 meses, familiar...)" oninput="onSmartSearchTextInput(this.value)">
+                    <button type="button" id="smart-search-clear-text-btn" style="display:none;" onclick="clearSmartSearchText()" title="Borrar texto">✕</button>
+                </div>
+            </div>
+
+            <!-- Chips de Plataformas (Botones interactivos de 1 clic) -->
+            <div class="smart-platform-chips" id="smart-platform-chips">
+                <!-- Se inyecta dinámicamente con las plataformas -->
+            </div>
+
+            <!-- Filtro Opcional de Meses / Duración y Botón Limpiar -->
+            <div class="smart-search-subbar">
+                <div class="smart-duration-filters" id="smart-duration-filters">
+                    <span style="font-size:0.78rem; color:#94a3b8; font-weight:600; display:flex; align-items:center; gap:4px;">
+                        <i class="fa-solid fa-clock"></i> Duración:
+                    </span>
+                    <button type="button" class="duration-chip active" data-months="all" onclick="selectSmartDuration('all')">Todos</button>
+                    <button type="button" class="duration-chip" data-months="1" onclick="selectSmartDuration('1')">1 Mes</button>
+                    <button type="button" class="duration-chip" data-months="2" onclick="selectSmartDuration('2')">2 Meses</button>
+                    <button type="button" class="duration-chip" data-months="3" onclick="selectSmartDuration('3')">3 Meses</button>
+                </div>
+
+                <button type="button" id="smart-search-reset-btn" class="smart-reset-btn" style="display:none;" onclick="resetSmartSearch()">
+                    <i class="fa-solid fa-rotate-left"></i> Limpiar Filtros
+                </button>
+            </div>
+
+            <!-- Barra de Estado de Resultados Activos -->
+            <div id="smart-search-results-bar" class="smart-results-bar" style="display:none;">
+                <div id="smart-results-summary" class="smart-results-text"></div>
+                <button type="button" class="smart-results-close-btn" onclick="resetSmartSearch()">
+                    ✕ Ver Categorías
+                </button>
+            </div>
+        </section>
 
         <!-- Tabs Section -->
         <div class="tabs-container">
@@ -1543,7 +1589,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
     <!-- Lógica Principal -->
     <script src="ruleta.js?v=3.9.87"></script>
-    <script src="app.js?v=3.9.83"></script>
+    <script src="app.js?v=3.9.90"></script>
     <!-- CRM / Respuestas Selector Modal -->
     <div id="crm-selector-modal" class="modal" style="display:none; z-index: 5000;">
         <div class="modal-content"

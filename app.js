@@ -186,6 +186,7 @@ let pendingWhatsappNumber = "";
 
 
 function init() {
+    initSmartSearch();
     renderProducts('individual');
     setupEventListeners();
     setupConfigUI();
@@ -683,11 +684,6 @@ function renderProducts(category) {
         return;
     }
 
-    let targetSeller = null;
-    if (publicSellerRef) targetSeller = publicSellerRef;
-    else if (isSellerMode) targetSeller = currentSellerName;
-    let scopeOwner = targetSeller ? targetSeller : 'admin';
-
     const filtered = category === 'all'
         ? products.filter(p => {
             if (p.active === false) return false;
@@ -699,7 +695,27 @@ function renderProducts(category) {
             return true;
         });
 
-    filtered.forEach(product => {
+    renderProductCards(filtered, 'No hay pantallas disponibles en esta categoría.');
+}
+
+function renderProductCards(productList, emptyMessage) {
+    productsGrid.innerHTML = '';
+    if (!productList || productList.length === 0) {
+        productsGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                <i class="fa-solid fa-box-open" style="font-size: 2.5rem; color: #64748b; margin-bottom: 0.8rem; display:block;"></i>
+                <p style="font-size: 1rem; margin:0;">${emptyMessage || 'No se encontraron productos disponibles.'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    let targetSeller = null;
+    if (publicSellerRef) targetSeller = publicSellerRef;
+    else if (isSellerMode) targetSeller = currentSellerName;
+    let scopeOwner = targetSeller ? targetSeller : 'admin';
+
+    productList.forEach(product => {
         product._usingReserve = null;
         const card = document.createElement('div');
         card.className = 'product-card';
@@ -787,6 +803,266 @@ function renderProducts(category) {
         `;
         productsGrid.appendChild(card);
     });
+}
+
+// =====================================================
+// BUSCADOR INTELIGENTE & CONSTRUCTOR DE COMBOS CON 1 CLIC
+// =====================================================
+
+const SMART_PLATFORMS = [
+    { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
+    { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
+    { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
+    { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
+    { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
+    { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
+    { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
+    { id: 'apple', name: 'Apple TV', icon: '<i class="fa-brands fa-apple"></i>', re: /\bapple(\s*tv)?\b/i },
+    { id: 'spotify', name: 'Spotify', icon: '<i class="fa-brands fa-spotify"></i>', re: /\bspotify\b/i },
+    { id: 'youtube', name: 'YouTube', icon: '<i class="fa-brands fa-youtube"></i>', re: /\byoutube\b/i }
+];
+
+let _smartSearchState = {
+    selectedPlatforms: new Set(),
+    selectedMonths: 'all',
+    query: ''
+};
+
+function isSmartSearchActive() {
+    return _smartSearchState.selectedPlatforms.size > 0 || _smartSearchState.selectedMonths !== 'all' || _smartSearchState.query.trim().length > 0;
+}
+
+function initSmartSearch() {
+    const container = document.getElementById('smart-platform-chips');
+    if (!container) return;
+
+    container.innerHTML = SMART_PLATFORMS.map(p => `
+        <button type="button" class="platform-chip" data-platform="${p.id}" onclick="toggleSmartPlatform('${p.id}')">
+            <span class="chip-icon">${p.icon}</span>
+            <span class="chip-name">${p.name}</span>
+            <span class="chip-check"><i class="fa-solid fa-check"></i></span>
+        </button>
+    `).join('');
+}
+
+function toggleSmartPlatform(platId) {
+    if (_smartSearchState.selectedPlatforms.has(platId)) {
+        _smartSearchState.selectedPlatforms.delete(platId);
+    } else {
+        _smartSearchState.selectedPlatforms.add(platId);
+    }
+    updateSmartSearchChipsUI();
+    applySmartSearch();
+}
+
+function updateSmartSearchChipsUI() {
+    const chips = document.querySelectorAll('.platform-chip');
+    chips.forEach(chip => {
+        const id = chip.dataset.platform;
+        if (_smartSearchState.selectedPlatforms.has(id)) {
+            chip.classList.add('active');
+        } else {
+            chip.classList.remove('active');
+        }
+    });
+
+    const resetBtn = document.getElementById('smart-search-reset-btn');
+    if (resetBtn) {
+        resetBtn.style.display = isSmartSearchActive() ? 'inline-flex' : 'none';
+    }
+}
+
+function onSmartSearchTextInput(val) {
+    _smartSearchState.query = (val || '').trim();
+    const clearBtn = document.getElementById('smart-search-clear-text-btn');
+    if (clearBtn) {
+        clearBtn.style.display = _smartSearchState.query.length > 0 ? 'inline-flex' : 'none';
+    }
+    updateSmartSearchChipsUI();
+    applySmartSearch();
+}
+
+function clearSmartSearchText() {
+    const input = document.getElementById('smart-search-input');
+    if (input) input.value = '';
+    onSmartSearchTextInput('');
+}
+
+function selectSmartDuration(months) {
+    _smartSearchState.selectedMonths = months || 'all';
+    const chips = document.querySelectorAll('.duration-chip');
+    chips.forEach(c => {
+        if (c.dataset.months === months) {
+            c.classList.add('active');
+        } else {
+            c.classList.remove('active');
+        }
+    });
+    updateSmartSearchChipsUI();
+    applySmartSearch();
+}
+
+function resetSmartSearch(silent) {
+    _smartSearchState.selectedPlatforms.clear();
+    _smartSearchState.selectedMonths = 'all';
+    _smartSearchState.query = '';
+
+    const input = document.getElementById('smart-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('smart-search-clear-text-btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    // Reset duration chips
+    const dChips = document.querySelectorAll('.duration-chip');
+    dChips.forEach(c => {
+        if (c.dataset.months === 'all') c.classList.add('active');
+        else c.classList.remove('active');
+    });
+
+    updateSmartSearchChipsUI();
+
+    const resultsBar = document.getElementById('smart-search-results-bar');
+    if (resultsBar) resultsBar.style.display = 'none';
+
+    // Restaurar categoría activa
+    if (!silent) {
+        const activeTab = document.querySelector('.tab-btn.active');
+        const tabCategory = activeTab ? activeTab.dataset.tab : 'individual';
+        renderProducts(tabCategory);
+    }
+}
+
+function matchesPlatformItem(product, plat) {
+    const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+    return plat.re.test(text);
+}
+
+function matchesDuration(product, months) {
+    if (months === 'all') return true;
+    const mNum = parseInt(months, 10);
+    if (product.months) {
+        return parseInt(product.months, 10) === mNum;
+    }
+    // Fallback: detectar en el nombre
+    if (mNum === 1) {
+        return !/(2|3|6|12)\s*mes/i.test(product.name || '');
+    } else if (mNum === 2) {
+        return /2\s*mes/i.test(product.name || '');
+    } else if (mNum === 3) {
+        return /3\s*mes/i.test(product.name || '');
+    }
+    return true;
+}
+
+function applySmartSearch() {
+    const hasPlatforms = _smartSearchState.selectedPlatforms.size > 0;
+    const hasMonths = _smartSearchState.selectedMonths !== 'all';
+    const hasQuery = _smartSearchState.query.length > 0;
+
+    // Si no hay ningún filtro inteligente activo, volvemos a la pestaña activa normal
+    if (!hasPlatforms && !hasMonths && !hasQuery) {
+        const resultsBar = document.getElementById('smart-search-results-bar');
+        if (resultsBar) resultsBar.style.display = 'none';
+        const activeTab = document.querySelector('.tab-btn.active');
+        renderProducts(activeTab ? activeTab.dataset.tab : 'individual');
+        return;
+    }
+
+    // Ocultar pestañas especiales de polla / premio navideño si estaban activas
+    const pollaGrid = document.getElementById('polla-grid');
+    const navGrid = document.getElementById('premio-navideno-grid');
+    if (pollaGrid) pollaGrid.style.display = 'none';
+    if (navGrid) navGrid.style.display = 'none';
+    productsGrid.style.display = 'grid';
+
+    // Desactivar visualmente las pestañas de categorías para indicar que estamos en modo Búsqueda Inteligente
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Base de productos activos (excluyendo ventas_extras si no aplican)
+    let baseList = products.filter(p => p.active !== false && p.category !== 'ventas_extras');
+
+    // Filtro por texto si hay búsqueda escrita
+    if (hasQuery) {
+        const qTerms = _smartSearchState.query.toLowerCase().split(/\s+/).filter(Boolean);
+        baseList = baseList.filter(p => {
+            const pTxt = ((p.name || '') + ' ' + (p.brand || '') + ' ' + (p.desc || '')).toLowerCase();
+            return qTerms.every(term => pTxt.includes(term));
+        });
+    }
+
+    // Filtro por duración
+    if (hasMonths) {
+        baseList = baseList.filter(p => matchesDuration(p, _smartSearchState.selectedMonths));
+    }
+
+    // Si hay plataformas seleccionadas:
+    const selectedPlatObjs = SMART_PLATFORMS.filter(p => _smartSearchState.selectedPlatforms.has(p.id));
+    let matchedProducts = [];
+    let isPartialMatch = false;
+
+    if (selectedPlatObjs.length > 0) {
+        // 1. Coincidencia EXACTA (todas las plataformas seleccionadas)
+        matchedProducts = baseList.filter(prod => {
+            return selectedPlatObjs.every(plat => matchesPlatformItem(prod, plat));
+        });
+
+        // 2. Si no hay coincidencia con todas a la vez, buscar coincidencias parciales inteligentes ordenadas por relevancia
+        if (matchedProducts.length === 0) {
+            isPartialMatch = true;
+            const scored = [];
+            baseList.forEach(prod => {
+                let matchCount = 0;
+                selectedPlatObjs.forEach(plat => {
+                    if (matchesPlatformItem(prod, plat)) matchCount++;
+                });
+                if (matchCount > 0) {
+                    scored.push({ prod, matchCount });
+                }
+            });
+            scored.sort((a, b) => b.matchCount - a.matchCount);
+            matchedProducts = scored.map(s => s.prod);
+        }
+    } else {
+        matchedProducts = baseList;
+    }
+
+    // Actualizar barra resumen de resultados
+    const platNames = selectedPlatObjs.map(p => p.name).join(' + ');
+    const durLabel = hasMonths ? ` • ${_smartSearchState.selectedMonths} Meses` : '';
+    const queryLabel = hasQuery ? ` • "${_smartSearchState.query}"` : '';
+
+    const resultsBar = document.getElementById('smart-search-results-bar');
+    const resultsSummary = document.getElementById('smart-results-summary');
+
+    if (resultsBar && resultsSummary) {
+        resultsBar.style.display = 'flex';
+        if (matchedProducts.length > 0) {
+            if (isPartialMatch) {
+                resultsSummary.innerHTML = `
+                    <i class="fa-solid fa-circle-info" style="color:#f39c12;"></i> 
+                    No hay combo con todas juntas (<strong>${platNames}</strong>${durLabel}${queryLabel}), pero encontramos <strong>${matchedProducts.length}</strong> opciones cercanas:
+                `;
+            } else {
+                resultsSummary.innerHTML = `
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
+                    Encontramos <strong>${matchedProducts.length}</strong> producto(s) para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}:
+                `;
+            }
+        } else {
+            resultsSummary.innerHTML = `
+                <i class="fa-solid fa-circle-exclamation" style="color:#ff4d4d;"></i> 
+                No encontramos productos para <strong>${platNames || 'tu búsqueda'}</strong>${durLabel}${queryLabel}.
+            `;
+        }
+    }
+
+    renderProductCards(matchedProducts, 'No se encontraron combos o pantallas con estos filtros.');
+
+    // Scroll suave en móvil si es necesario
+    const resultsElem = document.getElementById('smart-search-section');
+    if (resultsElem && window.innerWidth < 768) {
+        resultsElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function addToCart(productId) {
@@ -948,6 +1224,7 @@ function setupEventListeners() {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            resetSmartSearch(true);
             renderProducts(btn.dataset.tab);
             if (categoryTabs) categoryTabs.classList.remove('show-menu');
         });
@@ -5723,8 +6000,12 @@ const runInit = () => {
         init();
     } else {
         setupConfigUI();
-        const activeTabBtn = document.querySelector('.tab-btn.active');
-        if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+        if (typeof isSmartSearchActive === 'function' && isSmartSearchActive()) {
+            applySmartSearch();
+        } else {
+            const activeTabBtn = document.querySelector('.tab-btn.active');
+            if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+        }
         updateCartUI();
         renderCartItems();
     }
@@ -5770,8 +6051,12 @@ db.ref('storeConfig').on('value', (snap) => {
     applyTabsVisibility();
     if (!window.appInitialized) return;
     setupConfigUI();
-    const activeTabBtn = document.querySelector('.tab-btn.active');
-    if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+    if (typeof isSmartSearchActive === 'function' && isSmartSearchActive()) {
+        applySmartSearch();
+    } else {
+        const activeTabBtn = document.querySelector('.tab-btn.active');
+        if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+    }
     updateCartUI();
 });
 
@@ -5779,8 +6064,12 @@ db.ref('products').on('value', (snap) => {
     if (!window.appInitialized) return;
     const pObj = snap.val() || [];
     products = Array.isArray(pObj) ? pObj : Object.values(pObj);
-    const activeTabBtn = document.querySelector('.tab-btn.active');
-    if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+    if (typeof isSmartSearchActive === 'function' && isSmartSearchActive()) {
+        applySmartSearch();
+    } else {
+        const activeTabBtn = document.querySelector('.tab-btn.active');
+        if (activeTabBtn) renderProducts(activeTabBtn.dataset.tab);
+    }
 });
 
 

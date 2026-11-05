@@ -344,6 +344,343 @@ header {
     margin: 0 auto;
 }
 
+/* =====================================================
+   BUSCADOR INTELIGENTE & FILTRO MULTI-PLATAFORMA (1 CLIC)
+   ===================================================== */
+.smart-search-box {
+    background: rgba(18, 18, 26, 0.75);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.2rem 1.4rem;
+    margin: 0 1rem 2rem 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
+}
+
+.smart-search-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #e50914, #113ccf, #00a8e1, #ff5400, #00d2d3);
+    opacity: 0.85;
+}
+
+.smart-search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.smart-search-title-wrap {
+    flex: 1;
+    min-width: 260px;
+}
+
+.smart-search-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 210, 211, 0.15);
+    border: 1px solid #00d2d3;
+    color: #00d2d3;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 0.4rem;
+}
+
+.smart-search-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 0.2rem 0;
+}
+
+.smart-search-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.smart-search-input-wrap {
+    position: relative;
+    min-width: 250px;
+    max-width: 360px;
+    width: 100%;
+}
+
+.smart-search-input-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+#smart-search-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid var(--glass-border);
+    color: #ffffff;
+    padding: 9px 34px 9px 34px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+#smart-search-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 10px rgba(0, 210, 211, 0.25);
+    background: rgba(0, 0, 0, 0.75);
+}
+
+#smart-search-clear-text-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px;
+}
+
+#smart-search-clear-text-btn:hover {
+    color: white;
+}
+
+/* Plataformas Chips (Botones de selección) */
+.smart-platform-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
+
+.platform-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: #cbd5e1;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.platform-chip:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.platform-chip.active {
+    font-weight: 700;
+    color: #ffffff !important;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Colores de marca activos */
+.platform-chip[data-platform="netflix"].active {
+    background: rgba(229, 9, 20, 0.22) !important;
+    border-color: #e50914 !important;
+    box-shadow: 0 0 14px rgba(229, 9, 20, 0.45);
+}
+.platform-chip[data-platform="disney"].active {
+    background: rgba(17, 60, 207, 0.25) !important;
+    border-color: #113ccf !important;
+    box-shadow: 0 0 14px rgba(17, 60, 207, 0.5);
+}
+.platform-chip[data-platform="prime"].active {
+    background: rgba(0, 168, 225, 0.22) !important;
+    border-color: #00a8e1 !important;
+    box-shadow: 0 0 14px rgba(0, 168, 225, 0.45);
+}
+.platform-chip[data-platform="max"].active {
+    background: rgba(139, 92, 246, 0.25) !important;
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.5);
+}
+.platform-chip[data-platform="paramount"].active {
+    background: rgba(56, 189, 248, 0.22) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+}
+.platform-chip[data-platform="vix"].active {
+    background: rgba(255, 84, 0, 0.22) !important;
+    border-color: #ff5400 !important;
+    box-shadow: 0 0 14px rgba(255, 84, 0, 0.5);
+}
+.platform-chip[data-platform="crunchyroll"].active {
+    background: rgba(249, 115, 22, 0.25) !important;
+    border-color: #f97316 !important;
+    box-shadow: 0 0 14px rgba(249, 115, 22, 0.5);
+}
+.platform-chip[data-platform="apple"].active {
+    background: rgba(203, 213, 225, 0.2) !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 0 14px rgba(203, 213, 225, 0.35);
+}
+.platform-chip[data-platform="spotify"].active {
+    background: rgba(34, 197, 94, 0.22) !important;
+    border-color: #22c55e !important;
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.45);
+}
+.platform-chip[data-platform="youtube"].active {
+    background: rgba(239, 68, 68, 0.22) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+}
+
+.platform-chip-check,
+.chip-check {
+    display: none;
+    font-size: 0.72rem;
+    margin-left: 2px;
+}
+.platform-chip.active .platform-chip-check,
+.platform-chip.active .chip-check {
+    display: inline-block;
+}
+
+/* Sub-barra: Duración y botón de reset */
+.smart-search-subbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 0.6rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.smart-duration-filters {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.duration-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.duration-chip:hover {
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.duration-chip.active {
+    background: rgba(0, 210, 211, 0.15);
+    border-color: #00d2d3;
+    color: #00d2d3;
+    font-weight: 700;
+}
+
+.smart-reset-btn {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.smart-reset-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ffffff;
+}
+
+/* Barra de Resumen de Resultados */
+.smart-results-bar {
+    margin-top: 1rem;
+    background: linear-gradient(135deg, rgba(0, 210, 211, 0.1), rgba(84, 160, 255, 0.1));
+    border: 1px solid rgba(0, 210, 211, 0.3);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+.smart-results-text {
+    font-size: 0.88rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.smart-results-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.smart-results-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .smart-search-box {
+        padding: 1rem;
+        margin: 0 0.8rem 1.5rem 0.8rem;
+    }
+    .smart-search-title {
+        font-size: 1.1rem;
+    }
+    .platform-chip {
+        padding: 6px 11px;
+        font-size: 0.78rem;
+    }
+}
+
 /* Tabs Container */
 .tabs-container {
     position: relative;
