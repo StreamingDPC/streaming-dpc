@@ -1511,7 +1511,9 @@ function startExcelWatcher() {
                 lastMtimeMs = stat.mtimeMs;
 
                 console.log(`[EXCEL-SYNC] 🔄 Cambio detectado en "${path.basename(EXCEL_FILE_PATH)}" (${new Date().toLocaleTimeString()}). Sincronizando con Firebase...`);
-                const res = await syncExcelToFirebase();
+                try { delete require.cache[require.resolve('./excel-sync')]; } catch (_) {}
+                const { syncExcelToFirebase: freshSyncFn } = require('./excel-sync');
+                const res = await freshSyncFn();
                 console.log(`[EXCEL-SYNC] ✅ Base de datos actualizada: ${res.updatedScreensCount} pantallas en ${res.updatedClientsCount} clientes (${res.createdSalesCount} clientes nuevos añadidos).`);
             } catch (err) {
                 console.error(`[EXCEL-SYNC] ⚠️ Error al sincronizar Excel:`, err.message);
