@@ -944,6 +944,8 @@
                 servicio: pGanador.servicio || '',
                 tipo: pGanador.tipo || 'descuento',
                 descuentoPorcentaje: pGanador.descuentoPorcentaje || 0,
+                precioNormal: pGanador.precioNormal || 0,
+                precioFinal: (pGanador.tipo === 'pantalla_gratis') ? 0 : Math.max(0, (pGanador.precioNormal || 0) - Math.round(((pGanador.precioNormal || 0) * (pGanador.descuentoPorcentaje || 0)) / 100)),
                 color: pGanador.color || '#ffb703',
                 estado: pGanador.tipo === 'sin_premio' ? 'sin_premio' : 'no_reclamado',
                 aceptoPremio: false,

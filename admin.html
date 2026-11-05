@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.87 (Auto-Limpieza de Comillas en Rutas de Robot)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.88 (Rescate de Ruleta con Precios y Descuentos Calculados)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -18778,6 +18778,70 @@
                     <tbody>
             `;
 
+            function getPremioPriceDetails(item) {
+                let precioNormal = item.precioNormal || 0;
+                let dctoPorc = item.descuentoPorcentaje || 0;
+                let tipo = item.tipo || '';
+
+                const ruletaConf = (typeof storeConfig !== 'undefined' && storeConfig && storeConfig.ruletaConfig) 
+                    ? storeConfig.ruletaConfig 
+                    : (window._cachedRuletaConfig || {});
+                const listaPremios = Array.isArray(ruletaConf.premios) ? ruletaConf.premios : [];
+
+                if (!precioNormal || !dctoPorc) {
+                    const match = listaPremios.find(p => 
+                        (item.premioId != null && String(p.id) === String(item.premioId)) ||
+                        (p.label && item.premioLabel && p.label.trim().toLowerCase() === item.premioLabel.trim().toLowerCase()) ||
+                        (p.servicio && item.servicio && p.servicio.trim().toLowerCase() === item.servicio.trim().toLowerCase())
+                    );
+                    if (match) {
+                        if (!precioNormal) precioNormal = match.precioNormal || 0;
+                        if (!dctoPorc) dctoPorc = match.descuentoPorcentaje || 0;
+                        if (!tipo) tipo = match.tipo || '';
+                    }
+                }
+
+                if (!dctoPorc && item.premioLabel) {
+                    const pctMatch = item.premioLabel.match(/(\d+)\s*%/);
+                    if (pctMatch) dctoPorc = parseInt(pctMatch[1]);
+                }
+
+                const esGratis = tipo === 'pantalla_gratis' || dctoPorc >= 100 || (item.premioLabel && item.premioLabel.toLowerCase().includes('gratis'));
+                if (esGratis) {
+                    return {
+                        esGratis: true,
+                        precioNormal,
+                        dctoPorc: 100,
+                        ahorro: precioNormal,
+                        totalPagar: 0
+                    };
+                }
+
+                if (precioNormal > 0 && dctoPorc > 0) {
+                    const ahorro = Math.round((precioNormal * dctoPorc) / 100);
+                    const totalPagar = Math.max(0, precioNormal - ahorro);
+                    return {
+                        esGratis: false,
+                        precioNormal,
+                        dctoPorc,
+                        ahorro,
+                        totalPagar
+                    };
+                }
+
+                if (dctoPorc > 0) {
+                    return {
+                        esGratis: false,
+                        precioNormal: 0,
+                        dctoPorc,
+                        ahorro: 0,
+                        totalPagar: 0
+                    };
+                }
+
+                return null;
+            }
+
             filtered.forEach((item, idx) => {
                 const cleanPhone = String(item.phone || '').replace(/\D/g, '').replace(/^57/, '');
                 
@@ -18791,14 +18855,32 @@
                     rolBadge = '<span style="background:rgba(52, 152, 219, 0.15); border:1px solid #3498db; color:#3498db; padding:1px 6px; border-radius:4px; font-size:0.70rem;">👤 Cliente Directo</span>';
                 }
 
+                // Cálculo de precios y descuentos para el premio
+                const prDetails = getPremioPriceDetails(item);
+                let priceSubText = '';
+                let precioBloque = '';
+
+                if (prDetails) {
+                    if (prDetails.esGratis) {
+                        priceSubText = '<div style="font-size:0.70rem; color:#2ecc71; font-weight:bold; margin-top:2px;">¡Total: $0 COP (Gratis)!</div>';
+                        precioBloque = `\n\n🎁 *¡Tu pantalla es 100% GRATIS!* ($0 COP)`;
+                    } else if (prDetails.precioNormal > 0 && prDetails.totalPagar > 0) {
+                        priceSubText = `<div style="font-size:0.70rem; color:#2ecc71; font-weight:bold; margin-top:2px;">Paga: $${prDetails.totalPagar.toLocaleString('es-CO')} <s style="color:#888; font-weight:normal;">$${prDetails.precioNormal.toLocaleString('es-CO')}</s></div>`;
+                        precioBloque = `\n\n💵 *Precio habitual:* $${prDetails.precioNormal.toLocaleString('es-CO')} COP\n🏷️ *Descuento aplicado:* -${prDetails.dctoPorc}% (-$${prDetails.ahorro.toLocaleString('es-CO')} COP)\n🔥 *TOTAL A PAGAR:* *$${prDetails.totalPagar.toLocaleString('es-CO')} COP*`;
+                    } else if (prDetails.dctoPorc > 0) {
+                        priceSubText = `<div style="font-size:0.70rem; color:#fbbf24; font-weight:bold; margin-top:2px;">-${prDetails.dctoPorc}% DCTO</div>`;
+                        precioBloque = `\n\n🏷️ *Beneficio:* -${prDetails.dctoPorc}% de descuento directo en tu compra.`;
+                    }
+                }
+
                 // Premio chip
                 let premioChip = '';
                 if (item.tipo === 'sin_premio') {
                     premioChip = '<span style="color:#94a3b8; font-weight:600;">😢 Sigue Intentando</span>';
                 } else if (item.tipo === 'pantalla_gratis') {
-                    premioChip = `<span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; padding:2px 8px; border-radius:6px; font-weight:800;">🎉 GRATIS ${escapeAttr(item.servicio || item.premioLabel)}</span>`;
+                    premioChip = `<div><span style="background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#34d399; padding:2px 8px; border-radius:6px; font-weight:800;">🎉 GRATIS ${escapeAttr(item.servicio || item.premioLabel)}</span>${priceSubText}</div>`;
                 } else {
-                    premioChip = `<span style="background:rgba(255, 183, 3, 0.15); border:1px solid #ffb703; color:#ffb703; padding:2px 8px; border-radius:6px; font-weight:700;">🔥 ${escapeAttr(item.premioLabel)}</span>`;
+                    premioChip = `<div><span style="background:rgba(255, 183, 3, 0.15); border:1px solid #ffb703; color:#ffb703; padding:2px 8px; border-radius:6px; font-weight:700;">🔥 ${escapeAttr(item.premioLabel)}</span>${priceSubText}</div>`;
                 }
 
                 // Estado / Decisión
@@ -18815,7 +18897,7 @@
                         </div>
                     `;
 
-                    const waMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Confirmamos tu ticket de la Ruleta Navideña *${item.ticketId || ''}* (${item.premioLabel}). Estamos listos para entregarte tu premio. 🎁`;
+                    const waMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Confirmamos tu ticket de la Ruleta Navideña *${item.ticketId || ''}* (${item.premioLabel}).${precioBloque}\n\nEstamos listos para entregarte tu premio. 🎁`;
                     waActionBtn = cleanPhone && cleanPhone !== 'invitado' ? `
                         <a href="https://api.whatsapp.com/send?phone=57${cleanPhone}&text=${encodeURIComponent(waMsg)}" target="_blank"
                             style="display:inline-flex; align-items:center; gap:4px; background:rgba(37, 211, 102, 0.15); border:1px solid #25D366; color:#25D366; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none;">
@@ -18842,10 +18924,10 @@
                         </div>
                     `;
 
-                    const rescueMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Vimos que en la Ruleta Navideña ganaste *${item.premioLabel}* pero no reclamaste tu ticket. 🎁 ¡Aún puedes aprovecharlo hoy para tu compra o renovación! ¿Deseas activarlo ahora?`;
+                    const rescueMsg = `¡Hola ${item.nombre || 'amigo'}! 👋 Vimos que en la Ruleta Navideña ganaste *${item.premioLabel}* pero no reclamaste tu ticket. 🎁 ¡Aún puedes aprovecharlo hoy para tu compra o renovación!${precioBloque}\n\n¿Deseas activarlo ahora?`;
                     waActionBtn = cleanPhone && cleanPhone !== 'invitado' ? `
                         <a href="https://api.whatsapp.com/send?phone=57${cleanPhone}&text=${encodeURIComponent(rescueMsg)}" target="_blank"
-                            title="Rescatar venta enviando recordatorio del premio"
+                            title="Rescatar venta enviando recordatorio del premio con precio y descuento"
                             style="display:inline-flex; align-items:center; gap:4px; background:rgba(243, 156, 18, 0.15); border:1px solid #f39c12; color:#f39c12; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; text-decoration:none;">
                             <i class="fa-brands fa-whatsapp"></i> Rescatar Venta
                         </a>
