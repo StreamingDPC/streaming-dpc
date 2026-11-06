@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.95 (Soporte Emoji Numérico en Envío de Precios por Robot)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.96 (Activar / Desactivar Números en Marketing WhatsApp)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -1703,7 +1703,7 @@
                     </div>
 
                     <!-- Botones de Segmento -->
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:1rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px; margin-bottom:1rem;">
                         <div class="mkt-seg-card active" id="mkt-seg-active" onclick="setMarketingSegment('active')">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <strong id="mkt-lbl-active" style="color:#4cd137;"><i class="fa-solid fa-circle-check"></i> Pantallas Activas</strong>
@@ -1725,6 +1725,13 @@
                             </div>
                             <p id="mkt-sub-all" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Base completa de clientes registrados en el sistema.</p>
                         </div>
+                        <div class="mkt-seg-card" id="mkt-seg-excluded" onclick="setMarketingSegment('excluded')">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong id="mkt-lbl-excluded" style="color:#e056fd;"><i class="fa-solid fa-ban"></i> Desactivados / Excluidos</strong>
+                                <span class="mkt-badge" id="mkt-count-excluded" style="background:#e056fd; color:#fff;">0</span>
+                            </div>
+                            <p id="mkt-sub-excluded" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Números que no quieren mensajes o no existen. Excluidos de envíos.</p>
+                        </div>
                     </div>
 
                     <!-- Buscador y selección rápida -->
@@ -1737,6 +1744,9 @@
                         </button>
                         <button type="button" class="btn-icon" onclick="toggleSelectAllMarketing(false)" style="width:auto; padding:8px 14px; border-radius:8px; font-size:0.85rem; background:rgba(255,255,255,0.08); color:#ccc;">
                             <i class="fa-solid fa-xmark"></i> Desmarcar
+                        </button>
+                        <button type="button" class="btn-icon" onclick="promptAddExcludedMktPhone()" style="width:auto; padding:8px 14px; border-radius:8px; font-size:0.85rem; background:rgba(224, 86, 253, 0.14); border:1px solid rgba(224, 86, 253, 0.35); color:#e056fd;" title="Desactivar un número escribiéndolo directamente">
+                            <i class="fa-solid fa-user-slash"></i> Desactivar Número
                         </button>
                     </div>
 
@@ -15386,7 +15396,7 @@
         };
 
         window._mktState = {
-            currentSegment: 'active', // 'active' | 'inactive' | 'all'
+            currentSegment: 'active', // 'active' | 'inactive' | 'all' | 'excluded'
             activeTemplateKey: 'clients', // 'clients' | 'sellers'
             templates: {
                 clients: null,
@@ -15394,6 +15404,7 @@
             },
             allAudience: [],
             selectedPhones: new Set(),
+            excludedPhones: new Set(),
             photos: [],
             campaignQueue: [],
             isRunning: false,
@@ -15404,6 +15415,61 @@
             currentIndex: 0,
             currentBatchCount: 0,
             sentCountSession: 0
+        };
+
+        window.isMktPhoneExcluded = function (phone) {
+            if (!phone) return false;
+            let clean = phone.toString().replace(/\D/g, '');
+            if (clean.length === 10 && clean.startsWith('3')) clean = '57' + clean;
+            return _mktState.excludedPhones && _mktState.excludedPhones.has(clean);
+        };
+
+        window.saveMarketingExcludedPhones = function () {
+            try {
+                const arr = Array.from(_mktState.excludedPhones || []);
+                localStorage.setItem('streaming_dpc_mkt_excluded_phones', JSON.stringify(arr));
+                if (typeof db !== 'undefined' && db.ref) {
+                    db.ref('storeConfig/marketingSettings/excludedPhones').set(arr).catch(err => console.warn('Error saving excludedPhones:', err));
+                }
+                if (typeof storeConfig !== 'undefined' && storeConfig) {
+                    if (!storeConfig.marketingSettings) storeConfig.marketingSettings = {};
+                    storeConfig.marketingSettings.excludedPhones = arr;
+                }
+            } catch (e) {
+                console.warn('Error saving excluded phones:', e);
+            }
+        };
+
+        window.toggleMktPhoneExclusion = function (phone, shouldExclude, clientName) {
+            if (!phone) return;
+            let clean = phone.toString().replace(/\D/g, '');
+            if (clean.length === 10 && clean.startsWith('3')) clean = '57' + clean;
+
+            if (shouldExclude) {
+                _mktState.excludedPhones.add(clean);
+                _mktState.selectedPhones.delete(clean);
+                if (typeof showDbToast === 'function') {
+                    showDbToast(`🚫 ${clientName ? clientName + ' (' : ''}+${clean}${clientName ? ')' : ''} desactivado de difusión.`);
+                }
+            } else {
+                _mktState.excludedPhones.delete(clean);
+                if (typeof showDbToast === 'function') {
+                    showDbToast(`🔔 ${clientName ? clientName + ' (' : ''}+${clean}${clientName ? ')' : ''} reactivado para difusión.`);
+                }
+            }
+            saveMarketingExcludedPhones();
+            setMarketingSegment(_mktState.currentSegment, true);
+        };
+
+        window.promptAddExcludedMktPhone = function () {
+            const input = prompt("Ingresa el número de WhatsApp a desactivar de marketing (ej: 3001234567 o 573001234567):\n\nEste número no recibirá ningún mensaje de difusión masiva.");
+            if (!input) return;
+            let clean = input.replace(/\D/g, '');
+            if (clean.length === 10 && clean.startsWith('3')) clean = '57' + clean;
+            if (clean.length < 10) {
+                return alert("⚠️ Número inválido. Debe contener al menos 10 dígitos.");
+            }
+            toggleMktPhoneExclusion(clean, true, 'Número manual');
         };
 
         // Cambia la plantilla activa en pantalla ('clients' vs 'sellers') y guarda borrador previo si se indica
@@ -15803,6 +15869,8 @@
             const subInactive = document.getElementById('mkt-sub-inactive');
             const lblAll = document.getElementById('mkt-lbl-all');
             const subAll = document.getElementById('mkt-sub-all');
+            const lblExcluded = document.getElementById('mkt-lbl-excluded');
+            const subExcluded = document.getElementById('mkt-sub-excluded');
 
             if (originFilter === 'sellers_only') {
                 if (lblActive) lblActive.innerHTML = '<i class="fa-solid fa-user-check"></i> Vendedores Activos';
@@ -15811,6 +15879,8 @@
                 if (subInactive) subInactive.innerText = 'Vendedores sin ventas activas o registrados recientemente.';
                 if (lblAll) lblAll.innerHTML = '<i class="fa-solid fa-users-gear"></i> Todos los Vendedores';
                 if (subAll) subAll.innerText = 'Red completa de todos los vendedores registrados en el sistema.';
+                if (lblExcluded) lblExcluded.innerHTML = '<i class="fa-solid fa-ban"></i> Vendedores Desactivados';
+                if (subExcluded) subExcluded.innerText = 'Vendedores excluidos de envíos de comunicados.';
             } else {
                 if (lblActive) lblActive.innerHTML = '<i class="fa-solid fa-circle-check"></i> Pantallas Activas';
                 if (subActive) subActive.innerText = 'Clientes con servicios vigentes hoy. Ideal para combos, renovaciones anticipadas y más meses.';
@@ -15818,6 +15888,8 @@
                 if (subInactive) subInactive.innerText = 'Cuentas vencidas o usuarios registrados que no han comprado. Ideal para ofertas de rescate.';
                 if (lblAll) lblAll.innerHTML = '<i class="fa-solid fa-users"></i> Todos los Clientes';
                 if (subAll) subAll.innerText = 'Base completa de clientes registrados en el sistema.';
+                if (lblExcluded) lblExcluded.innerHTML = '<i class="fa-solid fa-ban"></i> Desactivados / Excluidos';
+                if (subExcluded) subExcluded.innerText = 'Números que no quieren mensajes o no existen. Excluidos de envíos.';
             }
         }
 
@@ -16041,44 +16113,70 @@
 
             const currentOriginAudience = getAudienceFilteredByOrigin();
 
-            // Actualizar contadores de las tarjetas de segmento según el origen seleccionado
-            const activeCount = currentOriginAudience.filter(c => c.status === 'active').length;
-            const inactiveCount = currentOriginAudience.filter(c => c.status === 'inactive' || c.status === 'prospect').length;
-            const totalCount = currentOriginAudience.length;
+            // Actualizar contadores de las tarjetas de segmento según el origen seleccionado (descontando excluidos)
+            const activeCount = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone)).length;
+            const inactiveCount = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone)).length;
+            const totalCount = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone)).length;
+
+            const excludedInOrigin = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone)).length;
+            const totalExcluded = _mktState.excludedPhones ? _mktState.excludedPhones.size : 0;
+            const excludedCount = Math.max(excludedInOrigin, totalExcluded);
 
             const badgeActive = document.getElementById('mkt-count-active');
             const badgeInactive = document.getElementById('mkt-count-inactive');
             const badgeAll = document.getElementById('mkt-count-all');
+            const badgeExcluded = document.getElementById('mkt-count-excluded');
 
             if (badgeActive) badgeActive.innerText = activeCount;
             if (badgeInactive) badgeInactive.innerText = inactiveCount;
             if (badgeAll) badgeAll.innerText = totalCount;
+            if (badgeExcluded) badgeExcluded.innerText = excludedCount;
 
             // Actualizar clases de tarjetas
-            ['active', 'inactive', 'all'].forEach(s => {
+            ['active', 'inactive', 'all', 'excluded'].forEach(s => {
                 const el = document.getElementById('mkt-seg-' + s);
                 if (el) el.classList.toggle('active', s === segment);
             });
 
             // Filtrar clientes dentro del origen actual
             let filtered = [];
-            if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active');
-            } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => c.status === 'inactive' || c.status === 'prospect');
-            } else {
-                filtered = currentOriginAudience;
-            }
-
-            // Si no mantenemos selección previa, seleccionamos todos por defecto (excepto los ya enviados hoy)
-            if (!keepSelection) {
-                _mktState.selectedPhones.clear();
-                const sentTodayMap = getMktTodaySentPhones();
-                filtered.forEach(c => {
-                    if (!sentTodayMap[c.phone]) {
-                        _mktState.selectedPhones.add(c.phone);
+            if (segment === 'excluded') {
+                filtered = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone));
+                const knownPhones = new Set(currentOriginAudience.map(c => c.phone));
+                (_mktState.excludedPhones || []).forEach(p => {
+                    if (!knownPhones.has(p)) {
+                        filtered.push({
+                            phone: p,
+                            name: 'Número Manual Desactivado',
+                            sales: [],
+                            activeCount: 0,
+                            expiredCount: 0,
+                            status: 'excluded',
+                            platforms: ['Desactivado manualmente'],
+                            isSellerClient: false,
+                            sellerName: 'Manual'
+                        });
                     }
                 });
+            } else if (segment === 'active') {
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
+            } else if (segment === 'inactive') {
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
+            } else {
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
+            }
+
+            // Si no mantenemos selección previa, seleccionamos todos por defecto (excepto los ya enviados hoy y excluidos)
+            if (!keepSelection) {
+                _mktState.selectedPhones.clear();
+                if (segment !== 'excluded') {
+                    const sentTodayMap = getMktTodaySentPhones();
+                    filtered.forEach(c => {
+                        if (!sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone)) {
+                            _mktState.selectedPhones.add(c.phone);
+                        }
+                    });
+                }
             }
 
             renderMarketingAudienceList();
@@ -16093,12 +16191,30 @@
             const currentOriginAudience = getAudienceFilteredByOrigin();
 
             let filtered = [];
-            if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active');
+            if (segment === 'excluded') {
+                filtered = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone));
+                const knownPhones = new Set(currentOriginAudience.map(c => c.phone));
+                (_mktState.excludedPhones || []).forEach(p => {
+                    if (!knownPhones.has(p)) {
+                        filtered.push({
+                            phone: p,
+                            name: 'Número Manual Desactivado',
+                            sales: [],
+                            activeCount: 0,
+                            expiredCount: 0,
+                            status: 'excluded',
+                            platforms: ['Desactivado manualmente'],
+                            isSellerClient: false,
+                            sellerName: 'Manual'
+                        });
+                    }
+                });
+            } else if (segment === 'active') {
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
             } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => c.status === 'inactive' || c.status === 'prospect');
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
             } else {
-                filtered = currentOriginAudience;
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
             }
 
             if (searchTerm) {
@@ -16123,9 +16239,9 @@
                 }
             }
 
-            // Asegurar que ningún cliente ya enviado hoy quede en selectedPhones
+            // Asegurar que ningún cliente ya enviado hoy o excluido quede en selectedPhones
             filtered.forEach(c => {
-                if (sentTodayMap[c.phone] && _mktState.selectedPhones.has(c.phone)) {
+                if ((sentTodayMap[c.phone] || isMktPhoneExcluded(c.phone)) && _mktState.selectedPhones.has(c.phone)) {
                     _mktState.selectedPhones.delete(c.phone);
                 }
             });
@@ -16135,14 +16251,19 @@
             if (btnCountEl) btnCountEl.innerText = _mktState.selectedPhones.size;
 
             if (filtered.length === 0) {
-                listDiv.innerHTML = '<p style="color:#777; font-size:0.85rem; text-align:center; padding:1.5rem;">No se encontraron destinatarios para este segmento o filtro de origen.</p>';
+                const emptyMsg = (segment === 'excluded')
+                    ? 'No hay números desactivados. Todos tus clientes están disponibles para recibir mensajes.'
+                    : 'No se encontraron destinatarios para este segmento o filtro de origen.';
+                listDiv.innerHTML = `<p style="color:#777; font-size:0.85rem; text-align:center; padding:1.5rem;">${emptyMsg}</p>`;
                 return;
             }
 
             listDiv.innerHTML = '';
             filtered.forEach(c => {
-                const isSentToday = !!sentTodayMap[c.phone];
-                const isSelected = !isSentToday && _mktState.selectedPhones.has(c.phone);
+                const isExcluded = isMktPhoneExcluded(c.phone) || segment === 'excluded';
+                const isSentToday = !isExcluded && !!sentTodayMap[c.phone];
+                const isSelected = !isExcluded && !isSentToday && _mktState.selectedPhones.has(c.phone);
+                const safeName = (c.name || 'Cliente').replace(/'/g, "\\'");
 
                 const item = document.createElement('div');
                 item.style.display = 'flex';
@@ -16153,7 +16274,11 @@
                 item.style.gap = '10px';
                 item.style.transition = 'all 0.2s ease';
 
-                if (isSentToday) {
+                if (isExcluded) {
+                    item.style.background = 'rgba(224, 86, 253, 0.04)';
+                    item.style.border = '1px solid rgba(224, 86, 253, 0.25)';
+                    item.style.opacity = '0.9';
+                } else if (isSentToday) {
                     item.style.background = 'rgba(255, 255, 255, 0.015)';
                     item.style.border = '1px solid rgba(255, 255, 255, 0.04)';
                     item.style.opacity = '0.72';
@@ -16177,7 +16302,9 @@
                 }
 
                 let statusBadge = '';
-                if (c.isSellerSelf) {
+                if (isExcluded) {
+                    statusBadge = `<span style="font-size:0.75rem; color:#e056fd; background:rgba(224, 86, 253, 0.15); border:1px solid rgba(224, 86, 253, 0.35); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-ban"></i> Desactivado de Difusión</span>`;
+                } else if (c.isSellerSelf) {
                     if (c.status === 'active') {
                         statusBadge = `<span style="font-size:0.75rem; color:#4cd137; background:rgba(76, 209, 55, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-chart-line"></i> ${c.activeCount} ventas activas</span>`;
                     } else if (c.salesCount > 0) {
@@ -16202,16 +16329,29 @@
                     sentTodayBadge = `<span style="font-size:0.75rem; color:#f1c40f; background:rgba(241, 196, 15, 0.15); border:1px solid rgba(241, 196, 15, 0.35); padding:2px 8px; border-radius:10px; font-weight:bold;" title="Ya se le envió mensaje hoy${timeLabel ? ' a las ' + timeLabel : ''}. Se reactivará mañana para evitar spam y bloqueos."><i class="fa-solid fa-envelope-circle-check"></i> 📨 Enviado hoy${timeLabel}</span>`;
                 }
 
-                const checkboxHtml = isSentToday
-                    ? `<input type="checkbox" disabled style="width:18px; height:18px; cursor:not-allowed; opacity:0.35;" title="Ya se le envió hoy. Se reactivará mañana automáticamente.">`
-                    : `<input type="checkbox" ${isSelected ? 'checked' : ''} onchange="onMarketingClientCheckboxChange('${c.phone}', this.checked)" style="width:18px; height:18px; accent-color:#00d2d3; cursor:pointer;">`;
+                let leftControlHtml = '';
+                if (isExcluded) {
+                    leftControlHtml = `<span style="color:#e056fd; font-size:1.1rem; width:18px; text-align:center;" title="Número desactivado de difusión"><i class="fa-solid fa-ban"></i></span>`;
+                } else if (isSentToday) {
+                    leftControlHtml = `<input type="checkbox" disabled style="width:18px; height:18px; cursor:not-allowed; opacity:0.35;" title="Ya se le envió hoy. Se reactivará mañana automáticamente.">`;
+                } else {
+                    leftControlHtml = `<input type="checkbox" ${isSelected ? 'checked' : ''} onchange="onMarketingClientCheckboxChange('${c.phone}', this.checked)" style="width:18px; height:18px; accent-color:#00d2d3; cursor:pointer;">`;
+                }
 
-                const labelCursor = isSentToday ? 'cursor:not-allowed;' : 'cursor:pointer;';
-                const nameStyle = isSentToday ? 'color:#888;' : 'color:white;';
+                // Botón de acción: Activar si está excluido, Desactivar si está activo
+                let actionBtnHtml = '';
+                if (isExcluded) {
+                    actionBtnHtml = `<button type="button" class="btn-icon" onclick="toggleMktPhoneExclusion('${c.phone}', false, '${safeName}')" style="width:auto; padding:3px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; background:rgba(46, 204, 113, 0.15); border:1px solid rgba(46, 204, 113, 0.4); color:#2ecc71; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;" title="Reactivar número para permitir envíos de difusión"><i class="fa-solid fa-bell"></i> Activar</button>`;
+                } else {
+                    actionBtnHtml = `<button type="button" class="btn-icon" onclick="toggleMktPhoneExclusion('${c.phone}', true, '${safeName}')" style="width:auto; padding:3px 8px; border-radius:6px; font-size:0.72rem; background:rgba(255, 107, 107, 0.08); border:1px solid rgba(255, 107, 107, 0.25); color:#ff6b6b; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;" title="Desactivar número (cliente no desea mensajes o no existe)"><i class="fa-solid fa-ban"></i> Desactivar</button>`;
+                }
+
+                const labelCursor = (isSentToday || isExcluded) ? 'cursor:default;' : 'cursor:pointer;';
+                const nameStyle = isExcluded ? 'color:#bbb; text-decoration:line-through rgba(224,86,253,0.6);' : (isSentToday ? 'color:#888;' : 'color:white;');
 
                 item.innerHTML = `
-                    <label style="display:flex; align-items:center; gap:10px; margin:0; ${labelCursor} flex:1;" ${isSentToday ? 'title="Ya se le envió hoy. Se reactivará mañana automáticamente."' : ''}>
-                        ${checkboxHtml}
+                    <label style="display:flex; align-items:center; gap:10px; margin:0; ${labelCursor} flex:1;" ${isSentToday ? 'title="Ya se le envió hoy. Se reactivará mañana automáticamente."' : (isExcluded ? 'title="Número desactivado de difusión"' : '')}>
+                        ${leftControlHtml}
                         <div>
                             <strong style="${nameStyle} font-size:0.9rem;">${c.name}</strong>
                             <span style="font-size:0.8rem; color:#777; margin-left:8px;">📱 +${c.phone}</span>
@@ -16221,6 +16361,7 @@
                         ${sentTodayBadge}
                         ${originBadge}
                         ${statusBadge}
+                        ${actionBtnHtml}
                     </div>
                 `;
                 listDiv.appendChild(item);
@@ -16228,6 +16369,11 @@
         };
 
         window.onMarketingClientCheckboxChange = function (phone, isChecked) {
+            if (isMktPhoneExcluded(phone)) {
+                _mktState.selectedPhones.delete(phone);
+                renderMarketingAudienceList();
+                return;
+            }
             if (isPhoneSentToday(phone)) {
                 _mktState.selectedPhones.delete(phone);
                 renderMarketingAudienceList();
@@ -16247,16 +16393,19 @@
         window.toggleSelectAllMarketing = function (shouldSelectAll) {
             const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
             const segment = _mktState.currentSegment;
+            if (segment === 'excluded') {
+                return; // En el segmento de excluidos no se marcan para enviar
+            }
             const currentOriginAudience = getAudienceFilteredByOrigin();
             const sentTodayMap = getMktTodaySentPhones();
 
             let filtered = [];
             if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active');
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
             } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => c.status === 'inactive' || c.status === 'prospect');
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
             } else {
-                filtered = currentOriginAudience;
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
             }
 
             if (searchTerm) {
@@ -16264,8 +16413,8 @@
             }
 
             filtered.forEach(c => {
-                if (sentTodayMap[c.phone]) {
-                    // Si ya fue enviado hoy, jamás se selecciona
+                if (isMktPhoneExcluded(c.phone) || sentTodayMap[c.phone]) {
+                    // Si ya fue enviado hoy o está desactivado, jamás se selecciona
                     _mktState.selectedPhones.delete(c.phone);
                     return;
                 }
@@ -16494,6 +16643,7 @@
                 delaySeconds,
                 randomJitter,
                 dailyLimit,
+                excludedPhones: Array.from(_mktState.excludedPhones || []),
                 templates: {
                     clients: _mktState.templates.clients,
                     sellers: _mktState.templates.sellers
@@ -16573,6 +16723,22 @@
                         if (document.getElementById('mkt-daily-limit-header')) document.getElementById('mkt-daily-limit-header').value = saved.dailyLimit;
                         updateMktDailyLimitDisplay();
                     }
+
+                    if (Array.isArray(saved.excludedPhones)) {
+                        _mktState.excludedPhones = new Set(saved.excludedPhones.map(p => p.toString().replace(/\D/g, '')).filter(Boolean));
+                    }
+                }
+
+                if (!_mktState.excludedPhones || _mktState.excludedPhones.size === 0) {
+                    try {
+                        const localEx = localStorage.getItem('streaming_dpc_mkt_excluded_phones');
+                        if (localEx) {
+                            const parsed = JSON.parse(localEx);
+                            if (Array.isArray(parsed)) {
+                                _mktState.excludedPhones = new Set(parsed.map(p => p.toString().replace(/\D/g, '')).filter(Boolean));
+                            }
+                        }
+                    } catch (e) {}
                 }
 
                 // Cargar en pantalla según la selección actual
@@ -16627,10 +16793,10 @@
                 }
             }
 
-            // Construir la cola de clientes a enviar (respetando la selección, filtro de origen y sin duplicados de hoy)
+            // Construir la cola de clientes a enviar (respetando la selección, filtro de origen y sin duplicados de hoy ni excluidos)
             const currentOriginAudience = getAudienceFilteredByOrigin();
             const sentTodayMap = getMktTodaySentPhones();
-            const targetList = currentOriginAudience.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone]);
+            const targetList = currentOriginAudience.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone));
 
             if (targetList.length === 0) {
                 return alert('⚠️ No hay clientes disponibles para enviar.\n\nTodos los seleccionados ya recibieron mensaje hoy o no seleccionaste ninguno.');
