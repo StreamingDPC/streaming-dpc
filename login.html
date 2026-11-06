@@ -246,10 +246,10 @@
                 Se generó un código de acceso temporal. Ábrelo o recíbelo en tu WhatsApp.
             </p>
 
-            <!-- Botón para Abrir/Enviar a WhatsApp -->
-            <a id="btn-send-whatsapp-otp" href="#" target="_blank" class="wa-btn">
+            <!-- Botón para Abrir/Enviar a WhatsApp (Oculto porque llega automático al WhatsApp) -->
+            <a id="btn-send-whatsapp-otp" href="#" target="_blank" class="wa-btn" style="display: none;">
                 <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i>
-                <span id="btn-wa-text">Abrir Código en mi WhatsApp</span>
+                <span id="btn-wa-text">Reenviar Código por WhatsApp</span>
             </a>
 
             <!-- Formulario para ingresar el código OTP -->
@@ -265,8 +265,12 @@
             <div id="error-otp" class="error-msg"></div>
             <div id="success-otp" class="success-msg"></div>
 
-            <!-- Opción alternativa: PIN Maestro de Respaldo -->
+            <!-- Opción alternativa: Reenvío discreto o PIN Maestro de Respaldo -->
             <div style="margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
+                <button type="button" class="link-alt" onclick="handleSendWhatsappOtpClick(event)" style="font-size: 0.8rem; color: #2ecc71; margin-bottom: 6px;">
+                    <i class="fa-brands fa-whatsapp"></i> ¿No te llegó el código? Reenviar
+                </button>
+                <br>
                 <button type="button" class="link-alt" onclick="promptMasterPin()">
                     <i class="fa-solid fa-asterisk"></i> ¿Sin acceso a WhatsApp? Usar PIN maestro de respaldo
                 </button>
