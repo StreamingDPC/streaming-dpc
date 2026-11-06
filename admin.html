@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.93 (Buscador Inteligente en Crear Cliente Manual)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.94 (Envío de Precios por Robot Local en Crear Cliente Manual)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -934,8 +934,18 @@
 
                             <!-- Botones rápidos de selección de productos coincidentes -->
                             <div id="admin-manual-quick-picks" style="display:none; margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 0.8rem;">
-                                <div style="font-size: 0.76rem; color: #00d2d3; font-weight: 700; margin-bottom: 6px;">
-                                    <i class="fa-solid fa-hand-pointer"></i> Clic directo para seleccionar y asignar:
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                    <div style="font-size: 0.78rem; color: #00d2d3; font-weight: 700;">
+                                        <i class="fa-solid fa-hand-pointer"></i> Clic directo para seleccionar y asignar:
+                                    </div>
+                                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                        <button type="button" id="btn-send-prices-robot" onclick="sendAdminManualPricesRobot()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: 1px solid #34d399; padding: 6px 14px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16,185,129,0.3); transition: all 0.2s ease;">
+                                            <i class="fa-solid fa-robot"></i> Enviar Precios por Robot Local
+                                        </button>
+                                        <button type="button" onclick="sendAdminManualPricesDirectWa()" style="background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid #25d366; padding: 6px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Enviar directo por WhatsApp Web">
+                                            <i class="fa-brands fa-whatsapp"></i> Directo
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="admin-manual-quick-picks-list" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
                             </div>
@@ -943,7 +953,12 @@
                     </div>
 
                     <div class="form-col" style="grid-column: 1 / -1;">
-                        <label>Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">
+                            <label style="margin-bottom: 0;">Seleccionar Pantalla(s) Inicial(es) a Asignar</label>
+                            <button type="button" onclick="sendAdminManualPricesRobot()" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; padding: 4px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fa-solid fa-robot"></i> Enviar Precios por Robot Local
+                            </button>
+                        </div>
                         <select id="manual-client-product" multiple
                             style="width: 100%; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--bg-dark); color: white; min-height: 180px;"
                             onchange="updateManualEmailsUI('manual')"></select>
@@ -14648,6 +14663,8 @@
             else if (N === 4) sizeLabel = 'combo(s) de 4 pantallas';
             else if (N >= 5) sizeLabel = `combo(s) de ${N} pantallas`;
 
+            window._lastAdminMatchedProducts = matchedProducts;
+
             if (resultsBar && resultsSummary) {
                 resultsBar.style.display = 'flex';
                 if (matchedProducts.length > 0) {
@@ -14720,6 +14737,110 @@
                     }
                 });
             }
+        };
+
+        window.sendAdminManualPricesRobot = function (isDirectWa) {
+            const phoneInput = document.getElementById('manual-client-phone');
+            let phone = phoneInput ? phoneInput.value.trim() : '';
+
+            if (!phone) {
+                phone = prompt('📱 Ingresa el número de WhatsApp del cliente para enviarle los precios (Ej: 3001234567):');
+                if (!phone) return;
+                phone = phone.trim();
+                if (phoneInput) phoneInput.value = phone;
+            }
+
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '57' + cleanPhone;
+
+            if (cleanPhone.length < 7) {
+                alert('⚠️ Por favor ingresa un número de teléfono válido.');
+                return;
+            }
+
+            // Determinar productos a cotizar
+            const select1 = document.getElementById('manual-client-product');
+            const selectedOptions = select1 ? Array.from(select1.selectedOptions).map(o => o.value).filter(Boolean) : [];
+
+            let productsToQuote = [];
+            if (selectedOptions.length > 0) {
+                productsToQuote = selectedOptions.map(id => (dynamicProducts || []).find(p => p && p.id && p.id.toString() === id.toString())).filter(Boolean);
+            } else if (window._lastAdminMatchedProducts && window._lastAdminMatchedProducts.length > 0) {
+                productsToQuote = [window._lastAdminMatchedProducts[0]];
+            }
+
+            if (productsToQuote.length === 0) {
+                alert('⚠️ Por favor selecciona una pantalla o combo para cotizar.');
+                return;
+            }
+
+            const quoteBlocks = [];
+            const processedBases = new Set();
+
+            productsToQuote.forEach(product => {
+                const baseName = (product.name || '').replace(/\s*\(\s*\d+\s*meses?\s*\)/i, '').trim();
+                const baseKey = (baseName + '___' + product.category).toLowerCase();
+                if (processedBases.has(baseKey)) return;
+                processedBases.add(baseKey);
+
+                const screens = getAdminProductScreenCount(product);
+                const numEmojis = { 1: '1️⃣', 2: '2️⃣', 3: '3️⃣', 4: '4️⃣', 5: '5️⃣', 6: '6️⃣' };
+                const emoji = numEmojis[screens] || '📺';
+                const screenWord = screens === 1 ? 'Pantalla' : 'Pantallas';
+
+                // Buscar hermanos de duración con el mismo nombre base y categoría
+                const siblings = (dynamicProducts || []).filter(p => {
+                    if (!p || p.active === false || p.category !== product.category) return false;
+                    const pBase = (p.name || '').replace(/\s*\(\s*\d+\s*meses?\s*\)/i, '').trim();
+                    return pBase.toLowerCase() === baseName.toLowerCase();
+                });
+
+                const items = (siblings.length > 0 ? siblings : [product]).map(p => {
+                    let m = p.months || 1;
+                    if (!p.months) {
+                        if (/2\s*mes/i.test(p.name)) m = 2;
+                        else if (/3\s*mes/i.test(p.name)) m = 3;
+                    }
+                    return { months: parseInt(m, 10), price: p.price || 0 };
+                });
+
+                // Ordenar por meses ascendente (1, 2, 3)
+                items.sort((a, b) => a.months - b.months);
+
+                // Líneas con formato WhatsApp idéntico:
+                // 1 Mes *Netflix* 1️⃣ *Pantalla* $17.000
+                // 2 Meses *Netflix* 1️⃣ *Pantalla* $32.000
+                // 3 Meses *Netflix* 1️⃣ *Pantalla* $48.000
+                const lines = items.map(item => {
+                    const durText = item.months === 1 ? '1 Mes' : `${item.months} Meses`;
+                    const priceFormatted = '$' + (item.price || 0).toLocaleString('es-CO');
+                    return `${durText} *${baseName}* ${emoji} *${screenWord}* ${priceFormatted}`;
+                });
+
+                quoteBlocks.push(lines.join('\n'));
+            });
+
+            const fullMessage = quoteBlocks.join('\n\n');
+
+            if (isDirectWa) {
+                window.openWhatsapp(cleanPhone, fullMessage);
+            } else {
+                const adminPhone = (storeConfig && storeConfig.whatsappNumber) || '';
+                let cleanAdmin = adminPhone.toString().replace(/\D/g, '');
+                if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
+
+                if (!cleanAdmin) {
+                    window.openWhatsapp(cleanPhone, fullMessage);
+                    return;
+                }
+
+                const command = `CMD_MKT@@@TEL:${cleanPhone}@@@TX:${fullMessage}@@@MEDIA:`;
+                window.openWhatsapp(cleanAdmin, command);
+            }
+        };
+
+        window.sendAdminManualPricesDirectWa = function () {
+            window.sendAdminManualPricesRobot(true);
         };
 
         window.renderManualClientProducts = function () {
