@@ -375,11 +375,18 @@
                 console.warn('Advertencia al persistir OTP en DB:', e);
             }
 
-            // Preparar enlace de WhatsApp de respaldo
+            // Preparar enlace de WhatsApp con código protegido / desplazado fuera de la vista previa del navegador
             const cleanPhone = String(adminOtpPhoneTarget).replace(/\D/g, '');
             const maskedPhone = cleanPhone.length > 4 ? cleanPhone.slice(0, 3) + '••••' + cleanPhone.slice(-3) : cleanPhone;
-            const waMsg = `🔐 *Streaming DPC - Verificación OTP Administrador*\n\n` +
-                          `Tu código de verificación para entrar al panel es: *${generatedOtpCode}*\n\n` +
+            
+            // Espaciador invisible para que en la vista previa de api.whatsapp.com solo se vea el aviso seguro
+            // y el código de 6 dígitos quede oculto debajo, mostrándose solo al abrir el chat
+            const invisibleSpacer = '\n' + ('\u200E\n'.repeat(12));
+            const waMsg = `🔐 *Streaming DPC - Verificación de Acceso 2FA*\n` +
+                          `🛡️ [Código de Seguridad Cifrado]\n\n` +
+                          `👇 Toca Enviar para recibir tu código en el chat:` +
+                          invisibleSpacer +
+                          `🔑 *TU CÓDIGO DE ACCESO ES:* *${generatedOtpCode}*\n\n` +
                           `⏱️ Válido por 10 minutos. No compartas este código con nadie.`;
             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsg)}`;
 
@@ -412,10 +419,11 @@
                 otpInp.focus();
             }
 
-            // Envío PRIVADO Y SILENCIOSO por el Robot Local (Sin abrir ventana en pantalla para máxima confidencialidad)
+            // 1. Intentar primero envío silencioso por Robot Local si está activo
+            let sentByBot = false;
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const timeoutId = setTimeout(() => controller.abort(), 800);
                 const resp = await fetch('http://localhost:3088/api/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -425,6 +433,7 @@
                 clearTimeout(timeoutId);
                 const json = await resp.json();
                 if (json.success) {
+                    sentByBot = true;
                     console.log('✅ OTP enviado en privado por el Robot Local a WhatsApp.');
                     if (succEl) {
                         succEl.style.display = 'block';
@@ -434,21 +443,24 @@
                     if (btnText) btnText.innerText = 'Reenviar Código por WhatsApp';
                     return;
                 }
-            } catch (botErr) {
-                console.log('Robot local en puerto 3088 no disponible o fuera de red local:', botErr.message);
-            }
+            } catch (_) {}
 
-            // Si el robot no está corriendo en este equipo, el botón manual queda disponible sin abrir ventanas automáticamente
+            // 2. Si el robot no está listo o la página corre en HTTPS (Render), abrir WhatsApp automáticamente
+            // con el código oculto en la vista previa
+            try {
+                window.open(waUrl, '_blank');
+            } catch (_) {}
+
             const btnText = document.getElementById('btn-wa-text');
-            if (btnText) btnText.innerText = 'Enviar Código a mi WhatsApp';
+            if (btnText) btnText.innerText = 'Reenviar Código por WhatsApp';
         }
 
         async function handleSendWhatsappOtpClick(event) {
             const cleanPhone = String(adminOtpPhoneTarget).replace(/\D/g, '');
-            // Intentar primero con el robot local silenciosamente
+            // Intentar con robot local primero
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const timeoutId = setTimeout(() => controller.abort(), 1200);
                 const resp = await fetch('http://localhost:3088/api/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
