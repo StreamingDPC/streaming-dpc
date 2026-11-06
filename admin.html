@@ -431,7 +431,7 @@
 <body>
     <div class="admin-layout">
         <div class="admin-header">
-            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.94 (Envío de Precios por Robot Local en Crear Cliente Manual)</span></h1>
+            <h1>Panel de Control <span style="font-size: 0.8rem; color:#2ecc71;">v3.9.95 (Soporte Emoji Numérico en Envío de Precios por Robot)</span></h1>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="logout-btn" style="background: #2e86de;" onclick="location.href = location.pathname + '?v=' + Date.now();"><i
                         class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
@@ -14814,7 +14814,8 @@
                 const lines = items.map(item => {
                     const durText = item.months === 1 ? '1 Mes' : `${item.months} Meses`;
                     const priceFormatted = '$' + (item.price || 0).toLocaleString('es-CO');
-                    return `${durText} *${baseName}* ${emoji} *${screenWord}* ${priceFormatted}`;
+                    const numHolder = isDirectWa ? emoji : `{N${screens}}`;
+                    return `${durText} *${baseName}* ${numHolder} *${screenWord}* ${priceFormatted}`;
                 });
 
                 quoteBlocks.push(lines.join('\n'));
