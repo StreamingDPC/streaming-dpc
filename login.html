@@ -375,7 +375,7 @@
                 console.warn('Advertencia al persistir OTP en DB:', e);
             }
 
-            // Preparar enlace de WhatsApp
+            // Preparar enlace de WhatsApp de respaldo
             const cleanPhone = String(adminOtpPhoneTarget).replace(/\D/g, '');
             const maskedPhone = cleanPhone.length > 4 ? cleanPhone.slice(0, 3) + '••••' + cleanPhone.slice(-3) : cleanPhone;
             const waMsg = `🔐 *Streaming DPC - Verificación OTP Administrador*\n\n` +
@@ -384,11 +384,20 @@
             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsg)}`;
 
             const waLink = document.getElementById('btn-send-whatsapp-otp');
-            if (waLink) waLink.href = waUrl;
+            if (waLink) {
+                waLink.href = waUrl;
+                waLink.onclick = handleSendWhatsappOtpClick;
+            }
 
             const phoneInfo = document.getElementById('otp-phone-info');
             if (phoneInfo) {
                 phoneInfo.innerHTML = `Se generó un código de acceso único para tu WhatsApp <b>+${maskedPhone}</b>. Expira en 10 minutos.`;
+            }
+
+            const succEl = document.getElementById('success-otp');
+            if (succEl) {
+                succEl.style.display = 'none';
+                succEl.innerText = '';
             }
 
             // Cambiar tarjetas de paso
@@ -403,14 +412,64 @@
                 otpInp.focus();
             }
 
-            // Intentar abrir WhatsApp en segundo plano o nueva pestaña para mayor comodidad
+            // Envío PRIVADO Y SILENCIOSO por el Robot Local (Sin abrir ventana en pantalla para máxima confidencialidad)
             try {
-                const waWin = window.open(waUrl, '_blank');
-                if (waWin) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const resp = await fetch('http://localhost:3088/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: cleanPhone, code: generatedOtpCode }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const json = await resp.json();
+                if (json.success) {
+                    console.log('✅ OTP enviado en privado por el Robot Local a WhatsApp.');
+                    if (succEl) {
+                        succEl.style.display = 'block';
+                        succEl.innerHTML = '<i class="fa-solid fa-lock"></i> 🔒 <b>Código enviado en privado</b> a tu WhatsApp. ¡Revísalo en tu celular!';
+                    }
                     const btnText = document.getElementById('btn-wa-text');
                     if (btnText) btnText.innerText = 'Reenviar Código por WhatsApp';
+                    return;
+                }
+            } catch (botErr) {
+                console.log('Robot local en puerto 3088 no disponible o fuera de red local:', botErr.message);
+            }
+
+            // Si el robot no está corriendo en este equipo, el botón manual queda disponible sin abrir ventanas automáticamente
+            const btnText = document.getElementById('btn-wa-text');
+            if (btnText) btnText.innerText = 'Enviar Código a mi WhatsApp';
+        }
+
+        async function handleSendWhatsappOtpClick(event) {
+            const cleanPhone = String(adminOtpPhoneTarget).replace(/\D/g, '');
+            // Intentar primero con el robot local silenciosamente
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const resp = await fetch('http://localhost:3088/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: cleanPhone, code: generatedOtpCode }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const json = await resp.json();
+                if (json.success) {
+                    if (event) event.preventDefault();
+                    const succEl = document.getElementById('success-otp');
+                    if (succEl) {
+                        succEl.style.display = 'block';
+                        succEl.innerHTML = '<i class="fa-solid fa-lock"></i> ¡Código reenviado en privado a tu WhatsApp por el Robot!';
+                    }
+                    const errEl = document.getElementById('error-otp');
+                    if (errEl) errEl.style.display = 'none';
+                    return false;
                 }
             } catch (_) {}
+            return true;
         }
 
         async function verifyOtpCode() {
