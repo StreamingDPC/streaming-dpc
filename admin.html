@@ -4315,6 +4315,72 @@
         </div>
     </div>
 
+    <!-- MODAL RESUMEN ANUAL DE COMPRAS DEL CLIENTE -->
+    <div id="client-annual-summary-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:99999; align-items:center; justify-content:center; padding:15px; overflow-y:auto; backdrop-filter:blur(6px);">
+        <div style="background:#0f172a; border:1.5px solid rgba(56,189,248,0.5); max-width:860px; width:100%; border-radius:18px; padding:1.6rem; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.15); max-height:92vh; display:flex; flex-direction:column;">
+            <button onclick="closeClientAnnualSummaryModal()"
+                style="position:absolute; top:1rem; right:1.2rem; background:transparent; border:none; color:#aaa; font-size:1.6rem; cursor:pointer; line-height:1;" title="Cerrar">&times;</button>
+            
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:0.8rem;">
+                <div>
+                    <h3 style="margin:0; color:#38bdf8; font-size:1.2rem; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-receipt"></i> Historial y Resumen de Compras del Año
+                    </h3>
+                    <p id="summary-modal-subtitle" style="margin:4px 0 0 0; color:#94a3b8; font-size:0.82rem;">
+                        Consolidado anual de compras activas y vencidas para comprobación y fidelización del cliente.
+                    </p>
+                </div>
+                <div id="summary-modal-ranking-pill" style="background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.4); color:#fbbf24; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:700; display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-trophy"></i> Ranking Anual: <span id="summary-modal-rank-val">Calculando...</span>
+                </div>
+            </div>
+
+            <!-- Datos del Cliente -->
+            <div id="summary-modal-client-card" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <!-- Dinámico -->
+            </div>
+
+            <!-- Tabla de Compras (Estilo idéntico a la imagen) -->
+            <div style="overflow-x:auto; flex:1; max-height:46vh; border:1px solid rgba(255,255,255,0.1); border-radius:10px; margin-bottom:1rem;">
+                <table id="summary-modal-table" style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:center;">
+                    <thead>
+                        <tr style="background:#1e293b; color:#cbd5e1; font-weight:700; border-bottom:1px solid rgba(255,255,255,0.15);">
+                            <th style="padding:10px 8px; width:45px;">#</th>
+                            <th style="padding:10px 12px; text-align:left;">Estado</th>
+                            <th style="padding:10px 12px; text-align:left;">Fecha de Compra</th>
+                            <th style="padding:10px 12px; text-align:left;">Plataformas</th>
+                            <th style="padding:10px 8px;">Duración</th>
+                            <th style="padding:10px 12px;">Pantallas</th>
+                            <th style="padding:10px 12px; text-align:right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-modal-tbody">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                    <tfoot id="summary-modal-tfoot" style="background:#0b1329; font-weight:800; border-top:2px solid rgba(56,189,248,0.5); color:#fff;">
+                        <!-- Fila TOTAL -->
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:0.8rem;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" onclick="sendClientAnnualSummaryWhatsApp()" style="background:#22c55e; color:#000; border:none; padding:9px 18px; border-radius:10px; font-weight:800; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(34,197,94,0.3);">
+                        <i class="fa-brands fa-whatsapp" style="font-size:1.1rem;"></i> Enviar Resumen por WhatsApp
+                    </button>
+                    <button type="button" onclick="copyClientAnnualSummaryText()" style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.2); padding:9px 16px; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-copy"></i> Copiar Texto
+                    </button>
+                </div>
+                <button type="button" onclick="closeClientAnnualSummaryModal()" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid #475569; padding:9px 20px; border-radius:10px; font-weight:600; font-size:0.85rem; cursor:pointer;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL PARA SELECCIONAR PANTALLA CRM -->
     <div id="crm-selector-modal"
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
@@ -9615,7 +9681,7 @@
                     cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
                 }
 
-                const screens = (typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1;
+                const screens = (typeof window.getSaleScreensCount === 'function') ? window.getSaleScreensCount(s) : ((typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1);
                 const saleTotal = Number(s.total) || 0;
 
                 if (isAdmin) {
@@ -9931,7 +9997,10 @@
                             <td class="col-puesto">${getRankBadge(realRank)}</td>
                             <td class="col-client">
                                 <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
-                                ${waBtn}
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                                    ${waBtn}
+                                    ${r.phone ? `<button type="button" onclick="showClientAnnualSummaryModal('${r.phone}', '${encodeURIComponent(r.name || '')}', '${encodeURIComponent(r.seller || '')}')" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; font-size:0.70rem; cursor:pointer; padding:1px 6px; border-radius:5px; display:inline-flex; align-items:center; gap:4px; font-weight:600;" title="Ver tabla de compras anuales del cliente"><i class="fa-solid fa-receipt"></i> Resumen</button>` : ''}
+                                </div>
                             </td>
                             <td class="col-platforms">${formatPlatformChips(r.platforms)}</td>
                             <td class="col-compras">
@@ -10006,7 +10075,10 @@
                             <td class="col-puesto">${getRankBadge(realRank)}</td>
                             <td class="col-client">
                                 <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
-                                ${waBtn}
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                                    ${waBtn}
+                                    ${r.phone ? `<button type="button" onclick="showClientAnnualSummaryModal('${r.phone}', '${encodeURIComponent(r.name || '')}', '${encodeURIComponent(r.seller || '')}')" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; font-size:0.70rem; cursor:pointer; padding:1px 6px; border-radius:5px; display:inline-flex; align-items:center; gap:4px; font-weight:600;" title="Ver tabla de compras anuales del cliente"><i class="fa-solid fa-receipt"></i> Resumen</button>` : ''}
+                                </div>
                             </td>
                             <td class="col-seller">
                                 <span style="background:rgba(52,152,219,0.12); color:#3498db; border:1px solid rgba(52,152,219,0.3); padding:2px 6px; border-radius:6px; font-size:0.75rem; font-weight:600; display:inline-block; max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle;" title="${r.seller}">
@@ -11734,7 +11806,7 @@
                     cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
                 }
 
-                const screens = (typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1;
+                const screens = (typeof window.getSaleScreensCount === 'function') ? window.getSaleScreensCount(s) : ((typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1);
 
                 if (isAdmin) {
                     const key = (cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || 'cliente');
@@ -11807,6 +11879,297 @@
                 .replace(/{pantallas_acumuladas}|{pantallas}/gi, screensDisp)
                 .replace(/{cliente}|{nombre}/gi, clientDisp)
                 .replace(/{año}|{year}/gi, yearDisp);
+        };
+
+        // =====================================================
+        // MÓDULO: RESUMEN ANUAL DE COMPRAS DEL CLIENTE (ANÁLISIS Y ENVÍO)
+        // =====================================================
+        window.currentSummaryModalData = null;
+
+        window.getClientAllAnnualSales = function(clientPhone, targetYear) {
+            const y = targetYear || 2026;
+            const cleanPhone = String(clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+            const allSales = [];
+            const processedSigs = new Set();
+
+            function considerSale(s, sourceType, defaultSeller) {
+                if (!s || s.isPaid === false) return;
+                const p = String(s.clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+                if (p !== cleanPhone) return;
+
+                const sId = s.id || s._saleId || '';
+                const sProfile = (s.items && s.items[0] && (s.items[0].profile || s.items[0].email)) || s.email || '';
+                const sig = sId ? (sId + '_' + p) : ((s.fechaCompraOriginal || s.date || 0) + '_' + p + '_' + sProfile);
+                if (sig && !sig.startsWith('0_') && processedSigs.has(sig)) return;
+                if (sig && !sig.startsWith('0_')) processedSigs.add(sig);
+
+                const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+                const expMs = Number(s.expirationDate || 0);
+                const sDate = new Date(startMs || expMs || Date.now());
+                const startYear = startMs ? new Date(startMs).getFullYear() : sDate.getFullYear();
+                const expYear = expMs ? new Date(expMs).getFullYear() : 0;
+
+                if (startYear !== y && expYear !== y && sDate.getFullYear() !== y) return;
+
+                const isExpired = Date.now() > expMs;
+                const screens = (typeof window.getSaleScreensCount === 'function') ? window.getSaleScreensCount(s) : ((typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1);
+                
+                let months = 1;
+                if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
+                    months = Math.min(12, Math.round(Number(s.months)));
+                } else if (startMs > 0 && expMs > startMs) {
+                    const diffDays = Math.round((expMs - startMs) / 86400000);
+                    if (diffDays >= 45) {
+                        months = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                    }
+                }
+
+                let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                const platList = [];
+                rawItems.forEach(it => {
+                    if (!it) return;
+                    const specs = Array.isArray(it.specificEmails) ? it.specificEmails : (it.specificEmails && typeof it.specificEmails === 'object' ? Object.values(it.specificEmails) : []);
+                    const validSpecs = specs.filter(sp => sp && (sp.platform || sp.email || sp.profile));
+                    if (validSpecs.length > 0) {
+                        validSpecs.forEach(sp => { if (sp.platform) platList.push(sp.platform); });
+                    } else if (typeof extractPlatformsFromName === 'function') {
+                        const detected = extractPlatformsFromName(it.name);
+                        if (detected.length > 0) detected.forEach(d => platList.push(d));
+                        else platList.push(it.name || 'Streaming');
+                    } else {
+                        platList.push(it.name || 'Streaming');
+                    }
+                });
+
+                allSales.push({
+                    id: sId,
+                    dateMs: startMs || sDate.getTime(),
+                    dateStr: new Date(startMs || sDate.getTime()).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    expMs: expMs,
+                    isExpired: isExpired,
+                    platforms: platList.length > 0 ? platList.join(' + ') : (s.items?.[0]?.name || 'Pantalla Streaming'),
+                    months: months,
+                    screens: screens,
+                    total: Number(s.total || s.price || 0),
+                    sellerName: s.sellerName || s.seller || defaultSeller || 'Página Web Oficial',
+                    clientName: s.clientName || 'Cliente'
+                });
+            }
+
+            // 1. clientSales
+            const cMap = window.allClientSalesMap || {};
+            [cleanPhone, '57' + cleanPhone].forEach(ph => {
+                const sales = cMap[ph] || {};
+                const list = Array.isArray(sales) ? sales : Object.values(sales);
+                list.forEach((s, idx) => {
+                    if (s) {
+                        if (!s.id) s.id = String(idx);
+                        if (!s.clientPhone) s.clientPhone = ph;
+                        considerSale(s, 'client', '');
+                    }
+                });
+            });
+
+            // 2. sellerSales
+            const sMap = window.globalSellerSalesDataStore || {};
+            Object.keys(sMap).forEach(seller => {
+                const sales = sMap[seller] || {};
+                Object.keys(sales).forEach(id => {
+                    const s = sales[id];
+                    if (s) {
+                        if (!s.id) s.id = id;
+                        if (!s.sellerName) s.sellerName = seller;
+                        considerSale(s, 'seller', seller);
+                    }
+                });
+            });
+
+            allSales.sort((a, b) => a.dateMs - b.dateMs);
+            return allSales;
+        };
+
+        window.showClientAnnualSummaryModal = function(clientPhone, rawClientName, rawSellerName) {
+            const cleanPhone = String(clientPhone || '').replace(/\D/g, '').replace(/^57/, '');
+            const clientName = safeDecode(rawClientName || '') || 'Cliente';
+            const sellerName = safeDecode(rawSellerName || '') || '';
+            const targetYear = 2026;
+
+            const sales = window.getClientAllAnnualSales(cleanPhone, targetYear);
+            const totalScreens = sales.reduce((acc, s) => acc + (s.screens || 0), 0);
+            const totalSpent = sales.reduce((acc, s) => acc + (s.total || 0), 0);
+
+            // Obtener información de ranking si aplica
+            const rankInfo = (typeof window.getClientNavidadRankInfo === 'function') 
+                ? window.getClientNavidadRankInfo(cleanPhone, sellerName)
+                : { puesto: '-', pantallas: totalScreens };
+
+            window.currentSummaryModalData = {
+                phone: cleanPhone,
+                name: clientName,
+                seller: sellerName,
+                year: targetYear,
+                sales: sales,
+                totalScreens: totalScreens,
+                totalSpent: totalSpent,
+                rankInfo: rankInfo
+            };
+
+            const modal = document.getElementById('client-annual-summary-modal');
+            if (!modal) return;
+
+            // Llenar tarjeta de datos del cliente
+            const clientCard = document.getElementById('summary-modal-client-card');
+            if (clientCard) {
+                clientCard.innerHTML = `
+                    <div>
+                        <strong style="color:#fff; font-size:1.05rem; display:block;">${clientName}</strong>
+                        <span style="color:#94a3b8; font-size:0.82rem;">
+                            📱 +57 ${cleanPhone}
+                            ${sellerName ? ` &bull; <span style="color:#38bdf8; font-weight:600;"><i class="fa-solid fa-user-tie"></i> Vendedor: ${sellerName}</span>` : ' &bull; <span style="color:#2ecc71;">Directo Admin</span>'}
+                        </span>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <span style="background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:8px; color:#cbd5e1; font-size:0.8rem; font-weight:700;">
+                            📦 ${sales.length} compra${sales.length > 1 ? 's' : ''}
+                        </span>
+                        <span style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; padding:4px 12px; border-radius:8px; font-size:0.85rem; font-weight:800;">
+                            📺 ${totalScreens} pantallas acumuladas
+                        </span>
+                    </div>
+                `;
+            }
+
+            // Puesto en ranking
+            const rankVal = document.getElementById('summary-modal-rank-val');
+            if (rankVal) {
+                rankVal.innerText = (rankInfo && rankInfo.pantallas > 0) ? `#${rankInfo.puesto} (${totalScreens} pantallas)` : 'En competencia';
+            }
+
+            // Llenar tabla
+            const tbody = document.getElementById('summary-modal-tbody');
+            if (tbody) {
+                if (sales.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="padding:2rem; color:#94a3b8; font-size:0.9rem;">No se encontraron compras registradas en el año ${targetYear} para este cliente.</td></tr>`;
+                } else {
+                    let html = '';
+                    sales.forEach((s, idx) => {
+                        const statusBadge = s.isExpired
+                            ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; white-space:nowrap;"><i class="fa-solid fa-circle" style="font-size:0.55rem; vertical-align:middle; margin-right:4px;"></i>Vencida (Historial)</span>`
+                            : `<span style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3); padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; white-space:nowrap;"><i class="fa-solid fa-circle" style="font-size:0.55rem; vertical-align:middle; margin-right:4px;"></i>Activa</span>`;
+
+                        html += `
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                                <td style="padding:10px 8px; font-weight:700; color:#94a3b8;">${idx + 1}</td>
+                                <td style="padding:10px 12px; text-align:left;">${statusBadge}</td>
+                                <td style="padding:10px 12px; text-align:left; color:#f1f5f9; font-weight:500;">${s.dateStr}</td>
+                                <td style="padding:10px 12px; text-align:left; color:#38bdf8; font-weight:600;">${s.platforms}</td>
+                                <td style="padding:10px 8px; color:#cbd5e1;">${s.months} mes${s.months > 1 ? 'es' : ''}</td>
+                                <td style="padding:10px 12px;"><strong style="color:#38bdf8; font-size:0.92rem;">${s.screens} pantalla${s.screens > 1 ? 's' : ''}</strong></td>
+                                <td style="padding:10px 12px; text-align:right; color:#22c55e; font-weight:700;">$${s.total.toLocaleString()}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            }
+
+            // Fila TOTAL
+            const tfoot = document.getElementById('summary-modal-tfoot');
+            if (tfoot) {
+                if (sales.length > 0) {
+                    tfoot.innerHTML = `
+                        <tr>
+                            <td style="padding:12px 8px; text-align:center; font-weight:900; letter-spacing:1px; color:#fbbf24;">TOTAL</td>
+                            <td style="padding:12px 12px; text-align:left; font-weight:700; color:#fff;">${sales.length} compra${sales.length > 1 ? 's registradas' : ' registrada'}</td>
+                            <td style="padding:12px 12px; text-align:left; color:#64748b;">—</td>
+                            <td style="padding:12px 12px; text-align:left; color:#64748b;">—</td>
+                            <td style="padding:12px 8px; color:#64748b;">—</td>
+                            <td style="padding:12px 12px; font-size:0.95rem; color:#38bdf8; font-weight:900;">${totalScreens} pantallas</td>
+                            <td style="padding:12px 12px; text-align:right; font-size:0.95rem; color:#facc15; font-weight:900;">$${totalSpent.toLocaleString()}</td>
+                        </tr>
+                    `;
+                } else {
+                    tfoot.innerHTML = '';
+                }
+            }
+
+            modal.style.display = 'flex';
+        };
+
+        window.closeClientAnnualSummaryModal = function() {
+            const modal = document.getElementById('client-annual-summary-modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.generateClientAnnualSummaryWhatsAppText = function() {
+            const data = window.currentSummaryModalData;
+            if (!data || !data.sales) return '';
+
+            let msg = `📊 *Resumen de Compras del Año ${data.year} - Streaming DPC* 🍿\n` +
+                      `👤 *Cliente:* ${data.name}\n` +
+                      `📱 *Celular:* +57 ${data.phone}\n` +
+                      (data.seller ? `👤 *Vendedor:* ${data.seller}\n` : '') +
+                      `\n` +
+                      `Hola ${data.name} 😊 Aquí tienes el historial y comprobación de tus compras registradas durante este año:\n\n`;
+
+            data.sales.forEach((s, idx) => {
+                const numEmoji = (idx + 1) === 1 ? '1️⃣' : ((idx + 1) === 2 ? '2️⃣' : ((idx + 1) === 3 ? '3️⃣' : `${idx + 1}.`));
+                const statusStr = s.isExpired ? '🔴 Vencida (Historial)' : '🟢 Activa';
+                msg += `${numEmoji} *Compra #${idx + 1}:*\n`;
+                msg += `• Estado: *${statusStr}*\n`;
+                msg += `• Fecha de compra: ${s.dateStr}\n`;
+                msg += `• Plataforma(s): ${s.platforms}\n`;
+                msg += `• Duración: ${s.months} mes${s.months > 1 ? 'es' : ''}\n`;
+                msg += `• Pantallas computadas: *${s.screens} pantalla${s.screens > 1 ? 's' : ''}*\n`;
+                if (s.total > 0) msg += `• Valor: $${s.total.toLocaleString()}\n`;
+                msg += `\n`;
+            });
+
+            msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+                   `📦 *Total de compras:* ${data.sales.length} compra${data.sales.length > 1 ? 's registradas' : ' registrada'}\n` +
+                   `📺 *Total pantallas acumuladas en el año:* *${data.totalScreens} pantallas*\n`;
+            if (data.totalSpent > 0) {
+                msg += `💰 *Total invertido:* $${data.totalSpent.toLocaleString()}\n`;
+            }
+            if (data.rankInfo && data.rankInfo.pantallas > 0) {
+                msg += `🏆 *Puesto en el Ranking Anual:* *#${data.rankInfo.puesto}*\n`;
+            }
+            msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+                   `✨ ¡Muchas gracias por tu fidelidad en Streaming DPC! Si tienes comprobantes de compras adicionales que no figuren en este resumen, con gusto los agregamos a tu historial. 🎁✨`;
+
+            return msg;
+        };
+
+        window.sendClientAnnualSummaryWhatsApp = function() {
+            const data = window.currentSummaryModalData;
+            if (!data) return;
+            const text = window.generateClientAnnualSummaryWhatsAppText();
+            const waUrl = `https://wa.me/57${data.phone}?text=${encodeURIComponent(text)}`;
+            window.open(waUrl, '_blank');
+        };
+
+        window.copyClientAnnualSummaryText = function() {
+            const text = window.generateClientAnnualSummaryWhatsAppText();
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('✅ ¡Resumen de compras copiado al portapapeles! Listo para pegar en WhatsApp.');
+                }).catch(() => {
+                    window.fallbackCopyText(text);
+                });
+            } else {
+                window.fallbackCopyText(text);
+            }
+        };
+
+        window.fallbackCopyText = function(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            alert('✅ ¡Resumen de compras copiado al portapapeles!');
         };
 
         async function sendAdminRenovadaMessage(clientNameEnc, clientPhone, itemsEncoded, isMultiple, expirationDateTS, saleId, sourceNameEnc, sourceType) {
@@ -12841,7 +13204,10 @@
                             <span style="font-size:0.8rem; color:#ff7675; margin-left:6px;">(${c.sales.length} compra${c.sales.length > 1 ? 's vencidas' : ' vencida'})</span><br>
                             <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
                         </div>
-                        <div class="item-actions">
+                        <div class="item-actions" style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-sm" onclick="showClientAnnualSummaryModal('${c.phone}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.sellerName || '')}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Ver y enviar resumen anual de compras al cliente">
+                                <i class="fa-solid fa-receipt"></i> Resumen de Compras
+                            </button>
                             <button class="btn-icon btn-edit" onclick="clickEditClient('${c.phone}')" title="Editar Cliente">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
@@ -12982,7 +13348,10 @@
                             <strong style="color: white; font-size:1.1rem">${safeDecode(c.name)}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
                             <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
                         </div>
-                        <div class="item-actions">
+                        <div class="item-actions" style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-sm" onclick="showClientAnnualSummaryModal('${c.phone}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.sellerName || '')}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Ver y enviar resumen anual de compras al cliente">
+                                <i class="fa-solid fa-receipt"></i> Resumen de Compras
+                            </button>
                             <button class="btn-icon btn-edit" onclick="clickEditClient('${c.phone}')" title="Editar Cliente">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
