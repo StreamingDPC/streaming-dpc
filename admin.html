@@ -1444,7 +1444,7 @@
                                 <i class="fa-solid fa-trophy"></i> Ranking de Compradores y Ventas
                             </h4>
                             <p style="margin:4px 0 0 0; font-size:0.8rem; color:#aaa;">
-                                Identifica qué clientes compran más y el rendimiento de tus vendedores según el periodo seleccionado.
+                                Ranking anual acumulado de compradores y vendedores (incluye todo el historial de ventas activas y vencidas del año).
                             </p>
                         </div>
                         
@@ -9078,6 +9078,44 @@
             return n2.length > n1.length ? n2 : n1;
         }
 
+        // Helper unificado para contar pantallas reales de cualquier venta (combos y meses acumulados)
+        window.getSaleScreensCount = function(s) {
+            if (!s) return 1;
+            let months = 1;
+            if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
+                months = Math.min(12, Math.round(Number(s.months)));
+            } else {
+                const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+                const expMs = Number(s.expirationDate || 0);
+                if (startMs > 0 && expMs > startMs) {
+                    const diffDays = Math.round((expMs - startMs) / 86400000);
+                    if (diffDays >= 45) {
+                        months = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                    }
+                }
+            }
+
+            let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+            let baseScreens = 0;
+            rawItems.forEach(it => {
+                if (!it) return;
+                const specs = Array.isArray(it.specificEmails) ? it.specificEmails : (it.specificEmails && typeof it.specificEmails === 'object' ? Object.values(it.specificEmails) : []);
+                const validSpecs = specs.filter(sp => sp && (sp.platform || sp.email || sp.profile));
+                if (validSpecs.length > 0) {
+                    baseScreens += validSpecs.length;
+                } else if (typeof getScreenCount === 'function') {
+                    baseScreens += getScreenCount(it.category, it.name);
+                } else if (it.category && /^combos?(\d+)/i.test(it.category)) {
+                    const match = it.category.match(/^combos?(\d+)/i);
+                    baseScreens += parseInt(match[1]) || 1;
+                } else {
+                    baseScreens += 1;
+                }
+            });
+
+            return Math.max(1, baseScreens) * months;
+        };
+
         // Estado global para rankings
         window.currentRankingTab = 'admin'; // 'admin' | 'sellers' | 'seller-clients'
         window.currentStatsRankingData = {
@@ -9118,7 +9156,7 @@
             const categoryStats = {}; // { cat: count }
             const monthlyHistory = {}; // { "YYYY-MM": income }
 
-            // Acumuladores de los 3 rankings
+            // Acumuladores de los 3 rankings (Acumulan todo el historial anual de ventas activas y vencidas)
             const rankingAdminClients = {};  // phone -> { phone, name, spent, purchases, screens, platforms: Set, lastDate }
             const rankingSellers = {};       // sellerName -> { name, phone, totalSold, salesCount, screens, clientPhones: Set, platforms: Set }
             const rankingSellerClients = {}; // `${sellerName}___${cleanPhone}` -> { phone, name, seller, spent, purchases, screens, platforms: Set, lastDate }
@@ -9142,8 +9180,10 @@
 
                 monthlyHistory[monthKey] = (monthlyHistory[monthKey] || 0) + (s.total || 0);
 
+                const saleTotal = Number(s.total) || 0;
+
+                // --- 1. AGREGACIÓN FINANCIERA (TARJETAS Y TOP PRODUCTOS: RESPETA EL FILTRO DE MES Y AÑO) ---
                 if ((isAllMonths || month === filterMonth) && year === filterYear) {
-                    const saleTotal = Number(s.total) || 0;
                     totalIncome += saleTotal;
                     totalSalesCount++;
 
@@ -9161,14 +9201,12 @@
                         items.push(it);
                     });
 
-                    const itemNames = [];
                     items.forEach(it => {
                         const prod = dynamicProducts.find(p => p.name === it.name || p.id === it.id);
                         const cost = (prod && prod.purchasePrice) ? prod.purchasePrice : (window.calculateComboCost ? window.calculateComboCost(it.name, it.months || 1).totalCost : 0);
                         totalCost += cost;
 
                         const itName = it.name || 'Pantalla Streaming';
-                        itemNames.push(itName);
                         if (!productStats[itName]) productStats[itName] = { count: 0, income: 0, cost: 0 };
                         productStats[itName].count++;
                         productStats[itName].income += (it.finalPrice || (saleTotal / Math.max(1, items.length)));
@@ -9177,9 +9215,17 @@
                         const cat = it.category || 'Otros';
                         categoryStats[cat] = (categoryStats[cat] || 0) + 1;
                     });
+                }
 
-                    // --- CLASIFICACIÓN Y AGREGACIÓN PARA LOS 3 RANKINGS ---
-                    const sName = (s.sellerName || '').trim();
+                // --- 2. AGREGACIÓN PARA LOS 3 RANKINGS (ACUMULA TODO EL HISTORIAL ANUAL: VENTAS ACTIVAS Y VENCIDAS) ---
+                const startMs = Number(s.fechaCompraOriginal || s.date || 0);
+                const expMs = Number(s.expirationDate || 0);
+                const startYear = startMs ? new Date(startMs).getFullYear() : year;
+                const expYear = expMs ? new Date(expMs).getFullYear() : 0;
+                const belongsToRankingYear = (year === filterYear || startYear === filterYear || expYear === filterYear);
+
+                if (belongsToRankingYear) {
+                    const sName = (s.sellerName || s.seller || '').trim();
                     const isAdmin = !sName || sName === 'Página Web Oficial' || sName.toLowerCase() === 'admin' || sName.toLowerCase().includes('oficial') || sName.toLowerCase().includes('admin');
 
                     // Obtener nombre del cliente
@@ -9193,21 +9239,31 @@
                         }
                     }
 
-                    // Calcular meses de la suscripción (por meses configurados o por diferencia de fechas acumuladas)
-                    let saleMonths = 1;
-                    if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
-                        saleMonths = Math.min(12, Math.round(Number(s.months)));
-                    } else {
-                        const startMs = Number(s.fechaCompraOriginal || s.date || 0);
-                        const expMs = Number(s.expirationDate || 0);
-                        if (startMs > 0 && expMs > startMs) {
-                            const diffDays = Math.round((expMs - startMs) / 86400000);
-                            if (diffDays >= 45) {
-                                saleMonths = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                    // Calcular pantallas reales de la venta (incluyendo combos y meses acumulados)
+                    const saleScreens = getSaleScreensCount(s);
+
+                    // Extraer nombres de plataformas para las insignias
+                    const salePlatNames = [];
+                    let rItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
+                    rItems.forEach(it => {
+                        if (!it) return;
+                        const specs = Array.isArray(it.specificEmails) ? it.specificEmails : (it.specificEmails && typeof it.specificEmails === 'object' ? Object.values(it.specificEmails) : []);
+                        const validSpecs = specs.filter(sp => sp && (sp.platform || sp.email || sp.profile));
+                        if (validSpecs.length > 0) {
+                            validSpecs.forEach(sp => {
+                                if (sp.platform) salePlatNames.push(sp.platform);
+                            });
+                        } else if (typeof extractPlatformsFromName === 'function') {
+                            const detected = extractPlatformsFromName(it.name);
+                            if (detected.length > 0) {
+                                detected.forEach(d => salePlatNames.push(d));
+                            } else {
+                                salePlatNames.push(it.name || 'Pantalla Streaming');
                             }
+                        } else {
+                            salePlatNames.push(it.name || 'Pantalla Streaming');
                         }
-                    }
-                    const saleScreens = Math.max(1, items.length) * saleMonths;
+                    });
 
                     if (isAdmin) {
                         // 1. Clientes del Admin (Agrupados por teléfono)
@@ -9231,7 +9287,7 @@
                         rankingAdminClients[cKey].spent += saleTotal;
                         rankingAdminClients[cKey].purchases += 1;
                         rankingAdminClients[cKey].screens += saleScreens;
-                        itemNames.forEach(n => rankingAdminClients[cKey].platforms.add(n));
+                        salePlatNames.forEach(n => rankingAdminClients[cKey].platforms.add(n));
                         if (sDate.getTime() > rankingAdminClients[cKey].lastDate) {
                             rankingAdminClients[cKey].lastDate = sDate.getTime();
                         }
@@ -9258,11 +9314,14 @@
                                 platforms: new Set()
                             };
                         }
+                        if (!rankingSellers[sellerClean].phone && s.sellerPhone) {
+                            rankingSellers[sellerClean].phone = String(s.sellerPhone).replace(/\D/g, '').replace(/^57/, '');
+                        }
                         rankingSellers[sellerClean].totalSold += saleTotal;
                         rankingSellers[sellerClean].salesCount += 1;
                         rankingSellers[sellerClean].screens += saleScreens;
                         rankingSellers[sellerClean].clientPhones.add(clientIdent);
-                        itemNames.forEach(n => rankingSellers[sellerClean].platforms.add(n));
+                        salePlatNames.forEach(n => rankingSellers[sellerClean].platforms.add(n));
 
                         // 3. Clientes del Vendedor (Agrupados por teléfono excepto Any, Angie, Katherin)
                         const scKey = `${sellerClean}___${clientIdent}`;
@@ -9286,7 +9345,7 @@
                         rankingSellerClients[scKey].spent += saleTotal;
                         rankingSellerClients[scKey].purchases += 1;
                         rankingSellerClients[scKey].screens += saleScreens;
-                        itemNames.forEach(n => rankingSellerClients[scKey].platforms.add(n));
+                        salePlatNames.forEach(n => rankingSellerClients[scKey].platforms.add(n));
                         if (sDate.getTime() > rankingSellerClients[scKey].lastDate) {
                             rankingSellerClients[scKey].lastDate = sDate.getTime();
                         }
@@ -9298,7 +9357,12 @@
             Object.keys(window.allClientSalesMap || {}).forEach(phone => {
                 const sales = window.allClientSalesMap[phone] || {};
                 Object.keys(sales).forEach(key => {
-                    processStatSale(sales[key]);
+                    const s = sales[key];
+                    if (s) {
+                        if (!s.id) s.id = key;
+                        if (!s.clientPhone) s.clientPhone = phone;
+                        processStatSale(s);
+                    }
                 });
             });
 
@@ -9306,7 +9370,12 @@
             Object.keys(window.globalSellerSalesDataStore || {}).forEach(seller => {
                 const sales = window.globalSellerSalesDataStore[seller] || {};
                 Object.keys(sales).forEach(key => {
-                    processStatSale(sales[key]);
+                    const s = sales[key];
+                    if (s) {
+                        if (!s.id) s.id = key;
+                        if (!s.sellerName) s.sellerName = seller;
+                        processStatSale(s);
+                    }
                 });
             });
 
@@ -9546,30 +9615,7 @@
                     cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
                 }
 
-                let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
-                const seenItemSigs = new Set();
-                const items = [];
-                rawItems.forEach(it => {
-                    if (!it) return;
-                    const itPlat = (it.name || '').trim().toLowerCase();
-                    const itEmail = (it.email || it.correo || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].email) || '').trim().toLowerCase();
-                    const itProf = (it.profile || (it.specificEmails && it.specificEmails[0] && it.specificEmails[0].profile) || '').trim().toLowerCase();
-                    const itSig = `${itPlat}_${itEmail}_${itProf}`;
-                    if (seenItemSigs.has(itSig) && itSig !== '__') return;
-                    seenItemSigs.add(itSig);
-                    items.push(it);
-                });
-
-                let monthsCount = 1;
-                if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
-                    monthsCount = Math.min(12, Math.round(Number(s.months)));
-                } else if (startMs > 0 && expMs > startMs) {
-                    const diffDays = Math.round((expMs - startMs) / 86400000);
-                    if (diffDays >= 45) {
-                        monthsCount = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
-                    }
-                }
-                const screens = Math.max(1, items.length) * monthsCount;
+                const screens = (typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1;
                 const saleTotal = Number(s.total) || 0;
 
                 if (isAdmin) {
@@ -9603,14 +9649,26 @@
             const cMap = window.allClientSalesMap || {};
             Object.keys(cMap).forEach(p => {
                 const sales = cMap[p] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], '', p));
+                Object.keys(sales).forEach(id => {
+                    const sl = sales[id];
+                    if (sl) {
+                        if (!sl.id) sl.id = id;
+                        proc(sl, '', p);
+                    }
+                });
             });
 
             const sMap = window.globalSellerSalesDataStore || {};
             Object.keys(sMap).forEach(s => {
                 if (s === 'Página Web Oficial' || s.toLowerCase().includes('oficial') || s.toLowerCase() === 'admin') return;
                 const sales = sMap[s] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], s, ''));
+                Object.keys(sales).forEach(id => {
+                    const sl = sales[id];
+                    if (sl) {
+                        if (!sl.id) sl.id = id;
+                        proc(sl, s, '');
+                    }
+                });
             });
 
             return {
@@ -11669,21 +11727,7 @@
                     cName = cleanP ? `Cliente (${cleanP.slice(-4)})` : 'Cliente';
                 }
 
-                let rawItems = Array.isArray(s.items) ? s.items : Object.values(s.items || {});
-                let monthsCount = 1;
-                if (s.months && !isNaN(Number(s.months)) && Number(s.months) >= 1) {
-                    monthsCount = Math.min(12, Math.round(Number(s.months)));
-                } else {
-                    const startMs = Number(s.fechaCompraOriginal || s.date || 0);
-                    const expMs = Number(s.expirationDate || 0);
-                    if (startMs > 0 && expMs > startMs) {
-                        const diffDays = Math.round((expMs - startMs) / 86400000);
-                        if (diffDays >= 45) {
-                            monthsCount = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
-                        }
-                    }
-                }
-                const screens = Math.max(1, rawItems.length) * monthsCount;
+                const screens = (typeof getSaleScreensCount === 'function') ? getSaleScreensCount(s) : 1;
 
                 if (isAdmin) {
                     const key = (cleanP && cleanP.length >= 7) ? cleanP : (cName.toLowerCase() || 'cliente');
@@ -11701,14 +11745,26 @@
             const cMap = window.allClientSalesMap || {};
             Object.keys(cMap).forEach(p => {
                 const sales = cMap[p] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], '', p));
+                Object.keys(sales).forEach(id => {
+                    const sl = sales[id];
+                    if (sl) {
+                        if (!sl.id) sl.id = id;
+                        proc(sl, '', p);
+                    }
+                });
             });
 
             const sMap = window.globalSellerSalesDataStore || {};
             Object.keys(sMap).forEach(s => {
                 if (s === 'Página Web Oficial' || s.toLowerCase().includes('oficial') || s.toLowerCase() === 'admin') return;
                 const sales = sMap[s] || {};
-                Object.keys(sales).forEach(id => proc(sales[id], s, ''));
+                Object.keys(sales).forEach(id => {
+                    const sl = sales[id];
+                    if (sl) {
+                        if (!sl.id) sl.id = id;
+                        proc(sl, s, '');
+                    }
+                });
             });
 
             if (type === 'sellerClients') {
