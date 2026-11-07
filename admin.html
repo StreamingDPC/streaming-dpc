@@ -9851,48 +9851,52 @@
             }
             const q = (document.getElementById('ranking-search')?.value || '').trim().toLowerCase();
 
-            let list = [];
+            let baseList = [];
             let itemType = 'clientes';
 
             if (tab === 'admin') {
                 itemType = 'clientes del Admin';
-                list = (dataStore.adminClients || []).filter(r => {
-                    if (!q) return true;
-                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q);
-                });
+                baseList = [...(dataStore.adminClients || [])];
             } else if (tab === 'sellers') {
                 itemType = 'vendedores';
-                list = (dataStore.sellers || []).filter(r => {
-                    if (!q) return true;
-                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q);
-                });
+                baseList = [...(dataStore.sellers || [])];
             } else if (tab === 'seller-clients') {
                 itemType = 'clientes de vendedores';
                 const selectedSeller = document.getElementById('rank-seller-select')?.value || 'ALL';
-                list = (dataStore.sellerClients || []).filter(r => {
+                baseList = (dataStore.sellerClients || []).filter(r => {
                     if (selectedSeller !== 'ALL' && r.seller !== selectedSeller) return false;
-                    if (!q) return true;
-                    return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.seller || '').toLowerCase().includes(q);
+                    return true;
                 });
-            }
-
-            if (badgeEl) {
-                badgeEl.innerHTML = `Mostrando: <strong style="color:#f1c40f;">${list.length}</strong> ${itemType}`;
             }
 
             const sortBy = document.getElementById('ranking-sort-by')?.value || 'spent';
             if (tab === 'sellers') {
                 if (sortBy === 'screens') {
-                    list.sort((a, b) => (b.screens || 0) - (a.screens || 0));
+                    baseList.sort((a, b) => (b.screens || 0) - (a.screens || 0));
                 } else {
-                    list.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
+                    baseList.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
                 }
             } else {
                 if (sortBy === 'screens') {
-                    list.sort((a, b) => (b.screens || 0) - (a.screens || 0));
+                    baseList.sort((a, b) => (b.screens || 0) - (a.screens || 0));
                 } else {
-                    list.sort((a, b) => (b.spent || 0) - (a.spent || 0));
+                    baseList.sort((a, b) => (b.spent || 0) - (a.spent || 0));
                 }
+            }
+
+            // Asignar el puesto REAL antes de filtrar por la barra de búsqueda
+            baseList.forEach((r, idx) => {
+                r._realRankIdx = idx;
+            });
+
+            // Filtrar por término de búsqueda
+            let list = baseList.filter(r => {
+                if (!q) return true;
+                return (r.name || '').toLowerCase().includes(q) || (r.phone || '').includes(q) || (r.seller || '').toLowerCase().includes(q);
+            });
+
+            if (badgeEl) {
+                badgeEl.innerHTML = `Mostrando: <strong style="color:#f1c40f;">${list.length}</strong> ${itemType}`;
             }
 
             if (list.length === 0) {
@@ -9918,12 +9922,13 @@
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
-                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const realRank = (typeof r._realRankIdx === 'number') ? r._realRankIdx : idx;
+                    const rowBorder = realRank === 0 ? 'border-left: 3px solid #f1c40f;' : (realRank === 1 ? 'border-left: 3px solid #bdc3c7;' : (realRank === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
                     const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.70rem;">Sin teléfono</span>';
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-puesto">${getRankBadge(realRank)}</td>
                             <td class="col-client">
                                 <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
@@ -9952,12 +9957,13 @@
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
-                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const realRank = (typeof r._realRankIdx === 'number') ? r._realRankIdx : idx;
+                    const rowBorder = realRank === 0 ? 'border-left: 3px solid #f1c40f;' : (realRank === 1 ? 'border-left: 3px solid #bdc3c7;' : (realRank === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
                     const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '';
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-puesto">${getRankBadge(realRank)}</td>
                             <td class="col-client">
                                 <strong style="color:#3498db; font-size:0.88rem; display:block;"><i class="fa-solid fa-briefcase"></i> ${r.name}</strong>
                                 ${waBtn}
@@ -9991,12 +9997,13 @@
                 </tr></thead><tbody>`;
 
                 list.forEach((r, idx) => {
-                    const rowBorder = idx === 0 ? 'border-left: 3px solid #f1c40f;' : (idx === 1 ? 'border-left: 3px solid #bdc3c7;' : (idx === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
+                    const realRank = (typeof r._realRankIdx === 'number') ? r._realRankIdx : idx;
+                    const rowBorder = realRank === 0 ? 'border-left: 3px solid #f1c40f;' : (realRank === 1 ? 'border-left: 3px solid #bdc3c7;' : (realRank === 2 ? 'border-left: 3px solid #e67e22;' : 'border-left: 3px solid transparent;'));
                     const waBtn = r.phone ? `<a href="https://wa.me/57${r.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; color:#25d366; text-decoration:none; font-size:0.74rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.25); padding:1px 6px; border-radius:5px; margin-top:2px;"><i class="fa-brands fa-whatsapp"></i> ${r.phone}</a>` : '<span style="color:#666; font-size:0.70rem;">Sin teléfono</span>';
 
                     html += `
                         <tr style="${rowBorder}">
-                            <td class="col-puesto">${getRankBadge(idx)}</td>
+                            <td class="col-puesto">${getRankBadge(realRank)}</td>
                             <td class="col-client">
                                 <strong style="color:white; font-size:0.86rem; display:block;">${r.name || 'Cliente'}</strong>
                                 ${waBtn}
