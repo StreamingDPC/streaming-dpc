@@ -617,20 +617,60 @@
                         </button>
                     </div>
                 </div>
-                <div class="search-bar">
-                    <input type="text" id="search-prod" placeholder="🔍 Buscar por nombre..."
-                        onkeyup="renderAdminList()">
-                    <select id="filter-cat" onchange="renderAdminList()">
-                        <option value="all">Todas las categorías</option>
-                        <option value="individual">Individuales</option>
-                        <option value="combos2">Combos 2</option>
-                        <option value="combos3">Combos 3</option>
-                        <option value="combos4">Combos 4</option>
-                        <option value="combos5">Combos 5</option>
-                        <option value="ventas_extras">Ventas Extras (Asignadas a Vendedores)</option>
-                        <option value="promociones_finde">Promociones fin de semana</option>
-                        <option value="promociones">Promociones del mes</option>
-                    </select>
+                <!-- Buscador Inteligente en Gestionar Productos -->
+                <div class="smart-search-box" style="margin: 0 0 1.2rem 0; padding: 1.1rem 1.3rem; border: 1px solid rgba(0, 210, 211, 0.35); background: rgba(18, 18, 26, 0.9); border-radius: 16px;">
+                    <div class="smart-search-header" style="margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+                        <div class="smart-search-title-wrap">
+                            <span class="smart-search-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> Buscador Inteligente</span>
+                            <h4 style="margin: 4px 0 2px 0; font-size: 1rem; color: #fff;">Filtrar Pantalla o Combo por Plataforma:</h4>
+                            <p style="margin: 0; font-size: 0.78rem; color: #94a3b8;">Toca las plataformas con 1 clic para encontrar y gestionar productos al instante:</p>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                            <div class="smart-search-input-wrap" style="min-width: 200px; max-width: 260px;">
+                                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input type="text" id="search-prod" placeholder="Buscar por nombre..." oninput="onAdminProductSearchInput(this.value)">
+                                <button type="button" id="admin-product-clear-text-btn" style="display:none;" onclick="clearAdminProductSearchText()" title="Borrar">✕</button>
+                            </div>
+                            <select id="filter-cat" onchange="renderAdminList()" style="padding: 0.6rem 0.9rem; border-radius: 12px; background: rgba(0, 0, 0, 0.55); border: 1px solid var(--glass-border); color: #fff; font-size: 0.85rem; outline: none; cursor: pointer;">
+                                <option value="all">Todas las categorías</option>
+                                <option value="individual">Individuales</option>
+                                <option value="combos2">Combos 2</option>
+                                <option value="combos3">Combos 3</option>
+                                <option value="combos4">Combos 4</option>
+                                <option value="combos5">Combos 5</option>
+                                <option value="ventas_extras">Ventas Extras (Asignadas a Vendedores)</option>
+                                <option value="promociones_finde">Promociones fin de semana</option>
+                                <option value="promociones">Promociones del mes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Chips de Plataformas con 1 Clic -->
+                    <div class="smart-platform-chips" id="admin-product-platform-chips" style="gap: 6px; margin-bottom: 0.8rem;">
+                        <!-- Se inyecta dinámicamente con JS -->
+                    </div>
+
+                    <!-- Sub-barra: Duración y Botón Limpiar -->
+                    <div class="smart-search-subbar" style="padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem;">
+                        <div class="smart-duration-filters" id="admin-product-duration-filters">
+                            <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;"><i class="fa-solid fa-clock"></i> Duración:</span>
+                            <button type="button" class="duration-chip active" data-months="all" onclick="selectAdminProductDuration('all')">Todos</button>
+                            <button type="button" class="duration-chip" data-months="1" onclick="selectAdminProductDuration('1')">1 Mes</button>
+                            <button type="button" class="duration-chip" data-months="2" onclick="selectAdminProductDuration('2')">2 Meses</button>
+                            <button type="button" class="duration-chip" data-months="3" onclick="selectAdminProductDuration('3')">3 Meses</button>
+                        </div>
+                        <button type="button" id="admin-product-reset-btn" class="smart-reset-btn" style="display:none;" onclick="resetAdminProductSmartSearch()">
+                            <i class="fa-solid fa-rotate-left"></i> Limpiar Filtro
+                        </button>
+                    </div>
+
+                    <!-- Barra de Estado / Resumen -->
+                    <div id="admin-product-results-bar" class="smart-results-bar" style="display:none; margin-top: 0.8rem; padding: 8px 12px;">
+                        <div id="admin-product-results-summary" class="smart-results-text" style="font-size: 0.84rem;"></div>
+                        <button type="button" class="smart-results-close-btn" onclick="resetAdminProductSmartSearch()" style="font-size: 0.75rem; padding: 3px 10px;">
+                            ✕ Ver Todo
+                        </button>
+                    </div>
                 </div>
                 <div id="admin-list" class="admin-list">
                     <!-- Se llenará con JS -->
@@ -7873,20 +7913,254 @@
             return updatedCount;
         };
 
+        // =====================================================
+        // BUSCADOR INTELIGENTE - CONFIGURACIÓN Y FUNCIONES COMPARTIDAS
+        // =====================================================
+        window.ADMIN_SMART_PLATFORMS = [
+            { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
+            { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
+            { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
+            { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
+            { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
+            { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
+            { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
+            { id: 'apple', name: 'Apple TV', icon: '<i class="fa-brands fa-apple"></i>', re: /\bapple(\s*tv)?\b/i },
+            { id: 'spotify', name: 'Spotify', icon: '<i class="fa-brands fa-spotify"></i>', re: /\bspotify\b/i },
+            { id: 'youtube', name: 'YouTube', icon: '<i class="fa-brands fa-youtube"></i>', re: /\byoutube\b/i }
+        ];
+        var ADMIN_SMART_PLATFORMS = window.ADMIN_SMART_PLATFORMS;
+
+        function getAdminProductScreenCount(product) {
+            if (!product) return 1;
+            if (product.category === 'individual') return 1;
+            if (product.category === 'combos2') return 2;
+            if (product.category === 'combos3') return 3;
+            if (product.category === 'combos4') return 4;
+            if (product.category === 'combos5') return 5;
+            const fullText = (product.name || '') + ' ' + (product.desc || '');
+            const screenMatch = fullText.match(/\b([1-6])\s*pantallas?\b/i);
+            if (screenMatch) {
+                return parseInt(screenMatch[1], 10);
+            }
+            const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
+            const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
+            return Math.max(1, parts.length);
+        }
+        window.getAdminProductScreenCount = getAdminProductScreenCount;
+
+        function matchesAdminPlatformItem(product, plat) {
+            const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+            return plat.re.test(text);
+        }
+        window.matchesAdminPlatformItem = matchesAdminPlatformItem;
+
+        function matchesAdminDuration(product, months) {
+            if (months === 'all') return true;
+            const mNum = parseInt(months, 10);
+            if (product.months) {
+                return parseInt(product.months, 10) === mNum;
+            }
+            if (mNum === 1) return !/(2|3|6|12)\s*mes/i.test(product.name || '');
+            if (mNum === 2) return /2\s*mes/i.test(product.name || '');
+            if (mNum === 3) return /3\s*mes/i.test(product.name || '');
+            return true;
+        }
+        window.matchesAdminDuration = matchesAdminDuration;
+
+        // Estado del Buscador Inteligente en Gestión de Productos
+        let _adminProductSearchState = {
+            selectedPlatforms: new Set(),
+            selectedMonths: 'all',
+            query: ''
+        };
+        window._adminProductSearchState = _adminProductSearchState;
+
+        function isAnyAdminProductFilterActive() {
+            const catEl = document.getElementById('filter-cat');
+            const catVal = catEl ? catEl.value : 'all';
+            return _adminProductSearchState.selectedPlatforms.size > 0 ||
+                   _adminProductSearchState.selectedMonths !== 'all' ||
+                   _adminProductSearchState.query.trim().length > 0 ||
+                   catVal !== 'all';
+        }
+        window.isAnyAdminProductFilterActive = isAnyAdminProductFilterActive;
+
+        function initAdminProductSmartSearch() {
+            const container = document.getElementById('admin-product-platform-chips');
+            if (!container) return;
+
+            if (!container.children || container.children.length === 0) {
+                container.innerHTML = ADMIN_SMART_PLATFORMS.map(p => `
+                    <button type="button" class="platform-chip" data-platform="${p.id}" onclick="toggleAdminProductPlatform('${p.id}')">
+                        <span class="chip-icon">${p.icon}</span>
+                        <span class="chip-name">${p.name}</span>
+                        <span class="chip-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                `).join('');
+            }
+        }
+        window.initAdminProductSmartSearch = initAdminProductSmartSearch;
+
+        function toggleAdminProductPlatform(platId) {
+            if (_adminProductSearchState.selectedPlatforms.has(platId)) {
+                _adminProductSearchState.selectedPlatforms.delete(platId);
+            } else {
+                _adminProductSearchState.selectedPlatforms.add(platId);
+            }
+            updateAdminProductChipsUI();
+            renderAdminList();
+        }
+        window.toggleAdminProductPlatform = toggleAdminProductPlatform;
+
+        function updateAdminProductChipsUI() {
+            const chips = document.querySelectorAll('#admin-product-platform-chips .platform-chip');
+            chips.forEach(chip => {
+                const id = chip.dataset.platform;
+                if (_adminProductSearchState.selectedPlatforms.has(id)) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+
+            const hasFilters = isAnyAdminProductFilterActive();
+            const resetBtn = document.getElementById('admin-product-reset-btn');
+            if (resetBtn) {
+                resetBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+            }
+        }
+        window.updateAdminProductChipsUI = updateAdminProductChipsUI;
+
+        function onAdminProductSearchInput(val) {
+            _adminProductSearchState.query = (val || '').trim();
+            const clearBtn = document.getElementById('admin-product-clear-text-btn');
+            if (clearBtn) {
+                clearBtn.style.display = _adminProductSearchState.query.length > 0 ? 'inline-flex' : 'none';
+            }
+            updateAdminProductChipsUI();
+            renderAdminList();
+        }
+        window.onAdminProductSearchInput = onAdminProductSearchInput;
+
+        function clearAdminProductSearchText() {
+            const input = document.getElementById('search-prod');
+            if (input) input.value = '';
+            onAdminProductSearchInput('');
+        }
+        window.clearAdminProductSearchText = clearAdminProductSearchText;
+
+        function selectAdminProductDuration(months) {
+            _adminProductSearchState.selectedMonths = months || 'all';
+            const chips = document.querySelectorAll('#admin-product-duration-filters .duration-chip');
+            chips.forEach(c => {
+                if (c.dataset.months === months) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+            updateAdminProductChipsUI();
+            renderAdminList();
+        }
+        window.selectAdminProductDuration = selectAdminProductDuration;
+
+        function resetAdminProductSmartSearch() {
+            _adminProductSearchState.selectedPlatforms.clear();
+            _adminProductSearchState.selectedMonths = 'all';
+            _adminProductSearchState.query = '';
+
+            const input = document.getElementById('search-prod');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('admin-product-clear-text-btn');
+            if (clearBtn) clearBtn.style.display = 'none';
+
+            const catSelect = document.getElementById('filter-cat');
+            if (catSelect) catSelect.value = 'all';
+
+            const dChips = document.querySelectorAll('#admin-product-duration-filters .duration-chip');
+            dChips.forEach(c => {
+                if (c.dataset.months === 'all') c.classList.add('active');
+                else c.classList.remove('active');
+            });
+
+            updateAdminProductChipsUI();
+            renderAdminList();
+        }
+        window.resetAdminProductSmartSearch = resetAdminProductSmartSearch;
+
         function renderAdminList() {
             if (window.renderManualClientProducts) window.renderManualClientProducts();
             populateOwnerSelect();
+            if (typeof initAdminProductSmartSearch === 'function') {
+                initAdminProductSmartSearch();
+            }
+
             const listDiv = document.getElementById('admin-list');
-            const search = document.getElementById('search-prod').value.toLowerCase();
-            const filterCat = document.getElementById('filter-cat').value;
+            if (!listDiv) return;
+
+            const searchInput = document.getElementById('search-prod');
+            const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            const filterCatEl = document.getElementById('filter-cat');
+            const filterCat = filterCatEl ? filterCatEl.value : 'all';
+
+            const selectedPlatObjs = ADMIN_SMART_PLATFORMS.filter(p => _adminProductSearchState.selectedPlatforms.has(p.id));
+            const N = selectedPlatObjs.length;
+            const hasMonths = _adminProductSearchState.selectedMonths !== 'all';
+            const hasQuery = search.length > 0;
+            const hasCat = filterCat !== 'all';
+            const hasFilters = N > 0 || hasMonths || hasQuery || hasCat;
+
+            // Si hay plataformas seleccionadas y categoría 'all', verificar si hay coincidencias de tamaño exacto N
+            let hasExactSizeMatch = false;
+            if (N > 0 && filterCat === 'all' && Array.isArray(dynamicProducts)) {
+                hasExactSizeMatch = dynamicProducts.some(p => {
+                    if (!p) return false;
+                    if (hasMonths && !matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return false;
+                    if (hasQuery) {
+                        const qTerms = search.split(/\s+/).filter(Boolean);
+                        const pTxt = ((p.name || '') + ' ' + (p.brand || '') + ' ' + (p.category || '') + ' ' + (p.desc || '')).toLowerCase();
+                        if (!qTerms.every(term => pTxt.includes(term))) return false;
+                    }
+                    if (!selectedPlatObjs.every(plat => matchesAdminPlatformItem(p, plat))) return false;
+                    const sc = getAdminProductScreenCount(p);
+                    return N >= 5 ? sc >= 5 : sc === N;
+                });
+            }
 
             listDiv.innerHTML = '';
+            let matchedCount = 0;
 
             dynamicProducts.forEach((p, index) => {
                 if (!p) return;
-                // Filtros
+
+                // Filtro por categoría
                 if (filterCat !== 'all' && p.category !== filterCat) return;
-                if (search && !p.name.toLowerCase().includes(search)) return;
+
+                // Filtro por texto
+                if (hasQuery) {
+                    const qTerms = search.split(/\s+/).filter(Boolean);
+                    const pTxt = ((p.name || '') + ' ' + (p.brand || '') + ' ' + (p.category || '') + ' ' + (p.desc || '')).toLowerCase();
+                    if (!qTerms.every(term => pTxt.includes(term))) return;
+                }
+
+                // Filtro por duración
+                if (hasMonths) {
+                    if (!matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return;
+                }
+
+                // Filtro por plataformas del Buscador Inteligente
+                if (N > 0) {
+                    const matchesAllPlats = selectedPlatObjs.every(plat => matchesAdminPlatformItem(p, plat));
+                    if (!matchesAllPlats) return;
+
+                    if (filterCat === 'all' && hasExactSizeMatch) {
+                        const sc = getAdminProductScreenCount(p);
+                        const matchesSize = N >= 5 ? sc >= 5 : sc === N;
+                        if (!matchesSize) return;
+                    }
+                }
+
+                matchedCount++;
 
                 const isActive = p.active !== false; // Si no tiene, default es true
                 const inStock = p.inStock !== false;
@@ -7940,7 +8214,59 @@
                 `;
                 listDiv.appendChild(div);
             });
+
+            // Actualizar chips de UI
+            updateAdminProductChipsUI();
+
+            // Actualizar barra de resumen
+            const resultsBar = document.getElementById('admin-product-results-bar');
+            const resultsSummary = document.getElementById('admin-product-results-summary');
+
+            if (resultsBar && resultsSummary) {
+                if (hasFilters) {
+                    resultsBar.style.display = 'flex';
+                    const platNames = selectedPlatObjs.map(p => p.name).join(' + ');
+                    const durLabel = hasMonths ? ` • ${_adminProductSearchState.selectedMonths} Meses` : '';
+                    const queryLabel = hasQuery ? ` • "${search}"` : '';
+                    const catLabel = hasCat ? ` • Categoría: ${filterCat}` : '';
+
+                    let sizeLabel = '';
+                    if (N === 1) sizeLabel = 'pantalla(s) individual(es)';
+                    else if (N === 2) sizeLabel = 'combo(s) de 2 pantallas';
+                    else if (N === 3) sizeLabel = 'combo(s) de 3 pantallas';
+                    else if (N === 4) sizeLabel = 'combo(s) de 4 pantallas';
+                    else if (N >= 5) sizeLabel = `combo(s) de ${N} pantallas`;
+
+                    if (matchedCount > 0) {
+                        resultsSummary.innerHTML = `
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:#00d2d3;"></i> 
+                            Mostrando <strong>${matchedCount}</strong> ${sizeLabel || 'producto(s)'} para <strong>${platNames || 'tu filtro'}</strong>${durLabel}${catLabel}${queryLabel}
+                        `;
+                    } else {
+                        resultsSummary.innerHTML = `
+                            <i class="fa-solid fa-circle-exclamation" style="color:#ff4d4d;"></i> 
+                            <strong>No se encontraron productos</strong> para (${platNames || 'tu filtro'}${durLabel}${catLabel}${queryLabel}).
+                        `;
+                    }
+                } else {
+                    resultsBar.style.display = 'none';
+                }
+            }
+
+            if (matchedCount === 0 && hasFilters) {
+                const emptyNotice = document.createElement('div');
+                emptyNotice.style.cssText = 'text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.9rem; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px; margin-top: 1rem;';
+                emptyNotice.innerHTML = `
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 1.8rem; margin-bottom: 0.5rem; color: #64748b; display: block;"></i>
+                    No se encontraron productos con estos filtros.<br>
+                    <button type="button" onclick="resetAdminProductSmartSearch()" style="margin-top: 0.8rem; background: rgba(0, 210, 211, 0.15); border: 1px solid #00d2d3; color: #00d2d3; padding: 6px 14px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">
+                        <i class="fa-solid fa-rotate-left"></i> Restablecer Filtros
+                    </button>
+                `;
+                listDiv.appendChild(emptyNotice);
+            }
         }
+        window.renderAdminList = renderAdminList;
 
         // Drag and Drop ordering
         let dragSrcIndex = null;
@@ -14875,20 +15201,8 @@
 
         // =====================================================
         // BUSCADOR INTELIGENTE EN CREAR CLIENTE NUEVO MANUALMENTE
+        // (Utiliza ADMIN_SMART_PLATFORMS declarado globalmente)
         // =====================================================
-        const ADMIN_SMART_PLATFORMS = [
-            { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
-            { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
-            { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
-            { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
-            { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
-            { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
-            { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
-            { id: 'apple', name: 'Apple TV', icon: '<i class="fa-brands fa-apple"></i>', re: /\bapple(\s*tv)?\b/i },
-            { id: 'spotify', name: 'Spotify', icon: '<i class="fa-brands fa-spotify"></i>', re: /\bspotify\b/i },
-            { id: 'youtube', name: 'YouTube', icon: '<i class="fa-brands fa-youtube"></i>', re: /\byoutube\b/i }
-        ];
-
         let _adminManualSearchState = {
             selectedPlatforms: new Set(),
             selectedMonths: 'all',
@@ -15000,40 +15314,6 @@
                 renderManualClientProducts();
             }
         };
-
-        function getAdminProductScreenCount(product) {
-            if (!product) return 1;
-            if (product.category === 'individual') return 1;
-            if (product.category === 'combos2') return 2;
-            if (product.category === 'combos3') return 3;
-            if (product.category === 'combos4') return 4;
-            if (product.category === 'combos5') return 5;
-            const fullText = (product.name || '') + ' ' + (product.desc || '');
-            const screenMatch = fullText.match(/\b([1-6])\s*pantallas?\b/i);
-            if (screenMatch) {
-                return parseInt(screenMatch[1], 10);
-            }
-            const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
-            const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
-            return Math.max(1, parts.length);
-        }
-
-        function matchesAdminPlatformItem(product, plat) {
-            const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
-            return plat.re.test(text);
-        }
-
-        function matchesAdminDuration(product, months) {
-            if (months === 'all') return true;
-            const mNum = parseInt(months, 10);
-            if (product.months) {
-                return parseInt(product.months, 10) === mNum;
-            }
-            if (mNum === 1) return !/(2|3|6|12)\s*mes/i.test(product.name || '');
-            if (mNum === 2) return /2\s*mes/i.test(product.name || '');
-            if (mNum === 3) return /3\s*mes/i.test(product.name || '');
-            return true;
-        }
 
         window.applyAdminManualSmartSearch = function () {
             const hasPlatforms = _adminManualSearchState.selectedPlatforms.size > 0;
