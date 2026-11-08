@@ -13226,10 +13226,22 @@
             let allLocalPhotos = [];
             let extraText = "";
 
+            // Normalizar items a Array (Firebase guarda arrays con propiedades como objetos {0: {...}, guideUrl: '', variant: ''})
+            let itemsArray = [];
+            if (Array.isArray(items)) {
+                itemsArray = items;
+            } else if (items && typeof items === 'object') {
+                itemsArray = Object.keys(items)
+                    .filter(k => !isNaN(Number(k)))
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map(k => items[k]);
+            }
+
             // Añadir fotos y sus textos
-            if (items && items.length > 0) {
+            if (itemsArray.length > 0) {
                 extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
-                items.forEach((item, index) => {
+                itemsArray.forEach((item, index) => {
+                    if (!item) return;
                     let itemText = replaceCRMVars(item.text, dataVars);
                     if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
 
