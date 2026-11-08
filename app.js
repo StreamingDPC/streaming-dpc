@@ -608,7 +608,7 @@ window.openVideoModal = function (url) {
             iframe.src = '';
             iframe.style.display = 'none';
         }
-        player.src = url;
+        player.src = encodeURI(url);
         player.style.display = 'block';
         player.play().catch(e => console.log('Autoplay prevenido:', e));
     } else if (iframe) {
