@@ -743,6 +743,22 @@
                 </div>
             </div>
 
+            <div class="admin-form" style="background: linear-gradient(135deg, rgba(0, 210, 211, 0.08), rgba(255, 65, 108, 0.08)); border: 1px solid rgba(0, 210, 211, 0.35); border-radius: 14px; padding: 1.2rem; margin-bottom: 1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                    <div>
+                        <h4 style="margin:0 0 4px 0; color:#fff; font-size:1.05rem;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent-primary);"></i> Sincronización Automática de Banners del Mes
+                        </h4>
+                        <p style="margin:0; font-size:0.82rem; color:#94a3b8;">
+                            Carga los estrenos organizados en orden consecutivo de <strong>Mayor a Menor (del último día al primero)</strong> directamente desde los videos locales.
+                        </p>
+                    </div>
+                    <button type="button" onclick="loadMonthlyBannersAuto()" class="save-btn" style="background:linear-gradient(135deg, #00d2d3, #0984e3); color:#000; font-weight:800; padding:0.6rem 1.2rem; border-radius:10px; width:auto; border:none; cursor:pointer; box-shadow:0 4px 15px rgba(0,210,211,0.3);">
+                        <i class="fa-solid fa-rotate"></i> Cargar Banners de Noviembre
+                    </button>
+                </div>
+            </div>
+
             <div class="admin-form">
                 <h3 id="banner-form-title">Agregar Nuevo Banner</h3>
                 <div class="form-grid">
@@ -9361,7 +9377,7 @@
             if (editBannerIndex !== -1) {
                 storeConfig.mainBanners[editBannerIndex] = { badge, title, desc, img, btnText, btnLink };
             } else {
-                if (storeConfig.mainBanners.length >= 10) return alert('El máximo de banners permitidos es 10. Elimina uno primero.');
+                if (storeConfig.mainBanners.length >= 50) return alert('El máximo de banners permitidos es 50. Elimina uno primero.');
                 storeConfig.mainBanners.push({ badge, title, desc, img, btnText, btnLink });
             }
 
@@ -9394,6 +9410,27 @@
             db.ref('storeConfig').set(storeConfig);
             renderBannersList();
         }
+
+        window.loadMonthlyBannersAuto = async function () {
+            try {
+                const res = await fetch('./banners-month.json?v=' + Date.now());
+                if (!res.ok) throw new Error('No se encontró el archivo banners-month.json. Ejecuta primero "node sync-video.js --all"');
+                const autoBanners = await res.json();
+                if (!Array.isArray(autoBanners) || autoBanners.length === 0) {
+                    return alert('No hay banners generados en banners-month.json.');
+                }
+                const confirmMsg = `¿Deseas actualizar el Carrusel con los ${autoBanners.length} banners del mes ordenados del día mayor al menor?\n\n- Los clientes verán primero el estreno del día más reciente.\n- Se actualizará en vivo en la página web.`;
+                if (!confirm(confirmMsg)) return;
+
+                storeConfig.mainBanners = autoBanners;
+                await db.ref('storeConfig/mainBanners').set(autoBanners);
+                alert(`¡Listo! Se actualizaron ${autoBanners.length} banners en el carrusel en orden descendente.`);
+                renderBannersList();
+            } catch (err) {
+                console.error(err);
+                alert('Error al cargar banners automáticos: ' + err.message);
+            }
+        };
 
         // --- SECTION VENDEDORES ---
         function renderSellersList() {

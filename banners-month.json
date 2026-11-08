@@ -1,0 +1,82 @@
+[
+  {
+    "badge": "RULETA NAVIDEÑA",
+    "btnLink": "https://youtu.be/33R3hBP4XMQ",
+    "btnText": "Click Ver",
+    "desc": "Si no estas en el Podio 3 primeros lugares puedes participar",
+    "img": "",
+    "title": "Premios Navideños"
+  },
+  {
+    "badge": "Estreno 8 Nov",
+    "title": "Ciudad De Dios T2",
+    "desc": "Estreno exclusivo del 8 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/ciudad de dios t2.mp4",
+    "day": 8
+  },
+  {
+    "badge": "Estreno 7 Nov",
+    "title": "Crown Jewel Vault",
+    "desc": "Estreno exclusivo del 7 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/crown jewel vault.mp4",
+    "day": 7
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Backrooms Sin Salida",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/backrooms sin salida.mp4",
+    "day": 6
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Al Norte Del Norte",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/al norte del norte.mp4",
+    "day": 5
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Anestesia",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/anestesia.mp4",
+    "day": 4
+  },
+  {
+    "badge": "Estreno 3 Nov",
+    "title": "Bass X Machina",
+    "desc": "Estreno exclusivo del 3 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/bass x machina.mp4",
+    "day": 3
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Coleccion Magia Y Diversion",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/coleccion magia y diversion.mp4",
+    "day": 2
+  },
+  {
+    "badge": "Estreno 1 Nov",
+    "title": "Despues",
+    "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/despues.mp4",
+    "day": 1
+  }
+]
