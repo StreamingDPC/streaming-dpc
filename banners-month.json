@@ -8,6 +8,24 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 9 Nov",
+    "title": "La Casa De Perritos De Doozie",
+    "desc": "Estreno exclusivo del 9 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/la casa de perritos de doozie.mp4",
+    "day": 9
+  },
+  {
+    "badge": "Estreno 9 Nov",
+    "title": "Un Buen Abogado",
+    "desc": "Estreno exclusivo del 9 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/un buen abogado.mp4",
+    "day": 9
+  },
+  {
     "badge": "Estreno 8 Nov",
     "title": "Ciudad De Dios T2",
     "desc": "Estreno exclusivo del 8 de Noviembre • Streaming DPC",

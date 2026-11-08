@@ -99,16 +99,37 @@ async function run() {
         });
     }
 
-    // Si se pasa --all se procesan los días hasta hoy (o el día específico)
-    const daysToProcess = isAll 
-        ? dayEntries.filter(d => d <= todayDay)
-        : (args[0] && !isNaN(Number(args[0])) ? [Number(args[0])] : [todayDay]);
+    // Si se pasa --all se procesan todos los días disponibles en la carpeta
+    // Si se pasa un número específico (ej: 9), se procesa ese día
+    // Si no se pasa nada, procesa hasta el día actual de hoy
+    let daysToProcess;
+    if (isAll) {
+        daysToProcess = dayEntries;
+    } else if (args[0] && !isNaN(Number(args[0]))) {
+        daysToProcess = [Number(args[0])];
+    } else {
+        daysToProcess = dayEntries.filter(d => d <= todayDay);
+    }
 
     console.log(`\n🎬 Procesando días: ${daysToProcess.join(', ')}...`);
 
     if (!fs.existsSync(localVideosDir)) {
         fs.mkdirSync(localVideosDir, { recursive: true });
     }
+
+    // Si procesamos solo un día específico, cargamos los banners existentes de banners-month.json
+    // para no borrar los días previos, sino agregar/actualizar el nuevo día ordenado
+    let baseBanners = [];
+    const bannersJsonPath = path.join(__dirname, 'banners-month.json');
+    if (!isAll && fs.existsSync(bannersJsonPath) && daysToProcess.length === 1) {
+        try {
+            baseBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8'));
+        } catch (e) {
+            baseBanners = [];
+        }
+    }
+
+    const processedNewBanners = [];
 
     daysToProcess.forEach(d => {
         const dPath = path.join(sourceDir, String(d));
@@ -117,43 +138,58 @@ async function run() {
         const files = fs.readdirSync(dPath).filter(f => /\.(mp4|webm|mov)$/i.test(f));
         if (files.length === 0) return;
 
-        // Tomamos el video principal del día (o primer archivo)
-        const mainFile = files[0];
-        const srcFile = path.join(dPath, mainFile);
+        // Procesar todos los videos que existan en la carpeta del día
+        files.forEach(mainFile => {
+            const srcFile = path.join(dPath, mainFile);
+            const destFile = path.join(localVideosDir, mainFile);
 
-        // Si la fuente es externa, copiar a la carpeta local 'videos/'
-        const destFile = path.join(localVideosDir, mainFile);
-        if (sourceDir !== localVideosDir) {
-            if (!fs.existsSync(destFile)) {
-                const stat = fs.statSync(srcFile);
-                const sizeMb = (stat.size / (1024 * 1024)).toFixed(2);
-                console.log(`   📦 Copiando [Día ${d}] ${mainFile} (${sizeMb} MB)...`);
-                fs.copyFileSync(srcFile, destFile);
-            } else {
-                console.log(`   ⚡ [Día ${d}] Ya existe en videos/: ${mainFile}`);
+            // Si la fuente es externa, copiar a la carpeta local 'videos/'
+            if (sourceDir !== localVideosDir) {
+                if (!fs.existsSync(destFile)) {
+                    const stat = fs.statSync(srcFile);
+                    const sizeMb = (stat.size / (1024 * 1024)).toFixed(2);
+                    console.log(`   📦 Copiando [Día ${d}] ${mainFile} (${sizeMb} MB)...`);
+                    fs.copyFileSync(srcFile, destFile);
+                } else {
+                    console.log(`   ⚡ [Día ${d}] Ya existe en videos/: ${mainFile}`);
+                }
             }
-        }
 
-        const titleFormatted = formatTitle(mainFile);
+            const titleFormatted = formatTitle(mainFile);
 
-        newBanners.push({
-            badge: `Estreno ${d} Nov`,
-            title: titleFormatted,
-            desc: `Estreno exclusivo del ${d} de ${currentMonthName} • Streaming DPC`,
-            img: '',
-            btnText: 'Ver Video',
-            btnLink: `videos/${mainFile}`,
-            day: d
+            processedNewBanners.push({
+                badge: `Estreno ${d} Nov`,
+                title: titleFormatted,
+                desc: `Estreno exclusivo del ${d} de ${currentMonthName} • Streaming DPC`,
+                img: '',
+                btnText: 'Ver Video',
+                btnLink: `videos/${mainFile}`,
+                day: d
+            });
         });
     });
 
-    // Guardar banners-month.json
-    const bannersJsonPath = path.join(__dirname, 'banners-month.json');
-    fs.writeFileSync(bannersJsonPath, JSON.stringify(newBanners, null, 2), 'utf8');
+    let finalBanners = [];
+    if (!isAll && baseBanners.length > 0) {
+        // Filtrar si ya existía el día a procesar para reemplazarlo limpiamente
+        const targetDay = daysToProcess[0];
+        const keptBanners = baseBanners.filter(b => b.day !== targetDay);
+        // Preservar especiales
+        const specials = keptBanners.filter(b => !b.day);
+        const dayBanners = keptBanners.filter(b => b.day);
+        dayBanners.push(...processedNewBanners);
+        dayBanners.sort((a, b) => (b.day || 0) - (a.day || 0));
+        finalBanners = [...specials, ...dayBanners];
+    } else {
+        finalBanners = [...newBanners, ...processedNewBanners];
+    }
 
-    console.log(`\n✅ ¡Generados exitosamente ${newBanners.length} banners en 'banners-month.json'!`);
+    // Guardar banners-month.json
+    fs.writeFileSync(bannersJsonPath, JSON.stringify(finalBanners, null, 2), 'utf8');
+
+    console.log(`\n✅ ¡Generados exitosamente ${finalBanners.length} banners en 'banners-month.json'!`);
     console.log(`\n📋 Lista de Banners en Carrusel (Mayor a Menor):`);
-    newBanners.forEach((b, i) => {
+    finalBanners.forEach((b, i) => {
         console.log(`   ${i + 1}. [${b.badge}] ${b.title} -> ${b.btnLink}`);
     });
 
