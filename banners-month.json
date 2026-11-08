@@ -8,6 +8,42 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 10 Nov",
+    "title": "El Plan Del Diablo",
+    "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/el plan del diablo.mp4",
+    "day": 10
+  },
+  {
+    "badge": "Estreno 10 Nov",
+    "title": "Janelle James",
+    "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/janelle james.mp4",
+    "day": 10
+  },
+  {
+    "badge": "Estreno 10 Nov",
+    "title": "La Ultima Lagrima Antes De Reir",
+    "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/la ultima lagrima antes de reir.mp4",
+    "day": 10
+  },
+  {
+    "badge": "Estreno 10 Nov",
+    "title": "Touch",
+    "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/touch.mp4",
+    "day": 10
+  },
+  {
     "badge": "Estreno 9 Nov",
     "title": "La Casa De Perritos De Doozie",
     "desc": "Estreno exclusivo del 9 de Noviembre • Streaming DPC",
