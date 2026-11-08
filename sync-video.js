@@ -46,8 +46,109 @@ function formatTitle(filename) {
         .join(' ');
 }
 
+function parseDaysList(input) {
+    const days = new Set();
+    const parts = String(input).split(/[\s,]+/);
+    parts.forEach(p => {
+        if (p.includes('-')) {
+            const [start, end] = p.split('-').map(Number);
+            if (!isNaN(start) && !isNaN(end)) {
+                const min = Math.min(start, end);
+                const max = Math.max(start, end);
+                for (let i = min; i <= max; i++) days.add(i);
+            }
+        } else {
+            const num = Number(p);
+            if (!isNaN(num)) days.add(num);
+        }
+    });
+    return Array.from(days);
+}
+
 async function run() {
     const args = process.argv.slice(2);
+    const localVideosDir = path.join(__dirname, 'videos');
+    const bannersJsonPath = path.join(__dirname, 'banners-month.json');
+
+    // 1. Opcion para listar dias activos
+    if (args.includes('--list-days')) {
+        if (!fs.existsSync(bannersJsonPath)) {
+            console.log('   (No hay banners registrados aún)');
+            return;
+        }
+        try {
+            const currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
+            const days = Array.from(new Set(currentBanners.map(b => b.day).filter(Boolean)));
+            days.sort((a, b) => b - a);
+            console.log('   Días activos: ' + (days.length ? days.join(', ') : 'Ninguno'));
+        } catch (e) {
+            console.log('   Error leyendo banners-month.json');
+        }
+        return;
+    }
+
+    // 2. Opcion para eliminar dias especificos
+    const deleteIdx = args.findIndex(a => a === '--delete' || a === '-d');
+    if (deleteIdx !== -1 && args[deleteIdx + 1]) {
+        const daysToDelete = parseDaysList(args[deleteIdx + 1]);
+        if (daysToDelete.length === 0) {
+            console.log('❌ No se especificaron días válidos para eliminar.');
+            process.exit(1);
+        }
+
+        console.log(`\n🗑️ Solicitud de eliminación para los días: ${daysToDelete.join(', ')}...`);
+
+        let currentBanners = [];
+        if (fs.existsSync(bannersJsonPath)) {
+            try {
+                currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
+            } catch (e) {
+                currentBanners = [];
+            }
+        }
+
+        let deletedFiles = 0;
+        let totalMbFreed = 0;
+        const remainingBanners = [];
+
+        currentBanners.forEach(b => {
+            if (b.day && daysToDelete.includes(Number(b.day))) {
+                if (b.btnLink && b.btnLink.startsWith('videos/')) {
+                    const filename = b.btnLink.replace(/^videos\//, '');
+                    const filePath = path.join(localVideosDir, filename);
+                    if (fs.existsSync(filePath)) {
+                        try {
+                            const stat = fs.statSync(filePath);
+                            const mb = stat.size / (1024 * 1024);
+                            totalMbFreed += mb;
+                            fs.unlinkSync(filePath);
+                            console.log(`   🗑️ Video eliminado: ${filename} (${mb.toFixed(2)} MB liberados)`);
+                            deletedFiles++;
+                        } catch (err) {
+                            console.warn(`   ⚠️ No se pudo eliminar ${filename}: ${err.message}`);
+                        }
+                    } else {
+                        console.log(`   ℹ️ Video ya no estaba en disco: ${filename}`);
+                    }
+                }
+            } else {
+                remainingBanners.push(b);
+            }
+        });
+
+        fs.writeFileSync(bannersJsonPath, JSON.stringify(remainingBanners, null, 2), 'utf8');
+
+        console.log(`\n✅ Limpieza completada con éxito:`);
+        console.log(`   • Videos eliminados de videos/: ${deletedFiles}`);
+        console.log(`   • Espacio total liberado: ${totalMbFreed.toFixed(2)} MB`);
+        console.log(`   • Banners restantes en carrusel: ${remainingBanners.length}`);
+        console.log(`\n📋 Banners que quedaron activos:`);
+        remainingBanners.forEach((b, i) => {
+            console.log(`   ${i + 1}. [${b.badge}] ${b.title}`);
+        });
+        return;
+    }
+
     const isAll = args.includes('--all') || args.includes('-a');
     const isScanLocal = args.includes('--scan-local');
 
@@ -57,7 +158,6 @@ async function run() {
     const todayDay = now.getDate(); // ej: 8
 
     const remoteBasePath = `D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\${currentYear}\\${currentMonthName}`;
-    const localVideosDir = path.join(__dirname, 'videos');
     const localMonthDir = path.join(localVideosDir, currentMonthName);
 
     let sourceDir = remoteBasePath;
@@ -120,7 +220,6 @@ async function run() {
     // Si procesamos solo un día específico, cargamos los banners existentes de banners-month.json
     // para no borrar los días previos, sino agregar/actualizar el nuevo día ordenado
     let baseBanners = [];
-    const bannersJsonPath = path.join(__dirname, 'banners-month.json');
     if (!isAll && fs.existsSync(bannersJsonPath) && daysToProcess.length === 1) {
         try {
             baseBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8'));
