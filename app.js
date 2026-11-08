@@ -844,8 +844,10 @@ function renderProductCards(productList, emptyMessage) {
 // =====================================================
 
 const SMART_PLATFORMS = [
-    { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
-    { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
+    { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i, negativeRe: /netflix\s*privad/i },
+    { id: 'netflix_privada', name: 'Netflix Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /netflix\s*privad/i },
+    { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\b(disney\+?|dixney)\b/i, negativeRe: /(?:disney|dixney)\s*privad/i },
+    { id: 'disney_privada', name: 'Disney Privada', icon: '<i class="fa-solid fa-shield-halved"></i>', re: /(?:disney|dixney)\s*privad/i },
     { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
     { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
     { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
@@ -976,7 +978,9 @@ function resetSmartSearch(silent) {
 
 function matchesPlatformItem(product, plat) {
     const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
-    return plat.re.test(text);
+    if (!plat.re.test(text)) return false;
+    if (plat.negativeRe && plat.negativeRe.test(text)) return false;
+    return true;
 }
 
 function matchesDuration(product, months) {
@@ -1040,6 +1044,37 @@ function applySmartSearch() {
 
     // Base de productos activos (excluyendo ventas_extras si no aplican)
     let baseList = products.filter(p => p.active !== false && p.category !== 'ventas_extras');
+
+    // Excluir productos agotados en la búsqueda inteligente si están marcados como agotados
+    baseList = baseList.filter(p => {
+        let inStock = p.inStock !== false;
+        if (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0) {
+            inStock = false;
+        }
+        let bypassReserveUser = (isSellerMode && currentSellerName) ? currentSellerName : (window.clientPhoneLoggedIn || null);
+        if (!inStock && bypassReserveUser) {
+            let userRules = null;
+            if (p.reserveRules && p.reserveRules[bypassReserveUser]) {
+                userRules = p.reserveRules[bypassReserveUser];
+            } else if (p.allowExhaustedSeller) {
+                const allowedList = p.allowExhaustedSeller.split(',').map(x => x.trim());
+                if (allowedList.includes(bypassReserveUser)) {
+                    userRules = { stock: null, date: '' };
+                }
+            }
+            if (userRules) {
+                if (userRules.date) {
+                    const expiryTime = new Date(userRules.date + "T23:59:59").getTime();
+                    if (Date.now() > expiryTime) userRules = null;
+                }
+                if (userRules && userRules.stock !== null && userRules.stock !== undefined && userRules.stock <= 0) {
+                    userRules = null;
+                }
+            }
+            if (userRules) inStock = true;
+        }
+        return inStock;
+    });
 
     // Filtro por texto si hay búsqueda escrita
     if (hasQuery) {
