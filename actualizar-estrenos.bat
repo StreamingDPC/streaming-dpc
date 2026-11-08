@@ -6,9 +6,11 @@ echo ================================================================
 echo.
 echo  1. Sincronizar estrenos (un dia especifico o todo el mes)
 echo  2. Eliminar dias antiguos (liberar espacio en disco y web)
+echo  3. Publicar ultimos 10 estrenos en Estados de WhatsApp
 echo.
-set /p OPCION="Selecciona una opcion (1 o 2): "
+set /p OPCION="Selecciona una opcion (1, 2 o 3): "
 
+if "%OPCION%"=="3" goto PUBLICAR_ESTADOS
 if "%OPCION%"=="2" goto ELIMINAR
 
 :SINCRONIZAR
@@ -45,6 +47,24 @@ if "%DEL_DIAS%"=="" (
 echo.
 node sync-video.js --delete %DEL_DIAS%
 goto SUBIR
+
+:PUBLICAR_ESTADOS
+echo.
+echo ================================================================
+echo    Publicador a Estados de WhatsApp
+echo ================================================================
+echo  1. Subir solo 1 video de prueba (el estreno mas reciente)
+echo  2. Subir los ultimos 10 estrenos (Recomendado)
+echo.
+set /p SUB_OPCION="Selecciona una opcion (1 o 2): "
+if "%SUB_OPCION%"=="1" (
+    node post-status-cli.js 1
+) else (
+    node post-status-cli.js 10
+)
+echo.
+pause
+exit /b 0
 
 :SUBIR
 if errorlevel 1 (
