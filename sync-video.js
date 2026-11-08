@@ -152,10 +152,30 @@ async function run() {
     const isAll = args.includes('--all') || args.includes('-a');
     const isScanLocal = args.includes('--scan-local');
 
+    const MONTH_NAMES = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const MONTH_ABBRS = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    ];
+
     const now = new Date();
-    const currentYear = 2026;
-    const currentMonthName = 'Noviembre';
-    const todayDay = now.getDate(); // ej: 8
+    const currentYear = now.getFullYear();
+    const defaultMonthName = MONTH_NAMES[now.getMonth()];
+
+    // Soporte para elegir mes manual: --month Diciembre o -m Diciembre
+    let currentMonthName = defaultMonthName;
+    const monthArgIdx = args.findIndex(a => a === '--month' || a === '-m');
+    if (monthArgIdx !== -1 && args[monthArgIdx + 1]) {
+        currentMonthName = args[monthArgIdx + 1].trim();
+        currentMonthName = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1).toLowerCase();
+    }
+
+    const monthIndex = MONTH_NAMES.findIndex(m => m.toLowerCase() === currentMonthName.toLowerCase());
+    const monthAbbr = monthIndex !== -1 ? MONTH_ABBRS[monthIndex] : currentMonthName.slice(0, 3);
+    const todayDay = now.getDate();
 
     const remoteBasePath = `D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\${currentYear}\\${currentMonthName}`;
     const localMonthDir = path.join(localVideosDir, currentMonthName);
@@ -170,6 +190,7 @@ async function run() {
 
     if (!fs.existsSync(sourceDir)) {
         console.error(`❌ No se encontró la carpeta: ${sourceDir}`);
+        console.error(`💡 Asegúrate de que exista la carpeta del mes '${currentMonthName}' en tu disco D:\\`);
         process.exit(1);
     }
 
@@ -199,14 +220,17 @@ async function run() {
         });
     }
 
-    // Si se pasa --all se procesan todos los días disponibles en la carpeta
-    // Si se pasa un número específico (ej: 9), se procesa ese día
-    // Si no se pasa nada, procesa hasta el día actual de hoy
+    // Detectar si se paso un dia numerico (ej: node sync-video.js 5 o node sync-video.js --month Diciembre 5)
+    const targetDayArg = args.find((a, idx) => {
+        if (idx > 0 && (args[idx - 1] === '--month' || args[idx - 1] === '-m' || args[idx - 1] === '--delete' || args[idx - 1] === '-d')) return false;
+        return !isNaN(Number(a)) && String(a).trim() !== '';
+    });
+
     let daysToProcess;
     if (isAll) {
         daysToProcess = dayEntries;
-    } else if (args[0] && !isNaN(Number(args[0]))) {
-        daysToProcess = [Number(args[0])];
+    } else if (targetDayArg !== undefined) {
+        daysToProcess = [Number(targetDayArg)];
     } else {
         daysToProcess = dayEntries.filter(d => d <= todayDay);
     }
@@ -257,7 +281,7 @@ async function run() {
             const titleFormatted = formatTitle(mainFile);
 
             processedNewBanners.push({
-                badge: `Estreno ${d} Nov`,
+                badge: `Estreno ${d} ${monthAbbr}`,
                 title: titleFormatted,
                 desc: `Estreno exclusivo del ${d} de ${currentMonthName} • Streaming DPC`,
                 img: '',

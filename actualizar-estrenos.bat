@@ -15,15 +15,24 @@ if "%OPCION%"=="2" goto ELIMINAR
 
 :SINCRONIZAR
 echo.
-set /p DIA="Ingresa el numero del dia a sincronizar (o ENTER para todo el mes): "
+echo ----------------------------------------------------------------
+echo  Presiona ENTER para usar el mes actual del calendario,
+set /p MES=" o escribe otro mes si deseas cambiarlo (ej: Diciembre): "
+echo.
+set /p DIA=" Ingresa el numero del dia (o ENTER para todo el mes): "
+echo ----------------------------------------------------------------
+
+set MES_FLAG=
+if not "%MES%"=="" set MES_FLAG=--month %MES%
+
 if "%DIA%"=="" (
     echo.
     echo Sincronizando todo el mes...
-    node sync-video.js --all
+    node sync-video.js %MES_FLAG% --all
 ) else (
     echo.
     echo Sincronizando dia %DIA%...
-    node sync-video.js %DIA%
+    node sync-video.js %MES_FLAG% %DIA%
 )
 goto SUBIR
 
@@ -85,7 +94,7 @@ echo ================================================================
 echo    TODO LISTO!
 echo    Los cambios ya se subieron a la nube (Render).
 echo    Ahora ve a tu panel Admin (pestana Banners) y presiona:
-echo    "Cargar Banners de Noviembre"
+echo    "Sincronizar Banners del Mes"
 echo ================================================================
 echo.
 pause

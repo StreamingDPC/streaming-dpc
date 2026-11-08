@@ -754,7 +754,7 @@
                         </p>
                     </div>
                     <button type="button" onclick="loadMonthlyBannersAuto()" class="save-btn" style="background:linear-gradient(135deg, #00d2d3, #0984e3); color:#000; font-weight:800; padding:0.6rem 1.2rem; border-radius:10px; width:auto; border:none; cursor:pointer; box-shadow:0 4px 15px rgba(0,210,211,0.3);">
-                        <i class="fa-solid fa-rotate"></i> Cargar Banners de Noviembre
+                        <i class="fa-solid fa-rotate"></i> Sincronizar Banners del Mes
                     </button>
                 </div>
             </div>
@@ -12864,6 +12864,54 @@
             renderCRMPlatformsList(val.toLowerCase());
         }
 
+        function normalizePlatformAlias(str) {
+            if (!str) return '';
+            let s = String(str).toLowerCase().trim();
+            s = s.replace(/[\(\)\[\]]/g, ' ');
+            if (/\b(hbo|max)\b/i.test(s)) {
+                s = s.replace(/\b(hbo\s*max|max\s*hbo)\b/ig, 'hbo max');
+                s = s.replace(/\bhbo\b/ig, 'hbo max');
+                s = s.replace(/\bmax\b/ig, 'hbo max');
+                s = s.replace(/\bhbo\s+max(?:\s+hbo\s+max)+\b/ig, 'hbo max');
+            }
+            s = s.replace(/\bdisney\s*\+/ig, 'disney');
+            s = s.replace(/\bamazon\s*prime(?:\s*video)?\b/ig, 'prime video');
+            s = s.replace(/\bprime\b(?!\s*video)/ig, 'prime video');
+            s = s.replace(/\bparamount\s*\+/ig, 'paramount');
+            s = s.replace(/\bapple\s*tv\s*\+?/ig, 'apple');
+            s = s.replace(/\bvix\s*\+/ig, 'vix');
+            s = s.replace(/\bcrunchy\b/ig, 'crunchyroll');
+            return s.replace(/\s+/g, ' ').trim();
+        }
+
+        function matchCRMKeysForPlatform(platformStr, allDictKeys) {
+            if (!platformStr || !Array.isArray(allDictKeys)) return [];
+            const rawClean = String(platformStr).trim().toLowerCase();
+            const platNorm = normalizePlatformAlias(rawClean);
+            const isPlatPrivada = rawClean.includes('privad') || platNorm.includes('privad');
+
+            let matching = allDictKeys.filter(k => {
+                const baseRaw = k.split(' | ')[0].trim().toLowerCase();
+                const baseNorm = normalizePlatformAlias(baseRaw);
+                const isBasePrivada = baseRaw.includes('privad') || baseNorm.includes('privad');
+                if (isBasePrivada !== isPlatPrivada) return false;
+                return baseNorm === platNorm || baseRaw === rawClean;
+            });
+
+            if (matching.length === 0) {
+                matching = allDictKeys.filter(k => {
+                    const baseRaw = k.split(' | ')[0].trim().toLowerCase();
+                    const baseNorm = normalizePlatformAlias(baseRaw);
+                    const isBasePrivada = baseRaw.includes('privad') || baseNorm.includes('privad');
+                    if (isBasePrivada !== isPlatPrivada) return false;
+                    return baseNorm.includes(platNorm) || platNorm.includes(baseNorm) ||
+                           baseRaw.includes(rawClean) || rawClean.includes(baseRaw);
+                });
+            }
+
+            return matching;
+        }
+
         function createSpecificScreenButton(scr, idx) {
             const card = document.createElement('div');
             card.className = 'crm-screen-card';
@@ -12874,26 +12922,10 @@
             const emailLabel = scr.email ? scr.email : 'Sin correo';
 
             const dict = storeConfig.crmGalleryDict || {};
-            const platClean = (scr.platform || '').toLowerCase().trim();
             const allDictKeys = Object.keys(dict);
 
-            // Filtrar claves que correspondan exactamente a esta plataforma.
-            // Si la venta es "Netflix" normal, NO debe incluir "Netflix Privada".
-            let matchingKeys = allDictKeys.filter(k => {
-                const base = k.split(' | ')[0].trim().toLowerCase();
-                return base === platClean;
-            });
-
-            // Si no hubo coincidencia exacta de base, buscar con tolerancia pero distinguiendo "privada" de "normal"
-            if (matchingKeys.length === 0) {
-                const isPlatPrivada = platClean.includes('privad');
-                matchingKeys = allDictKeys.filter(k => {
-                    const base = k.split(' | ')[0].trim().toLowerCase();
-                    const isBasePrivada = base.includes('privad');
-                    if (isBasePrivada !== isPlatPrivada) return false;
-                    return base.includes(platClean) || platClean.includes(base);
-                });
-            }
+            // Filtrar claves que correspondan exactamente a esta plataforma (ej: Max (HBO) -> Hbo Max | CEL O PC, Hbo Max | TV)
+            let matchingKeys = matchCRMKeysForPlatform(scr.platform, allDictKeys);
 
             // Detectar variante preferida según la venta (si dice TV o CEL/PC)
             const contextText = `${scr.itemName || ''} ${scr.itemDetails || ''} ${_crmTargetClient.itemsRaw || ''}`.toLowerCase();
@@ -12905,7 +12937,7 @@
             }
 
             let variantButtonsHtml = '';
-            if (matchingKeys.length > 1) {
+            if (matchingKeys.length > 1 || (matchingKeys.length === 1 && matchingKeys[0].includes(' | '))) {
                 variantButtonsHtml = `
                     <div style="display:flex; gap:6px; margin-top:8px; width:100%; justify-content:center; flex-wrap:wrap;">
                         ${matchingKeys.map(k => {
@@ -12916,7 +12948,7 @@
                             const bg = isPref ? '#9b59b6' : 'rgba(255,255,255,0.08)';
                             const border = isPref ? '1px solid #c39bd3' : '1px solid rgba(255,255,255,0.2)';
                             return `
-                                <button type="button" class="crm-var-btn" data-key="${k.replace(/"/g, '&quot;')}" style="padding:4px 9px; font-size:0.75rem; font-weight:bold; border-radius:6px; background:${bg}; color:white; border:${border}; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;">
+                                <button type="button" class="crm-var-btn" data-key="${k.replace(/"/g, '&quot;')}" style="padding:4px 9px; font-size:0.75rem; font-weight:bold; border-radius:6px; background:${bg}; color:white; border:${border}; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;" title="Enviar guía de ${varName}">
                                     ${icon} ${varName}
                                 </button>
                             `;
@@ -13022,9 +13054,13 @@
             const recommended = [];
             const others = [];
 
+            const purchasedNorm = normalizePlatformAlias(purchasedItemsStr);
+
             keys.forEach(k => {
                 const kLower = k.toLowerCase();
-                if (purchasedItemsStr.includes(kLower)) {
+                const kBase = k.split(' | ')[0].trim().toLowerCase();
+                const kNorm = normalizePlatformAlias(kBase);
+                if (purchasedItemsStr.includes(kLower) || purchasedItemsStr.includes(kBase) || (kNorm && purchasedNorm.includes(kNorm))) {
                     recommended.push(k);
                 } else {
                     others.push(k);
@@ -13126,27 +13162,13 @@
             let targetClientName = (optScreen && optScreen.profile) ? optScreen.profile : name;
             const dict = storeConfig.crmGalleryDict || {};
 
-            // 1. Resolver clave exacta en el diccionario crmGalleryDict (soporta "Netflix", "Netflix | TV", etc.)
+            // 1. Resolver clave exacta en el diccionario crmGalleryDict (soporta "Netflix", "Netflix | TV", "Hbo Max | TV", etc.)
             let resolvedKey = platformName;
             let items = dict[resolvedKey] || [];
 
             if (!items || items.length === 0) {
-                const pClean = (platformName || '').toLowerCase().trim();
                 const allKeys = Object.keys(dict);
-                let matchingKeys = allKeys.filter(k => {
-                    const base = k.split(' | ')[0].trim().toLowerCase();
-                    return base === pClean;
-                });
-
-                if (matchingKeys.length === 0) {
-                    const isPlatPrivada = pClean.includes('privad');
-                    matchingKeys = allKeys.filter(k => {
-                        const base = k.split(' | ')[0].trim().toLowerCase();
-                        const isBasePrivada = base.includes('privad');
-                        if (isBasePrivada !== isPlatPrivada) return false;
-                        return base.includes(pClean) || pClean.includes(base);
-                    });
-                }
+                let matchingKeys = matchCRMKeysForPlatform(platformName, allKeys);
 
                 if (matchingKeys.length > 0) {
                     const contextStr = `${optScreen?.itemName || ''} ${optScreen?.itemDetails || ''} ${_crmTargetClient?.itemsRaw || ''}`.toLowerCase();
@@ -13183,16 +13205,16 @@
                 const fullItemsRaw = _crmTargetClient.fullItems || [];
                 const fullItems = Array.isArray(fullItemsRaw) ? fullItemsRaw : Object.values(fullItemsRaw || {});
                 if (fullItems.length > 0) {
+                    const basePlatNorm = normalizePlatformAlias(platformName.split(' | ')[0].trim());
+                    const isBasePrivada = basePlatNorm.includes('privad');
                     fullItems.forEach(it => {
                         if (it.specificEmails && Array.isArray(it.specificEmails)) {
-                            const basePlat = platformName.split(' | ')[0].trim().toLowerCase();
-                            const isBasePrivada = basePlat.includes('privad');
                             const match = it.specificEmails.find(se => {
                                 if (!se || !se.platform) return false;
-                                const sePlat = se.platform.toLowerCase().trim();
-                                const isSePrivada = sePlat.includes('privad');
+                                const seNorm = normalizePlatformAlias(se.platform);
+                                const isSePrivada = seNorm.includes('privad');
                                 if (isBasePrivada !== isSePrivada) return false;
-                                return sePlat === basePlat || basePlat.includes(sePlat) || sePlat.includes(basePlat);
+                                return seNorm === basePlatNorm || seNorm.includes(basePlatNorm) || basePlatNorm.includes(seNorm);
                             });
                             if (match) {
                                 if (match.email && match.email.trim()) targetEmail = match.email;
@@ -13208,7 +13230,7 @@
                 }
             }
 
-            const cleanPlatformName = platformName.includes(' | ') ? platformName.split(' | ')[0].trim() : platformName;
+            const cleanPlatformName = (optScreen && optScreen.platform) ? optScreen.platform : (platformName.includes(' | ') ? platformName.split(' | ')[0].trim() : platformName);
             const dataVars = {
                 name: targetClientName,
                 platformName: cleanPlatformName,
@@ -13257,6 +13279,13 @@
                         }
                     }
                 });
+            }
+
+            // Añadir enlace de guía si está configurado en crmGalleryDict o crmPlatforms
+            const manualGuideUrl = (items && items.guideUrl) || 
+                                   (storeConfig.crmPlatforms && storeConfig.crmPlatforms[resolvedKey] && storeConfig.crmPlatforms[resolvedKey].manualUrl) || '';
+            if (manualGuideUrl && manualGuideUrl.trim()) {
+                extraText += `\n\n🌐 *Enlace / Guía de acceso:* ${manualGuideUrl.trim()}`;
             }
 
             const fullMsgForClient = mainText + extraText;
