@@ -1533,16 +1533,19 @@
     <!-- Video Modal -->
     <div id="video-modal" class="modal" style="z-index: 2000;">
         <div class="modal-content"
-            style="max-width: 800px; padding: 0.5rem; background: var(--bg-dark); border: 2px solid var(--accent-primary);">
+            style="max-width: 800px; padding: 0.5rem; background: var(--bg-dark); border: 2px solid var(--accent-primary); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
             <div style="display: flex; justify-content: flex-end; padding: 0.5rem;">
                 <span class="close-modal" id="video-modal-close"
-                    style="color: white; font-size: 2rem; cursor: pointer;">&times;</span>
+                    style="color: white; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</span>
             </div>
-            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 8px;">
                 <iframe id="video-iframe"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0; display:none;"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen></iframe>
+                <video id="video-player"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display:none; background:#000;"
+                    controls playsinline preload="auto"></video>
             </div>
         </div>
     </div>

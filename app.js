@@ -470,7 +470,14 @@ function setupConfigUI() {
                 let btnLink = b.btnLink || 'estrenos';
 
                 let btnHtml = '';
-                if (btnLink.startsWith('http')) {
+                const isVideoOrUrl = btnLink.startsWith('http') ||
+                                     /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(btnLink) ||
+                                     btnLink.startsWith('videos/') ||
+                                     btnLink.startsWith('./videos/') ||
+                                     btnLink.startsWith('/videos/') ||
+                                     btnLink.includes('youtu');
+
+                if (isVideoOrUrl) {
                     btnHtml = `<button onclick="openVideoModal('${btnLink}')" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
                 } else {
                     btnHtml = `<button onclick="document.querySelector('.tab-btn[data-tab=\\'${btnLink}\\']')?.click();" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
@@ -572,18 +579,45 @@ window.moveBannerSlider = function (dir) {
 }
 
 window.openVideoModal = function (url) {
+    if (!url) return;
     const modal = document.getElementById('video-modal');
     if (!modal) return window.open(url, '_blank');
+
     const iframe = document.getElementById('video-iframe');
-    let iframeSrc = url;
-    if (url.includes('youtube.com/watch?v=')) {
-        iframeSrc = url.replace('watch?v=', 'embed/');
-    } else if (url.includes('youtu.be/')) {
-        iframeSrc = url.replace('youtu.be/', 'youtube.com/embed/');
+    const player = document.getElementById('video-player');
+
+    const isYouTube = url.includes('youtube.com/') || url.includes('youtu.be/');
+
+    if (isYouTube && iframe) {
+        let iframeSrc = url;
+        if (url.includes('watch?v=')) {
+            iframeSrc = url.replace('watch?v=', 'embed/');
+        } else if (url.includes('youtu.be/')) {
+            iframeSrc = url.replace('youtu.be/', 'youtube.com/embed/');
+        }
+        if (player) {
+            player.pause();
+            player.style.display = 'none';
+            player.removeAttribute('src');
+            player.load();
+        }
+        iframe.src = iframeSrc;
+        iframe.style.display = 'block';
+    } else if (player) {
+        if (iframe) {
+            iframe.src = '';
+            iframe.style.display = 'none';
+        }
+        player.src = url;
+        player.style.display = 'block';
+        player.play().catch(e => console.log('Autoplay prevenido:', e));
+    } else if (iframe) {
+        iframe.src = url;
+        iframe.style.display = 'block';
     }
-    iframe.src = iframeSrc;
+
     modal.style.display = 'block';
-}
+};
 
 window.openImageViewer = function (imgSrc) {
     const modal = document.getElementById('image-viewer-modal');
@@ -1470,11 +1504,26 @@ function setupEventListeners() {
     }
 
     const videoModalClose = document.getElementById('video-modal-close');
+    const videoModal = document.getElementById('video-modal');
+
+    function closeVideoModalFn() {
+        if (videoModal) videoModal.style.display = 'none';
+        const iframe = document.getElementById('video-iframe');
+        if (iframe) iframe.src = '';
+        const player = document.getElementById('video-player');
+        if (player) {
+            player.pause();
+            player.removeAttribute('src');
+            player.load();
+        }
+    }
+
     if (videoModalClose) {
-        videoModalClose.addEventListener('click', () => {
-            document.getElementById('video-modal').style.display = 'none';
-            const iframe = document.getElementById('video-iframe');
-            if (iframe) iframe.src = '';
+        videoModalClose.addEventListener('click', closeVideoModalFn);
+    }
+    if (videoModal) {
+        videoModal.addEventListener('click', (e) => {
+            if (e.target === videoModal) closeVideoModalFn();
         });
     }
 
