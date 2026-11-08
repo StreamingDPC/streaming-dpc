@@ -13577,7 +13577,7 @@
                             <span style="background:#ff4d4d; color:white; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight:bold;">Vencida</span>
                         </div>
                         <p style="font-size:0.82rem; color:#ccc; margin-bottom:0.8rem; line-height:1.4;">
-                            📅 Venció: ${new Date(sale.expirationDate).toLocaleDateString()} a las ${new Date(sale.expirationDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br>
+                            📅 Venció: ${new Date(sale.expirationDate).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })} a las ${new Date(sale.expirationDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br>
                             💰 Valor: ${totalDisp}
                         </p>
                         <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
@@ -14105,7 +14105,7 @@
                 const opt = document.createElement('option');
                 opt.value = k;
                 const itemsText = s.items ? (Array.isArray(s.items) ? s.items.map(i => i.name).join(', ') : Object.values(s.items).map(i => i.name).join(', ')) : 'Pantalla';
-                const dateText = s.date ? new Date(s.date).toLocaleDateString() : 'N/A';
+                const dateText = s.date ? new Date(s.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                 const sellerTag = (s._sellerName || (s.sellerName && s.sellerName !== 'Página Web Oficial' && s.sellerName !== 'Admin')) ? `[Vendedor: ${s._sellerName || s.sellerName}] ` : '';
                 const nameTag = s.clientName ? `[${s.clientName}] ` : '';
                 let fName = sellerTag + nameTag + itemsText;
@@ -14221,7 +14221,7 @@
                         const opt = document.createElement('option');
                         opt.value = k;
                         const itemsText = s.items ? (Array.isArray(s.items) ? s.items.map(i => i.name).join(', ') : Object.values(s.items).map(i => i.name).join(', ')) : 'Pantalla';
-                        const dateText = s.date ? new Date(s.date).toLocaleDateString() : 'N/A';
+                        const dateText = s.date ? new Date(s.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
                         const sellerTag = (s._sellerName || (s.sellerName && s.sellerName !== 'Página Web Oficial' && s.sellerName !== 'Admin')) ? `[Vendedor: ${s._sellerName || s.sellerName}] ` : '';
                         const nameTag = hasMultipleClients && s.clientName ? `[${s.clientName}] ` : '';
                         let fName = sellerTag + nameTag + itemsText;
@@ -14351,8 +14351,9 @@
             const newName = (document.getElementById('edit-client-name').value || '').trim();
             const newCity = (document.getElementById('edit-client-city').value || '').trim();
             const updateAllHistory = document.getElementById('edit-client-update-all') ? document.getElementById('edit-client-update-all').checked : true;
-            const endVal = document.getElementById('edit-client-end-date').value;
-            const endTime = document.getElementById('edit-client-end-time').value || '23:59';
+            const startVal = document.getElementById('edit-client-start-date') ? document.getElementById('edit-client-start-date').value : '';
+            const endVal = document.getElementById('edit-client-end-date') ? document.getElementById('edit-client-end-date').value : '';
+            const endTime = document.getElementById('edit-client-end-time') ? (document.getElementById('edit-client-end-time').value || '23:59') : '23:59';
             const newPin = document.getElementById('edit-client-pin').value.trim();
             const newPhoneInput = (document.getElementById('edit-client-phone-new').value || '').replace(/\D/g, '').replace(/^57/, '');
             const newEmail = document.getElementById('edit-client-email') ? document.getElementById('edit-client-email').value.trim() : null;
@@ -14410,8 +14411,18 @@
                                 globalUpdates['clientSales/' + pKey + '/' + saleKey + '/clientCity'] = newCity;
                             }
                             if (isSpecificSale) {
+                                if (startVal) {
+                                    const [sY, sM, sD] = startVal.split('-').map(Number);
+                                    if (!isNaN(sY) && !isNaN(sM) && !isNaN(sD)) {
+                                        const newStartTs = new Date(sY, sM - 1, sD, 12, 0, 0, 0).getTime();
+                                        globalUpdates['clientSales/' + pKey + '/' + saleKey + '/date'] = newStartTs;
+                                        globalUpdates['clientSales/' + pKey + '/' + saleKey + '/fechaCompraOriginal'] = newStartTs;
+                                    }
+                                }
                                 if (endVal) {
-                                    const newExpTs = new Date(endVal + 'T' + endTime).getTime();
+                                    const [eY, eM, eD] = endVal.split('-').map(Number);
+                                    const [eH, eMin] = (endTime || '23:59').split(':').map(Number);
+                                    const newExpTs = new Date(eY, eM - 1, eD, isNaN(eH) ? 23 : eH, isNaN(eMin) ? 59 : eMin, 59, 999).getTime();
                                     const prevExpTs = Number(sales[saleKey] && sales[saleKey].expirationDate) || 0;
                                     globalUpdates['clientSales/' + pKey + '/' + saleKey + '/expirationDate'] = newExpTs;
                                     if (prevExpTs > 0 && newExpTs > prevExpTs + 5 * 86400000) {
@@ -14468,8 +14479,18 @@
                                     if (newEmail !== null) globalUpdates['sellerSales/' + sn + '/' + sid + '/email'] = newEmail;
                                 }
                                 if (isSpecificSale) {
+                                    if (startVal) {
+                                        const [sY, sM, sD] = startVal.split('-').map(Number);
+                                        if (!isNaN(sY) && !isNaN(sM) && !isNaN(sD)) {
+                                            const newStartTs = new Date(sY, sM - 1, sD, 12, 0, 0, 0).getTime();
+                                            globalUpdates['sellerSales/' + sn + '/' + sid + '/date'] = newStartTs;
+                                            globalUpdates['sellerSales/' + sn + '/' + sid + '/fechaCompraOriginal'] = newStartTs;
+                                        }
+                                    }
                                     if (endVal) {
-                                        const newExpTs = new Date(endVal + 'T' + endTime).getTime();
+                                        const [eY, eM, eD] = endVal.split('-').map(Number);
+                                        const [eH, eMin] = (endTime || '23:59').split(':').map(Number);
+                                        const newExpTs = new Date(eY, eM - 1, eD, isNaN(eH) ? 23 : eH, isNaN(eMin) ? 59 : eMin, 59, 999).getTime();
                                         const prevExpTs = Number(ss.expirationDate) || 0;
                                         globalUpdates['sellerSales/' + sn + '/' + sid + '/expirationDate'] = newExpTs;
                                         if (prevExpTs > 0 && newExpTs > prevExpTs + 5 * 86400000) {
@@ -14563,6 +14584,9 @@
 
                 alert('Datos actualizados correctamente.');
                 searchClient();
+                if (typeof renderExpiredClients === 'function') renderExpiredClients();
+                if (typeof renderClientsList === 'function') renderClientsList();
+                if (typeof renderAllClientsList === 'function') renderAllClientsList();
             } catch (err) {
                 console.error(err);
                 alert('Error: ' + err.message);
