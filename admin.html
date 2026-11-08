@@ -1122,6 +1122,10 @@
                             </div>
                         </div>
                         <div class="form-col" style="margin-bottom: 1rem;">
+                            <label><i class="fa-solid fa-dollar-sign" style="color: #22c55e;"></i> Valor Pagado ($):</label>
+                            <input type="number" id="edit-client-total" placeholder="Ej: 40000" min="0" step="1000">
+                        </div>
+                        <div class="form-col" style="margin-bottom: 1rem;">
                             <label>PIN de Acceso (4 dígitos):</label>
                             <input type="text" id="edit-client-pin" placeholder="No asignado aún">
                         </div>
@@ -12522,52 +12526,92 @@
                     if (clientSales[cleanPhone] && clientSales[cleanPhone][saleId]) {
                         const s = clientSales[cleanPhone][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const anchorDate = currentExp;
-                        const sMonths = s.months || (s.items && s.items[0] && s.items[0].months) || 1;
-                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(currentExp, currentExp, sMonths).getTime();
+                        const anchorDate = parseInt(s.fechaCompraOriginal || s.date) || currentExp;
+                        const renewMonths = 1;
+                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(anchorDate, currentExp, renewMonths).getTime();
+
+                        // Calcular precio unitario mensual de la venta
+                        let unitPrice = 0;
+                        if (s.items && s.items.length > 0) {
+                            unitPrice = s.items.reduce((sum, it) => sum + Number(it.finalPrice || it.price || 0), 0);
+                        }
+                        if (!unitPrice && s.total && s.months && Number(s.months) > 0) {
+                            unitPrice = Math.round(Number(s.total) / Number(s.months));
+                        }
+                        if (!unitPrice) {
+                            unitPrice = Number(s.total || s.price || 0);
+                        }
+
+                        const currentMonths = Number(s.months) || 1;
+                        const newMonths = currentMonths + renewMonths;
+                        const currentTotal = Number(s.total !== undefined ? s.total : (s.price || 0));
+                        const newTotal = currentTotal + (unitPrice * renewMonths);
 
                         finalMsgTS = newExp; // Guarda para el WhatsApp
-                        updates[`clientSales/${cleanPhone}/${saleId}/date`] = currentExp;
                         updates[`clientSales/${cleanPhone}/${saleId}/expirationDate`] = newExp;
-                        updates[`clientSales/${cleanPhone}/${saleId}/fechaCompraOriginal`] = anchorDate; // Guarda ancla para el futuro
                         updates[`clientSales/${cleanPhone}/${saleId}/isPaid`] = true;
                         updates[`clientSales/${cleanPhone}/${saleId}/adminRenewedAt`] = nowRenewTS;
+                        updates[`clientSales/${cleanPhone}/${saleId}/months`] = newMonths;
+                        if (newTotal > 0) updates[`clientSales/${cleanPhone}/${saleId}/total`] = newTotal;
+                        if (!s.fechaCompraOriginal) updates[`clientSales/${cleanPhone}/${saleId}/fechaCompraOriginal`] = anchorDate;
 
-                        // 2. Buscar en sellerSales donde coincida el telefono y la fecha original
+                        // 2. Buscar en sellerSales donde coincida el telefono y la fecha original o id
                         for (let sName in sellerSales) {
                             for (let sid in sellerSales[sName]) {
                                 const ss = sellerSales[sName][sid];
-                                if (ss.clientPhone === cleanPhone && ss.date === s.date) {
-                                    updates[`sellerSales/${sName}/${sid}/date`] = currentExp;
+                                if (ss.clientPhone === cleanPhone && (sid === saleId || ss.date === s.date || ss.expirationDate === currentExp)) {
                                     updates[`sellerSales/${sName}/${sid}/expirationDate`] = newExp;
                                     updates[`sellerSales/${sName}/${sid}/isPaid`] = true;
                                     updates[`sellerSales/${sName}/${sid}/adminRenewedAt`] = nowRenewTS;
+                                    updates[`sellerSales/${sName}/${sid}/months`] = newMonths;
+                                    if (newTotal > 0) updates[`sellerSales/${sName}/${sid}/total`] = newTotal;
+                                    if (!ss.fechaCompraOriginal) updates[`sellerSales/${sName}/${sid}/fechaCompraOriginal`] = anchorDate;
                                 }
                             }
                         }
                     } else if (sourceType === 'seller' && sellerSales[sourceName] && sellerSales[sourceName][saleId]) {
                         const s = sellerSales[sourceName][saleId];
                         const currentExp = parseInt(s.expirationDate) || Date.now();
-                        const anchorDate = currentExp;
-                        const sMonths = s.months || (s.items && s.items[0] && s.items[0].months) || 1;
-                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(currentExp, currentExp, sMonths).getTime();
+                        const anchorDate = parseInt(s.fechaCompraOriginal || s.date) || currentExp;
+                        const renewMonths = 1;
+                        const newExp = window.DPCBillingEngine.calcularProximoVencimiento(anchorDate, currentExp, renewMonths).getTime();
+
+                        // Calcular precio unitario mensual de la venta
+                        let unitPrice = 0;
+                        if (s.items && s.items.length > 0) {
+                            unitPrice = s.items.reduce((sum, it) => sum + Number(it.finalPrice || it.price || 0), 0);
+                        }
+                        if (!unitPrice && s.total && s.months && Number(s.months) > 0) {
+                            unitPrice = Math.round(Number(s.total) / Number(s.months));
+                        }
+                        if (!unitPrice) {
+                            unitPrice = Number(s.total || s.price || 0);
+                        }
+
+                        const currentMonths = Number(s.months) || 1;
+                        const newMonths = currentMonths + renewMonths;
+                        const currentTotal = Number(s.total !== undefined ? s.total : (s.price || 0));
+                        const newTotal = currentTotal + (unitPrice * renewMonths);
 
                         finalMsgTS = newExp; // Guarda para el WhatsApp
-                        updates[`sellerSales/${sourceName}/${saleId}/date`] = currentExp;
                         updates[`sellerSales/${sourceName}/${saleId}/expirationDate`] = newExp;
-                        updates[`sellerSales/${sourceName}/${saleId}/fechaCompraOriginal`] = anchorDate;
                         updates[`sellerSales/${sourceName}/${saleId}/isPaid`] = true;
                         updates[`sellerSales/${sourceName}/${saleId}/adminRenewedAt`] = nowRenewTS;
+                        updates[`sellerSales/${sourceName}/${saleId}/months`] = newMonths;
+                        if (newTotal > 0) updates[`sellerSales/${sourceName}/${saleId}/total`] = newTotal;
+                        if (!s.fechaCompraOriginal) updates[`sellerSales/${sourceName}/${saleId}/fechaCompraOriginal`] = anchorDate;
 
-                        // Intentar buscar en clientSales por fecha
+                        // Intentar buscar en clientSales por fecha o id
                         if (clientSales[cleanPhone]) {
                             for (let cid in clientSales[cleanPhone]) {
-                                if (clientSales[cleanPhone][cid].date === s.date) {
-                                    updates[`clientSales/${cleanPhone}/${cid}/date`] = currentExp;
+                                const cs = clientSales[cleanPhone][cid];
+                                if (cid === saleId || cs.date === s.date || cs.expirationDate === currentExp) {
                                     updates[`clientSales/${cleanPhone}/${cid}/expirationDate`] = newExp;
-                                    updates[`clientSales/${cleanPhone}/${cid}/fechaCompraOriginal`] = anchorDate;
                                     updates[`clientSales/${cleanPhone}/${cid}/isPaid`] = true;
                                     updates[`clientSales/${cleanPhone}/${cid}/adminRenewedAt`] = nowRenewTS;
+                                    updates[`clientSales/${cleanPhone}/${cid}/months`] = newMonths;
+                                    if (newTotal > 0) updates[`clientSales/${cleanPhone}/${cid}/total`] = newTotal;
+                                    if (!cs.fechaCompraOriginal) updates[`clientSales/${cleanPhone}/${cid}/fechaCompraOriginal`] = anchorDate;
                                 }
                             }
                         }
@@ -14039,6 +14083,11 @@
                 const ed = new Date(saleObj.expirationDate);
                 document.getElementById('edit-client-end-date').value = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}-${String(ed.getDate()).padStart(2, '0')}`;
             } else document.getElementById('edit-client-end-date').value = '';
+
+            const totalEl = document.getElementById('edit-client-total');
+            if (totalEl) {
+                totalEl.value = (saleObj.total !== undefined ? saleObj.total : (saleObj.price || ''));
+            }
         }
 
         window.onEditClientSaleChange = function () {
@@ -14354,6 +14403,8 @@
             const startVal = document.getElementById('edit-client-start-date') ? document.getElementById('edit-client-start-date').value : '';
             const endVal = document.getElementById('edit-client-end-date') ? document.getElementById('edit-client-end-date').value : '';
             const endTime = document.getElementById('edit-client-end-time') ? (document.getElementById('edit-client-end-time').value || '23:59') : '23:59';
+            const totalVal = document.getElementById('edit-client-total') ? document.getElementById('edit-client-total').value.trim() : '';
+            const newTotal = totalVal !== '' ? parseFloat(totalVal) : null;
             const newPin = document.getElementById('edit-client-pin').value.trim();
             const newPhoneInput = (document.getElementById('edit-client-phone-new').value || '').replace(/\D/g, '').replace(/^57/, '');
             const newEmail = document.getElementById('edit-client-email') ? document.getElementById('edit-client-email').value.trim() : null;
@@ -14429,6 +14480,21 @@
                                         globalUpdates['clientSales/' + pKey + '/' + saleKey + '/adminRenewedAt'] = Date.now();
                                     }
                                 }
+                                if (newTotal !== null && !isNaN(newTotal)) {
+                                    globalUpdates['clientSales/' + pKey + '/' + saleKey + '/total'] = newTotal;
+                                }
+                                if (startVal && endVal) {
+                                    const [sY, sM, sD] = startVal.split('-').map(Number);
+                                    const [eY, eM, eD] = endVal.split('-').map(Number);
+                                    const [eH, eMin] = (endTime || '23:59').split(':').map(Number);
+                                    const calcStartTs = new Date(sY, sM - 1, sD, 12, 0, 0, 0).getTime();
+                                    const calcExpTs = new Date(eY, eM - 1, eD, isNaN(eH) ? 23 : eH, isNaN(eMin) ? 59 : eMin, 59, 999).getTime();
+                                    const diffDays = Math.round((calcExpTs - calcStartTs) / 86400000);
+                                    if (diffDays >= 20) {
+                                        const calcMonths = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                                        globalUpdates['clientSales/' + pKey + '/' + saleKey + '/months'] = calcMonths;
+                                    }
+                                }
                                 if (newEmail !== null) globalUpdates['clientSales/' + pKey + '/' + saleKey + '/email'] = newEmail;
 
                                 if (hasHistoryEmails) {
@@ -14495,6 +14561,21 @@
                                         globalUpdates['sellerSales/' + sn + '/' + sid + '/expirationDate'] = newExpTs;
                                         if (prevExpTs > 0 && newExpTs > prevExpTs + 5 * 86400000) {
                                             globalUpdates['sellerSales/' + sn + '/' + sid + '/adminRenewedAt'] = Date.now();
+                                        }
+                                    }
+                                    if (newTotal !== null && !isNaN(newTotal)) {
+                                        globalUpdates['sellerSales/' + sn + '/' + sid + '/total'] = newTotal;
+                                    }
+                                    if (startVal && endVal) {
+                                        const [sY, sM, sD] = startVal.split('-').map(Number);
+                                        const [eY, eM, eD] = endVal.split('-').map(Number);
+                                        const [eH, eMin] = (endTime || '23:59').split(':').map(Number);
+                                        const calcStartTs = new Date(sY, sM - 1, sD, 12, 0, 0, 0).getTime();
+                                        const calcExpTs = new Date(eY, eM - 1, eD, isNaN(eH) ? 23 : eH, isNaN(eMin) ? 59 : eMin, 59, 999).getTime();
+                                        const diffDays = Math.round((calcExpTs - calcStartTs) / 86400000);
+                                        if (diffDays >= 20) {
+                                            const calcMonths = Math.min(12, Math.max(1, Math.round(diffDays / 30)));
+                                            globalUpdates['sellerSales/' + sn + '/' + sid + '/months'] = calcMonths;
                                         }
                                     }
 
