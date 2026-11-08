@@ -1048,9 +1048,6 @@ function applySmartSearch() {
     // Excluir productos agotados en la búsqueda inteligente si están marcados como agotados
     baseList = baseList.filter(p => {
         let inStock = p.inStock !== false;
-        if (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0) {
-            inStock = false;
-        }
         let bypassReserveUser = (isSellerMode && currentSellerName) ? currentSellerName : (window.clientPhoneLoggedIn || null);
         if (!inStock && bypassReserveUser) {
             let userRules = null;

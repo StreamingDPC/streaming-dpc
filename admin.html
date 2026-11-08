@@ -8177,7 +8177,7 @@
             if (N > 0 && filterCat === 'all' && Array.isArray(dynamicProducts)) {
                 hasExactSizeMatch = dynamicProducts.some(p => {
                     if (!p) return false;
-                    const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                    const isOutOfStock = p.inStock === false;
                     if (isOutOfStock) return false;
                     if (hasMonths && !matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return false;
                     if (hasQuery) {
@@ -8198,7 +8198,7 @@
                 if (!p) return;
 
                 // Ocultar productos agotados si se está buscando o si se activó Ocultar Agotadas
-                const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                const isOutOfStock = p.inStock === false;
                 if ((hasFilters || hideOutOfStock) && isOutOfStock) return;
 
                 // Filtro por categoría
@@ -15541,7 +15541,7 @@
 
             let baseList = dynamicProducts.filter(p => {
                 if (!p || p.active === false || p.category === 'ventas_extras') return false;
-                const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                const isOutOfStock = p.inStock === false;
                 if (isOutOfStock) return false;
                 return true;
             });
