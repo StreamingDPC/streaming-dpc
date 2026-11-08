@@ -512,10 +512,20 @@ header {
     border-color: #e50914 !important;
     box-shadow: 0 0 14px rgba(229, 9, 20, 0.45);
 }
+.platform-chip[data-platform="netflix_privada"].active {
+    background: rgba(229, 9, 20, 0.3) !important;
+    border-color: #ff4d4d !important;
+    box-shadow: 0 0 14px rgba(255, 77, 77, 0.6);
+}
 .platform-chip[data-platform="disney"].active {
     background: rgba(17, 60, 207, 0.25) !important;
     border-color: #113ccf !important;
     box-shadow: 0 0 14px rgba(17, 60, 207, 0.5);
+}
+.platform-chip[data-platform="disney_privada"].active {
+    background: rgba(0, 210, 211, 0.25) !important;
+    border-color: #00d2d3 !important;
+    box-shadow: 0 0 14px rgba(0, 210, 211, 0.6);
 }
 .platform-chip[data-platform="prime"].active {
     background: rgba(0, 168, 225, 0.22) !important;

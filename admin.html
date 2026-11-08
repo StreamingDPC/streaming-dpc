@@ -658,6 +658,9 @@
                             <button type="button" class="duration-chip" data-months="1" onclick="selectAdminProductDuration('1')">1 Mes</button>
                             <button type="button" class="duration-chip" data-months="2" onclick="selectAdminProductDuration('2')">2 Meses</button>
                             <button type="button" class="duration-chip" data-months="3" onclick="selectAdminProductDuration('3')">3 Meses</button>
+                            <button type="button" class="duration-chip" id="admin-product-hide-stock-btn" onclick="toggleAdminProductHideStock()" style="margin-left: 6px; border-color: rgba(239, 68, 68, 0.35); color: #f87171;" title="Ocultar pantallas marcadas como agotadas">
+                                <i class="fa-solid fa-ban"></i> Ocultar Agotadas
+                            </button>
                         </div>
                         <button type="button" id="admin-product-reset-btn" class="smart-reset-btn" style="display:none;" onclick="resetAdminProductSmartSearch()">
                             <i class="fa-solid fa-rotate-left"></i> Limpiar Filtro
@@ -7921,8 +7924,10 @@
         // BUSCADOR INTELIGENTE - CONFIGURACIÓN Y FUNCIONES COMPARTIDAS
         // =====================================================
         window.ADMIN_SMART_PLATFORMS = [
-            { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i },
-            { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\bdisney\+?\b/i },
+            { id: 'netflix', name: 'Netflix', icon: '<i class="fa-solid fa-play"></i>', re: /\bnetflix\b/i, negativeRe: /netflix\s*privad/i },
+            { id: 'netflix_privada', name: 'Netflix Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /netflix\s*privad/i },
+            { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\b(disney\+?|dixney)\b/i, negativeRe: /(?:disney|dixney)\s*privad/i },
+            { id: 'disney_privada', name: 'Disney Privada', icon: '<i class="fa-solid fa-shield-halved"></i>', re: /(?:disney|dixney)\s*privad/i },
             { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
             { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i },
             { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
@@ -7954,6 +7959,7 @@
 
         function matchesAdminPlatformItem(product, plat) {
             const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+            if (plat.negativeRe && plat.negativeRe.test(text)) return false;
             return plat.re.test(text);
         }
         window.matchesAdminPlatformItem = matchesAdminPlatformItem;
@@ -7975,7 +7981,8 @@
         let _adminProductSearchState = {
             selectedPlatforms: new Set(),
             selectedMonths: 'all',
-            query: ''
+            query: '',
+            hideOutOfStock: false
         };
         window._adminProductSearchState = _adminProductSearchState;
 
@@ -7985,15 +7992,37 @@
             return _adminProductSearchState.selectedPlatforms.size > 0 ||
                    _adminProductSearchState.selectedMonths !== 'all' ||
                    _adminProductSearchState.query.trim().length > 0 ||
-                   catVal !== 'all';
+                   catVal !== 'all' ||
+                   _adminProductSearchState.hideOutOfStock === true;
         }
         window.isAnyAdminProductFilterActive = isAnyAdminProductFilterActive;
+
+        function toggleAdminProductHideStock() {
+            _adminProductSearchState.hideOutOfStock = !_adminProductSearchState.hideOutOfStock;
+            const btn = document.getElementById('admin-product-hide-stock-btn');
+            if (btn) {
+                if (_adminProductSearchState.hideOutOfStock) {
+                    btn.classList.add('active');
+                    btn.style.background = 'rgba(239, 68, 68, 0.22)';
+                    btn.style.borderColor = '#ef4444';
+                    btn.style.color = '#fff';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = '';
+                    btn.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                    btn.style.color = '#f87171';
+                }
+            }
+            updateAdminProductChipsUI();
+            renderAdminList();
+        }
+        window.toggleAdminProductHideStock = toggleAdminProductHideStock;
 
         function initAdminProductSmartSearch() {
             const container = document.getElementById('admin-product-platform-chips');
             if (!container) return;
 
-            if (!container.children || container.children.length === 0) {
+            if (!container.children || container.children.length !== ADMIN_SMART_PLATFORMS.length) {
                 container.innerHTML = ADMIN_SMART_PLATFORMS.map(p => `
                     <button type="button" class="platform-chip" data-platform="${p.id}" onclick="toggleAdminProductPlatform('${p.id}')">
                         <span class="chip-icon">${p.icon}</span>
@@ -8072,6 +8101,7 @@
             _adminProductSearchState.selectedPlatforms.clear();
             _adminProductSearchState.selectedMonths = 'all';
             _adminProductSearchState.query = '';
+            _adminProductSearchState.hideOutOfStock = false;
 
             const input = document.getElementById('search-prod');
             if (input) input.value = '';
@@ -8086,6 +8116,14 @@
                 if (c.dataset.months === 'all') c.classList.add('active');
                 else c.classList.remove('active');
             });
+
+            const stockBtn = document.getElementById('admin-product-hide-stock-btn');
+            if (stockBtn) {
+                stockBtn.classList.remove('active');
+                stockBtn.style.background = '';
+                stockBtn.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                stockBtn.style.color = '#f87171';
+            }
 
             updateAdminProductChipsUI();
             renderAdminList();
@@ -8112,13 +8150,16 @@
             const hasMonths = _adminProductSearchState.selectedMonths !== 'all';
             const hasQuery = search.length > 0;
             const hasCat = filterCat !== 'all';
-            const hasFilters = N > 0 || hasMonths || hasQuery || hasCat;
+            const hideOutOfStock = _adminProductSearchState.hideOutOfStock === true;
+            const hasFilters = N > 0 || hasMonths || hasQuery || hasCat || hideOutOfStock;
 
             // Si hay plataformas seleccionadas y categoría 'all', verificar si hay coincidencias de tamaño exacto N
             let hasExactSizeMatch = false;
             if (N > 0 && filterCat === 'all' && Array.isArray(dynamicProducts)) {
                 hasExactSizeMatch = dynamicProducts.some(p => {
                     if (!p) return false;
+                    const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                    if (isOutOfStock) return false;
                     if (hasMonths && !matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return false;
                     if (hasQuery) {
                         const qTerms = search.split(/\s+/).filter(Boolean);
@@ -8136,6 +8177,10 @@
 
             dynamicProducts.forEach((p, index) => {
                 if (!p) return;
+
+                // Ocultar productos agotados si se está buscando o si se activó Ocultar Agotadas
+                const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                if ((hasFilters || hideOutOfStock) && isOutOfStock) return;
 
                 // Filtro por categoría
                 if (filterCat !== 'all' && p.category !== filterCat) return;
@@ -15322,7 +15367,7 @@
             const container = document.getElementById('admin-manual-platform-chips');
             if (!container) return;
 
-            if (container.children.length === 0) {
+            if (!container.children || container.children.length !== ADMIN_SMART_PLATFORMS.length) {
                 container.innerHTML = ADMIN_SMART_PLATFORMS.map(p => `
                     <button type="button" class="platform-chip" data-platform="${p.id}" onclick="toggleAdminManualPlatform('${p.id}')">
                         <span class="chip-icon">${p.icon}</span>
@@ -15442,7 +15487,12 @@
 
             if (!dynamicProducts || !select1) return;
 
-            let baseList = dynamicProducts.filter(p => p && p.active !== false && p.category !== 'ventas_extras');
+            let baseList = dynamicProducts.filter(p => {
+                if (!p || p.active === false || p.category === 'ventas_extras') return false;
+                const isOutOfStock = p.inStock === false || (p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) === 0);
+                if (isOutOfStock) return false;
+                return true;
+            });
 
             if (hasQuery) {
                 const qTerms = _adminManualSearchState.query.toLowerCase().split(/\s+/).filter(Boolean);
