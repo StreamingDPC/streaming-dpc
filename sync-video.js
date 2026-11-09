@@ -245,17 +245,23 @@ async function run() {
         });
     }
 
-    // Detectar si se paso un dia numerico (ej: node sync-video.js 5 o node sync-video.js --month Diciembre 5)
-    const targetDayArg = args.find((a, idx) => {
+    // Detectar si se paso un dia, lista de dias o rango (ej: 12, "1,2", "1-12")
+    const dayArg = args.find((a, idx) => {
+        if (a.startsWith('-')) return false;
         if (idx > 0 && (args[idx - 1] === '--month' || args[idx - 1] === '-m' || args[idx - 1] === '--delete' || args[idx - 1] === '-d')) return false;
-        return !isNaN(Number(a)) && String(a).trim() !== '';
+        return /^[\d\s,\-]+$/.test(a.trim());
     });
 
     let daysToProcess;
     if (isAll) {
         daysToProcess = dayEntries;
-    } else if (targetDayArg !== undefined) {
-        daysToProcess = [Number(targetDayArg)];
+    } else if (dayArg) {
+        const parsed = parseDaysList(dayArg);
+        daysToProcess = dayEntries.filter(d => parsed.includes(d));
+        if (daysToProcess.length === 0) {
+            console.error(`❌ No se encontraron carpetas para los días especificados (${dayArg}) en ${currentMonthName}.`);
+            process.exit(1);
+        }
     } else {
         daysToProcess = dayEntries.filter(d => d <= todayDay);
     }
@@ -266,10 +272,10 @@ async function run() {
         fs.mkdirSync(localVideosDir, { recursive: true });
     }
 
-    // Si procesamos solo un día específico, cargamos los banners existentes de banners-month.json
-    // para no borrar los días previos, sino agregar/actualizar el nuevo día ordenado
+    // Si NO es --all y procesamos días específicos, cargamos los banners existentes de banners-month.json
+    // para no borrar los días previos, sino actualizar/agregar los nuevos ordenados
     let baseBanners = [];
-    if (!isAll && fs.existsSync(bannersJsonPath) && daysToProcess.length === 1) {
+    if (!isAll && fs.existsSync(bannersJsonPath)) {
         try {
             baseBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8'));
         } catch (e) {
@@ -336,14 +342,14 @@ async function run() {
 
     let finalBanners = [];
     if (!isAll && baseBanners.length > 0) {
-        // Filtrar si ya existía el día a procesar para reemplazarlo limpiamente
-        const targetDay = daysToProcess[0];
-        const keptBanners = baseBanners.filter(b => b.day !== targetDay);
+        // Filtrar los días procesados para reemplazarlos con la versión actualizada
+        const daysSet = new Set(daysToProcess);
+        const keptBanners = baseBanners.filter(b => !daysSet.has(Number(b.day)));
         // Preservar especiales
-        const specials = keptBanners.filter(b => !b.day);
-        const dayBanners = keptBanners.filter(b => b.day);
+        const specials = keptBanners.filter(b => !b.day || (b.badge && b.badge.toLowerCase().includes('ruleta')));
+        const dayBanners = keptBanners.filter(b => b.day && (!b.badge || !b.badge.toLowerCase().includes('ruleta')));
         dayBanners.push(...processedNewBanners);
-        dayBanners.sort((a, b) => (b.day || 0) - (a.day || 0));
+        dayBanners.sort((a, b) => (Number(b.day) || 0) - (Number(a.day) || 0));
         finalBanners = [...specials, ...dayBanners];
     } else {
         finalBanners = [...newBanners, ...processedNewBanners];

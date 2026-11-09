@@ -97,8 +97,15 @@ if errorlevel 1 (
 
 echo.
 echo Subiendo cambios a GitHub y Render...
-git add -A
-git commit -m "chore: actualizar y limpiar videos/banners" || echo No habia cambios pendientes.
+if not "%DIA%"=="" (
+    echo Sincronizando especificamente el dia %DIA% en git...
+    git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html videos/%DIA%
+    git commit -m "chore: actualizar estrenos dia %DIA%" || echo No habia cambios pendientes.
+) else (
+    echo Sincronizando cambios en git...
+    git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html videos
+    git commit -m "chore: actualizar y limpiar videos/banners" || echo No habia cambios pendientes.
+)
 git push all main
 
 echo.

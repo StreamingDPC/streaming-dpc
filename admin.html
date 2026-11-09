@@ -9414,17 +9414,41 @@
         window.loadMonthlyBannersAuto = async function () {
             try {
                 const res = await fetch('./banners-month.json?v=' + Date.now());
-                if (!res.ok) throw new Error('No se encontró el archivo banners-month.json. Ejecuta primero "node sync-video.js --all"');
+                if (!res.ok) throw new Error('No se encontró el archivo banners-month.json. Ejecuta primero "actualizar-estrenos.bat"');
                 const autoBanners = await res.json();
                 if (!Array.isArray(autoBanners) || autoBanners.length === 0) {
                     return alert('No hay banners generados en banners-month.json.');
                 }
-                const confirmMsg = `¿Deseas actualizar el Carrusel con los ${autoBanners.length} banners del mes ordenados del día mayor al menor?\n\n- Los clientes verán primero el estreno del día más reciente.\n- Se actualizará en vivo en la página web.`;
+
+                // Separar banners especiales (ej: Ruleta Navideña) de los videos
+                const specialBanners = autoBanners.filter(b => !b.day || (b.badge && b.badge.toLowerCase().includes('ruleta')));
+                const videoBanners = autoBanners.filter(b => b.day && (!b.badge || !b.badge.toLowerCase().includes('ruleta')));
+
+                // Preguntar cuántos estrenos desea activar en el carrusel para mantener la web rápida y liviana
+                const inputChoice = prompt(
+                    `Se encontraron ${videoBanners.length} estrenos sincronizados en el archivo.\n\n` +
+                    `¿Cuántos estrenos recientes deseas activar en el carrusel de la página?\n` +
+                    `• Escribe un número (ej: 10 o 15) para que la página cargue súper rápida y liviana.\n` +
+                    `• O escribe "todos" si deseas activar todos los estrenos.`,
+                    "10"
+                );
+
+                if (inputChoice === null) return;
+
+                let selectedVideoBanners = videoBanners;
+                const trimmed = inputChoice.trim().toLowerCase();
+                if (trimmed !== 'todos' && !isNaN(Number(trimmed)) && Number(trimmed) > 0) {
+                    selectedVideoBanners = videoBanners.slice(0, Number(trimmed));
+                }
+
+                const finalBannersToSave = [...specialBanners, ...selectedVideoBanners];
+
+                const confirmMsg = `¿Deseas actualizar el Carrusel con ${finalBannersToSave.length} banners (${specialBanners.length} especiales + ${selectedVideoBanners.length} estrenos recientes ordenados de mayor a menor)?\n\n- Los clientes verán primero el estreno del día más reciente.\n- La página web quedará liviana y rápida.\n- Se actualizará en vivo en la página web.`;
                 if (!confirm(confirmMsg)) return;
 
-                storeConfig.mainBanners = autoBanners;
-                await db.ref('storeConfig/mainBanners').set(autoBanners);
-                alert(`¡Listo! Se actualizaron ${autoBanners.length} banners en el carrusel en orden descendente.`);
+                storeConfig.mainBanners = finalBannersToSave;
+                await db.ref('storeConfig/mainBanners').set(finalBannersToSave);
+                alert(`¡Listo! Se actualizaron ${finalBannersToSave.length} banners en el carrusel.`);
                 renderBannersList();
             } catch (err) {
                 console.error(err);
