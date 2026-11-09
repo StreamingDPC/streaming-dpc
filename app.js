@@ -6657,15 +6657,11 @@ function buildNavWhatsAppLink(userName, position, screens, prize, categoryTitle)
 
 function isCurrentUserAdminForNavTest() {
     try {
-        const isLocalAdmin = localStorage.getItem('adminLoggedIn') === 'true';
-        const isSellerAdmin = typeof isSellerMode !== 'undefined' && isSellerMode &&
-            ['admin', 'administrador', 'administrador (global)', 'tienda principal', 'página web oficial'].includes(String(currentSellerName || '').toLowerCase().trim());
         const urlParams = new URLSearchParams(window.location.search);
-        const hasAdminParam = urlParams.get('admin') === 'true' || 
-                              urlParams.get('test_admin') === 'true' || 
-                              urlParams.get('test_navidad') === 'true' || 
-                              urlParams.get('test_promo') === 'true';
-        return Boolean(isLocalAdmin || isSellerAdmin || hasAdminParam);
+        const hasExplicitTestParam = urlParams.get('test_admin') === 'true' || 
+                                     urlParams.get('test_navidad') === 'true' || 
+                                     urlParams.get('test_promo') === 'true';
+        return Boolean(hasExplicitTestParam);
     } catch(e) {
         return false;
     }
@@ -6685,9 +6681,11 @@ try {
     if (saved) navTestConfig = Object.assign(navTestConfig, JSON.parse(saved));
 } catch(e) {}
 
-// SEGURIDAD: Si no es Administrador, nunca activar modo pruebas de redención
+// SEGURIDAD: En la tienda pública NUNCA mostrar la barra de pruebas a menos que se use el parámetro de prueba explícito por URL.
+// La simulación y redención de pruebas es exclusiva de admin.html
 if (!isCurrentUserAdminForNavTest()) {
     navTestConfig.active = false;
+    try { localStorage.removeItem('nav_test_config'); } catch(e) {}
 }
 
 const NAV_TEST_PRESETS = {
