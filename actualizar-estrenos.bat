@@ -6,7 +6,7 @@ echo ================================================================
 echo.
 echo  1. Sincronizar estrenos (un dia especifico o todo el mes)
 echo  2. Eliminar dias antiguos (liberar espacio en disco y web)
-echo  3. Publicar ultimos 10 estrenos en Estados de WhatsApp
+echo  3. Publicar estrenos en Estados de WhatsApp
 echo.
 set /p OPCION="Selecciona una opcion (1, 2 o 3): "
 
@@ -60,16 +60,28 @@ goto SUBIR
 :PUBLICAR_ESTADOS
 echo.
 echo ================================================================
-echo    Publicador a Estados de WhatsApp
+echo    Publicador a Estados de WhatsApp - Streaming DPC
 echo ================================================================
-echo  1. Subir solo 1 video de prueba (el estreno mas reciente)
-echo  2. Subir los ultimos 10 estrenos (Recomendado)
+echo  1. Subir TODOS los videos disponibles (De mayor a menor dia)
+echo  2. Subir los videos de UN DIA especifico (ej: Dia 10)
+echo  3. Subir solo los ultimos N videos (ej: 10)
+echo  4. Subir 1 video de prueba (el mas reciente)
 echo.
-set /p SUB_OPCION="Selecciona una opcion (1 o 2): "
+set /p SUB_OPCION="Selecciona una opcion (1, 2, 3 o 4): "
 if "%SUB_OPCION%"=="1" (
+    node post-status-cli.js --all
+) else if "%SUB_OPCION%"=="2" (
+    echo.
+    set /p DIA_ESTADO="Ingresa el numero del dia a publicar en Estados (ej: 10): "
+    node post-status-cli.js --day %DIA_ESTADO%
+) else if "%SUB_OPCION%"=="3" (
+    echo.
+    set /p CANT_ESTADO="Ingresa la cantidad de videos a publicar (ej: 10): "
+    node post-status-cli.js %CANT_ESTADO%
+) else if "%SUB_OPCION%"=="4" (
     node post-status-cli.js 1
 ) else (
-    node post-status-cli.js 10
+    echo Opcion invalida.
 )
 echo.
 pause

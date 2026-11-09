@@ -8,13 +8,301 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 27 Nov",
+    "title": "El Niño",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/el niño.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
+    "title": "Quasimodo",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/quasimodo.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
+    "title": "El Secuestro De Toods",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/el secuestro de toods.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
+    "title": "Foolnigh",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/foolnigh.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
+    "title": "Blade Runner 2099",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/Blade Runner 2099.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
+    "title": "The Mosquito Bowl",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/the mosquito bowl.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "El Camino Azul",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/el camino azul.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Hermanastras",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/hermanastras.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Las Disculpas De Vicentina",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/las disculpas de vicentina.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Lol Argentina T3",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/lol argentina t3.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Percy Jackson T3",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/percy jackson t3.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Yellowjackets",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/Yellowjackets .mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 19 Nov",
+    "title": "Los Altruistas",
+    "desc": "Estreno exclusivo del 19 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/19/los altruistas.mp4",
+    "day": 19,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
+    "title": "Como Proteger A Una Estrella",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/como proteger a una estrella.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
+    "title": "El Juego De Viena",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/el juego de viena.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
+    "title": "Gordon",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/gordon.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
+    "title": "Los 12 Signos De Valentina",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/los 12 signos de valentina.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
+    "title": "Somos Asi",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/somos asi.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 15 Nov",
+    "title": "Black Butler",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/black butler.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 15 Nov",
+    "title": "El Cine Segun Philomena",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/el cine segun philomena.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 15 Nov",
+    "title": "Los Elegidos T6",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/los elegidos t6.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 14 Nov",
+    "title": "Sinterklass",
+    "desc": "Estreno exclusivo del 14 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/14/sinterklass.mp4",
+    "day": 14,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 13 Nov",
+    "title": "Anele Y Buzza",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/anele y buzza.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 13 Nov",
+    "title": "Buenas Piñas",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/buenas piñas.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 13 Nov",
+    "title": "El Intercambio Navideño",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/el intercambio navideño.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 13 Nov",
+    "title": "Heartland",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/heartland.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 11 Nov",
     "title": "Aeropuerto Brasil T8",
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/aeropuerto brasil t8.mp4",
-    "day": 11
+    "btnLink": "videos/11/aeropuerto brasil t8.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -22,8 +310,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/avedon.mp4",
-    "day": 11
+    "btnLink": "videos/11/avedon.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -31,8 +321,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/el claroscuro.mp4",
-    "day": 11
+    "btnLink": "videos/11/el claroscuro.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -40,8 +332,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/el cuerpo.mp4",
-    "day": 11
+    "btnLink": "videos/11/el cuerpo.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -49,8 +343,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/el señor de los anillos de poder.mp4",
-    "day": 11
+    "btnLink": "videos/11/el señor de los anillos de poder.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -58,8 +354,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/gospel de navidad.mp4",
-    "day": 11
+    "btnLink": "videos/11/gospel de navidad.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -67,8 +365,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/kijsada paradise.mp4",
-    "day": 11
+    "btnLink": "videos/11/kijsada paradise.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -76,8 +376,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/la ley de alicia.mp4",
-    "day": 11
+    "btnLink": "videos/11/la ley de alicia.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 11 Nov",
@@ -85,8 +387,10 @@
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/style wars.mp4",
-    "day": 11
+    "btnLink": "videos/11/style wars.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 10 Nov",
@@ -94,8 +398,10 @@
     "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/el plan del diablo.mp4",
-    "day": 10
+    "btnLink": "videos/10/el plan del diablo.mp4",
+    "day": 10,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 10 Nov",
@@ -103,8 +409,10 @@
     "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/janelle james.mp4",
-    "day": 10
+    "btnLink": "videos/10/janelle james.mp4",
+    "day": 10,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 10 Nov",
@@ -112,8 +420,10 @@
     "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/la ultima lagrima antes de reir.mp4",
-    "day": 10
+    "btnLink": "videos/10/la ultima lagrima antes de reir.mp4",
+    "day": 10,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 10 Nov",
@@ -121,8 +431,10 @@
     "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/touch.mp4",
-    "day": 10
+    "btnLink": "videos/10/touch.mp4",
+    "day": 10,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 9 Nov",
@@ -130,8 +442,10 @@
     "desc": "Estreno exclusivo del 9 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/la casa de perritos de doozie.mp4",
-    "day": 9
+    "btnLink": "videos/9/la casa de perritos de doozie.mp4",
+    "day": 9,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 9 Nov",
@@ -139,8 +453,10 @@
     "desc": "Estreno exclusivo del 9 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/un buen abogado.mp4",
-    "day": 9
+    "btnLink": "videos/9/un buen abogado.mp4",
+    "day": 9,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 8 Nov",
@@ -148,8 +464,10 @@
     "desc": "Estreno exclusivo del 8 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/ciudad de dios t2.mp4",
-    "day": 8
+    "btnLink": "videos/8/ciudad de dios t2.mp4",
+    "day": 8,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 7 Nov",
@@ -157,8 +475,21 @@
     "desc": "Estreno exclusivo del 7 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/crown jewel vault.mp4",
-    "day": 7
+    "btnLink": "videos/7/crown jewel vault.mp4",
+    "day": 7,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 7 Nov",
+    "title": "Paramount Publicidad",
+    "desc": "Estreno exclusivo del 7 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/7/paramount publicidad.mp4",
+    "day": 7,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 6 Nov",
@@ -166,8 +497,87 @@
     "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/backrooms sin salida.mp4",
-    "day": 6
+    "btnLink": "videos/6/backrooms sin salida.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "De Mal En Peor",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/de mal en peor.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Desporotexida",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/desporotexida.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "El Club Del Pie Izquierdo",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/el club del pie izquierdo.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Palacio",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/palacio.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Pez Puff Puff",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/pez puff puff.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Return To Christmas",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/return to christmas.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 6 Nov",
+    "title": "Un Amor Posible",
+    "desc": "Estreno exclusivo del 6 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/6/un amor posible.mp4",
+    "day": 6,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 5 Nov",
@@ -175,8 +585,120 @@
     "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/al norte del norte.mp4",
-    "day": 5
+    "btnLink": "videos/5/al norte del norte.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Alta Gama El Caso Relojes",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/alta gama el caso relojes.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Diwali Con Corazon",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/diwali con corazon.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "La Caida Del Vuelo 811",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/la caida del vuelo 811.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Line Of Fire T1",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/line of fire t1.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Navidad Para El Amor",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/navidad para el amor.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Navidad Real",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/navidad real.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Normal People",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/normal people.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Palomas Negras",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/palomas negras.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Policias En Actuacion",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/policias en actuacion.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 5 Nov",
+    "title": "Un Poco De Compañia Antes De Morir",
+    "desc": "Estreno exclusivo del 5 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/5/un poco de compañia antes de morir.mp4",
+    "day": 5,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 4 Nov",
@@ -184,8 +706,98 @@
     "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/anestesia.mp4",
-    "day": 4
+    "btnLink": "videos/4/anestesia.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Desaparecida Natalee",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/desaparecida natalee.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "El Codigo Da Vinci",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/el codigo da vinci.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "La Leyenda De Tarzabn",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/la leyenda de tarzabn.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "La Razon De Estar Contigo",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/la razon de estar contigo.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Muhammad Ali  El Más Grande",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/Muhammad Ali_ El Más Grande.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Ninho La Fama",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/ninho la fama .mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Peter Rabbit",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/peter rabbit.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 4 Nov",
+    "title": "Todo Vale",
+    "desc": "Estreno exclusivo del 4 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/4/todo vale.mp4",
+    "day": 4,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 3 Nov",
@@ -193,8 +805,10 @@
     "desc": "Estreno exclusivo del 3 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/bass x machina.mp4",
-    "day": 3
+    "btnLink": "videos/3/bass x machina.mp4",
+    "day": 3,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 2 Nov",
@@ -202,8 +816,21 @@
     "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/coleccion magia y diversion.mp4",
-    "day": 2
+    "btnLink": "videos/2/coleccion magia y diversion.mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Viernes Negro",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/2/viernes negro.mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -211,8 +838,10 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/despues.mp4",
-    "day": 1
+    "btnLink": "videos/1/despues.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -220,8 +849,10 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/destino final.mp4",
-    "day": 1
+    "btnLink": "videos/1/destino final.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -229,8 +860,10 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/francotirador.mp4",
-    "day": 1
+    "btnLink": "videos/1/francotirador.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -238,8 +871,10 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/la edad dorada.mp4",
-    "day": 1
+    "btnLink": "videos/1/la edad dorada.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -247,8 +882,10 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/loca obsesion.mp4",
-    "day": 1
+    "btnLink": "videos/1/loca obsesion.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   },
   {
     "badge": "Estreno 1 Nov",
@@ -256,7 +893,9 @@
     "desc": "Estreno exclusivo del 1 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/un plan perfecto.mp4",
-    "day": 1
+    "btnLink": "videos/1/un plan perfecto.mp4",
+    "day": 1,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   }
 ]

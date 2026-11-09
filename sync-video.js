@@ -111,6 +111,33 @@ async function run() {
         let totalMbFreed = 0;
         const remainingBanners = [];
 
+        // 1. Eliminar carpetas completas del día si existen en videos/<d>/
+        daysToDelete.forEach(d => {
+            const dayDir = path.join(localVideosDir, String(d));
+            if (fs.existsSync(dayDir)) {
+                try {
+                    const files = fs.readdirSync(dayDir);
+                    files.forEach(f => {
+                        const fp = path.join(dayDir, f);
+                        try {
+                            const stat = fs.statSync(fp);
+                            const mb = stat.size / (1024 * 1024);
+                            totalMbFreed += mb;
+                            fs.unlinkSync(fp);
+                            console.log(`   🗑️ Video eliminado: ${d}/${f} (${mb.toFixed(2)} MB liberados)`);
+                            deletedFiles++;
+                        } catch (err) {
+                            console.warn(`   ⚠️ No se pudo eliminar ${d}/${f}: ${err.message}`);
+                        }
+                    });
+                    fs.rmdirSync(dayDir);
+                } catch (err) {
+                    console.warn(`   ⚠️ Error eliminando carpeta ${d}: ${err.message}`);
+                }
+            }
+        });
+
+        // 2. Eliminar cualquier archivo suelto legacy y actualizar banners restantes
         currentBanners.forEach(b => {
             if (b.day && daysToDelete.includes(Number(b.day))) {
                 if (b.btnLink && b.btnLink.startsWith('videos/')) {
@@ -122,13 +149,11 @@ async function run() {
                             const mb = stat.size / (1024 * 1024);
                             totalMbFreed += mb;
                             fs.unlinkSync(filePath);
-                            console.log(`   🗑️ Video eliminado: ${filename} (${mb.toFixed(2)} MB liberados)`);
+                            console.log(`   🗑️ Video legacy eliminado: ${filename} (${mb.toFixed(2)} MB liberados)`);
                             deletedFiles++;
                         } catch (err) {
                             console.warn(`   ⚠️ No se pudo eliminar ${filename}: ${err.message}`);
                         }
-                    } else {
-                        console.log(`   ℹ️ Video ya no estaba en disco: ${filename}`);
                     }
                 }
             } else {
@@ -261,12 +286,22 @@ async function run() {
         const files = fs.readdirSync(dPath).filter(f => /\.(mp4|webm|mov)$/i.test(f));
         if (files.length === 0) return;
 
+        // Crear carpeta individual por día en videos/<d>/
+        const localDayDir = path.join(localVideosDir, String(d));
+        if (!fs.existsSync(localDayDir)) {
+            fs.mkdirSync(localDayDir, { recursive: true });
+        }
+
+        // Ordenar alfabéticamente los videos dentro de cada día
+        files.sort((a, b) => a.localeCompare(b));
+
         // Procesar todos los videos que existan en la carpeta del día
         files.forEach(mainFile => {
             const srcFile = path.join(dPath, mainFile);
-            const destFile = path.join(localVideosDir, mainFile);
+            const destFile = path.join(localDayDir, mainFile);
+            const legacyLooseFile = path.join(localVideosDir, mainFile);
 
-            // Si la fuente es externa, copiar a la carpeta local 'videos/'
+            // Si la fuente es externa, copiar a videos/<d>/
             if (sourceDir !== localVideosDir) {
                 if (!fs.existsSync(destFile)) {
                     const stat = fs.statSync(srcFile);
@@ -274,7 +309,12 @@ async function run() {
                     console.log(`   📦 Copiando [Día ${d}] ${mainFile} (${sizeMb} MB)...`);
                     fs.copyFileSync(srcFile, destFile);
                 } else {
-                    console.log(`   ⚡ [Día ${d}] Ya existe en videos/: ${mainFile}`);
+                    console.log(`   ⚡ [Día ${d}] Ya existe en videos/${d}/: ${mainFile}`);
+                }
+
+                // Limpiar archivo suelto legacy si existía en la raíz de videos/
+                if (fs.existsSync(legacyLooseFile)) {
+                    try { fs.unlinkSync(legacyLooseFile); } catch (_) {}
                 }
             }
 
@@ -286,8 +326,10 @@ async function run() {
                 desc: `Estreno exclusivo del ${d} de ${currentMonthName} • Streaming DPC`,
                 img: '',
                 btnText: 'Ver Video',
-                btnLink: `videos/${mainFile}`,
-                day: d
+                btnLink: `videos/${d}/${mainFile}`,
+                day: d,
+                month: currentMonthName,
+                monthAbbr: monthAbbr
             });
         });
     });

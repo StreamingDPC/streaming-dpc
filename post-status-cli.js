@@ -7,13 +7,27 @@
 const http = require('http');
 
 const args = process.argv.slice(2);
-let count = 10;
-let singleFile = null;
+let count = 'all';
+let targetDay = null;
 
-if (args.includes('--single') || args.includes('-1')) {
+if (args.includes('--all') || args.includes('all')) {
+    count = 'all';
+} else if (args.includes('--single') || args.includes('-1')) {
     count = 1;
-} else if (args[0] && !isNaN(Number(args[0]))) {
-    count = Number(args[0]);
+}
+
+const dayIdx = args.findIndex(a => a === '--day' || a === '-d');
+if (dayIdx !== -1 && args[dayIdx + 1]) {
+    targetDay = Number(args[dayIdx + 1]);
+    count = 'all';
+}
+
+const numArg = args.find((a, idx) => {
+    if (idx > 0 && (args[idx - 1] === '--day' || args[idx - 1] === '-d')) return false;
+    return !isNaN(Number(a)) && a.trim() !== '';
+});
+if (numArg && targetDay === null && !args.includes('--all') && !args.includes('all')) {
+    count = Number(numArg);
 }
 
 function checkBotStatus() {
@@ -77,10 +91,14 @@ async function run() {
     }
 
     console.log('✅ Robot de WhatsApp conectado y listo.');
-    console.log(`📤 Solicitando subida de ${count} video(s) a tus Estados de WhatsApp...`);
+    let descTarget = 'TODOS los videos disponibles';
+    if (targetDay !== null) descTarget = `los videos del día ${targetDay}`;
+    else if (count !== 'all') descTarget = `${count} video(s)`;
+
+    console.log(`📤 Solicitando subida de ${descTarget} a tus Estados de WhatsApp...`);
 
     try {
-        const response = await sendPostStatus({ count });
+        const response = await sendPostStatus({ count, day: targetDay });
         if (response.success) {
             console.log(`\n🎉 ${response.message}`);
             console.log('👀 Puedes ver el progreso en tiempo real en la ventana de tu robot (CMR WhatsApp).');
