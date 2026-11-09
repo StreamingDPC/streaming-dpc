@@ -64,10 +64,11 @@ echo    Publicador a Estados de WhatsApp - Streaming DPC
 echo ================================================================
 echo  1. Subir TODOS los videos disponibles (De mayor a menor dia)
 echo  2. Subir los videos de UN DIA especifico (ej: Dia 10)
-echo  3. Subir solo los ultimos N videos (ej: 10)
-echo  4. Subir 1 video de prueba (el mas reciente)
+echo  3. Subir los videos de un RANGO de dias (ej: del 2 al 12)
+echo  4. Subir solo los ultimos N videos (ej: 10)
+echo  5. Subir 1 video de prueba (el mas reciente)
 echo.
-set /p SUB_OPCION="Selecciona una opcion (1, 2, 3 o 4): "
+set /p SUB_OPCION="Selecciona una opcion (1, 2, 3, 4 o 5): "
 if "%SUB_OPCION%"=="1" (
     node post-status-cli.js --all
 ) else if "%SUB_OPCION%"=="2" (
@@ -76,9 +77,14 @@ if "%SUB_OPCION%"=="1" (
     node post-status-cli.js --day %DIA_ESTADO%
 ) else if "%SUB_OPCION%"=="3" (
     echo.
+    echo Puedes escribir el rango como: 2-12 (o del 2 al 12)
+    set /p RANGO_ESTADO="Ingresa el rango de dias a publicar (ej: 2-12): "
+    node post-status-cli.js --range "%RANGO_ESTADO%"
+) else if "%SUB_OPCION%"=="4" (
+    echo.
     set /p CANT_ESTADO="Ingresa la cantidad de videos a publicar (ej: 10): "
     node post-status-cli.js %CANT_ESTADO%
-) else if "%SUB_OPCION%"=="4" (
+) else if "%SUB_OPCION%"=="5" (
     node post-status-cli.js 1
 ) else (
     echo Opcion invalida.

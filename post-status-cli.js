@@ -9,6 +9,8 @@ const http = require('http');
 const args = process.argv.slice(2);
 let count = 'all';
 let targetDay = null;
+let fromDay = null;
+let toDay = null;
 
 if (args.includes('--all') || args.includes('all')) {
     count = 'all';
@@ -16,17 +18,53 @@ if (args.includes('--all') || args.includes('all')) {
     count = 1;
 }
 
+// Soporte para flag --range (ej: --range 2-12)
+const rangeIdx = args.findIndex(a => a === '--range' || a === '-r');
+if (rangeIdx !== -1 && args[rangeIdx + 1]) {
+    const raw = args[rangeIdx + 1];
+    const parts = raw.match(/\d+/g);
+    if (parts && parts.length >= 2) {
+        fromDay = Number(parts[0]);
+        toDay = Number(parts[1]);
+        count = 'all';
+    }
+}
+
+// Detectar argumento suelto con rango ej: "2-12" o "del 2 al 12"
+const rawRangeArg = args.find((a, idx) => {
+    if (idx > 0 && (args[idx - 1] === '--range' || args[idx - 1] === '-r')) return false;
+    return /\d+\s*[-a]\s*\d+/i.test(a.trim());
+});
+if (rawRangeArg && fromDay === null) {
+    const parts = rawRangeArg.match(/\d+/g);
+    if (parts && parts.length >= 2) {
+        fromDay = Number(parts[0]);
+        toDay = Number(parts[1]);
+        count = 'all';
+    }
+}
+
 const dayIdx = args.findIndex(a => a === '--day' || a === '-d');
 if (dayIdx !== -1 && args[dayIdx + 1]) {
-    targetDay = Number(args[dayIdx + 1]);
-    count = 'all';
+    const rawVal = args[dayIdx + 1];
+    if (rawVal.includes('-')) {
+        const parts = rawVal.match(/\d+/g);
+        if (parts && parts.length >= 2) {
+            fromDay = Number(parts[0]);
+            toDay = Number(parts[1]);
+            count = 'all';
+        }
+    } else {
+        targetDay = Number(rawVal);
+        count = 'all';
+    }
 }
 
 const numArg = args.find((a, idx) => {
-    if (idx > 0 && (args[idx - 1] === '--day' || args[idx - 1] === '-d')) return false;
+    if (idx > 0 && (args[idx - 1] === '--day' || args[idx - 1] === '-d' || args[idx - 1] === '--range' || args[idx - 1] === '-r')) return false;
     return !isNaN(Number(a)) && a.trim() !== '';
 });
-if (numArg && targetDay === null && !args.includes('--all') && !args.includes('all')) {
+if (numArg && targetDay === null && fromDay === null && !args.includes('--all') && !args.includes('all')) {
     count = Number(numArg);
 }
 
@@ -92,13 +130,22 @@ async function run() {
 
     console.log('✅ Robot de WhatsApp conectado y listo.');
     let descTarget = 'TODOS los videos disponibles';
-    if (targetDay !== null) descTarget = `los videos del día ${targetDay}`;
-    else if (count !== 'all') descTarget = `${count} video(s)`;
+    if (fromDay !== null && toDay !== null) {
+        descTarget = `los videos del día ${Math.min(fromDay, toDay)} al día ${Math.max(fromDay, toDay)}`;
+    } else if (targetDay !== null) {
+        descTarget = `los videos del día ${targetDay}`;
+    } else if (count !== 'all') {
+        descTarget = `${count} video(s)`;
+    }
 
     console.log(`📤 Solicitando subida de ${descTarget} a tus Estados de WhatsApp...`);
 
     try {
-        const response = await sendPostStatus({ count, day: targetDay });
+        const payload = { count, day: targetDay, fromDay, toDay };
+        if (fromDay !== null && toDay !== null) {
+            payload.range = `${Math.min(fromDay, toDay)}-${Math.max(fromDay, toDay)}`;
+        }
+        const response = await sendPostStatus(payload);
         if (response.success) {
             console.log(`\n🎉 ${response.message}`);
             console.log('👀 Puedes ver el progreso en tiempo real en la ventana de tu robot (CMR WhatsApp).');
