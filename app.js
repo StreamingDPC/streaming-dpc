@@ -478,7 +478,26 @@ function setupConfigUI() {
                                      btnLink.includes('youtu');
 
                 if (isVideoOrUrl) {
-                    btnHtml = `<button onclick="openVideoModal('${btnLink}')" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
+                    const videoKey = getVideoFeedbackKey(btnLink, title);
+                    const safeTitle = (title || 'Estreno').replace(/'/g, "\\'");
+                    btnHtml = `
+                        <div class="banner-video-actions">
+                            <button onclick="openVideoModal('${btnLink}', '${safeTitle}')" class="featured-btn">
+                                <i class="fa-solid fa-play"></i> ${btnText}
+                            </button>
+                            <div class="video-feedback-pill" data-video-key="${videoKey}">
+                                <span class="vpill-views" title="Vistas">
+                                    <i class="fa-solid fa-eye"></i> <span class="vcount-views">0</span>
+                                </span>
+                                <button type="button" class="vpill-btn vpill-like" onclick="event.stopPropagation(); voteVideo('${videoKey}', 'like')" title="Me gusta">
+                                    <i class="fa-regular fa-thumbs-up"></i> <span class="vcount-likes">0</span>
+                                </button>
+                                <button type="button" class="vpill-btn vpill-dislike" onclick="event.stopPropagation(); voteVideo('${videoKey}', 'dislike')" title="No me gusta">
+                                    <i class="fa-regular fa-thumbs-down"></i> <span class="vcount-dislikes">0</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
                 } else {
                     btnHtml = `<button onclick="document.querySelector('.tab-btn[data-tab=\\'${btnLink}\\']')?.click();" class="featured-btn"><i class="fa-solid fa-play"></i> ${btnText}</button>`;
                 }
@@ -509,6 +528,14 @@ function setupConfigUI() {
             featuredContainer.style.display = 'block';
             const heroTitleCont = document.querySelector('.hero');
             if (heroTitleCont) heroTitleCont.style.display = 'none';
+
+            // Sincronizar estadísticas en las píldoras de los banners
+            banners.forEach(b => {
+                if (b.btnLink) {
+                    const k = getVideoFeedbackKey(b.btnLink, b.title);
+                    updateAllVideoFeedbackUI(k);
+                }
+            });
 
             // Auto start timer
             if (banners.length > 1) {
@@ -578,8 +605,209 @@ window.moveBannerSlider = function (dir) {
     }
 }
 
-window.openVideoModal = function (url) {
+// ================================================================
+//  🎬 SISTEMA DE VISTAS Y ME GUSTA / NO ME GUSTA EN VIDEOS
+// ================================================================
+window.videoFeedbackCache = {};
+window.currentModalVideoKey = null;
+
+function getVideoFeedbackKey(url, title) {
+    const raw = (title || url || 'video').toLowerCase();
+    const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    let clean = normalized.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return clean.substring(0, 60) || 'video_general';
+}
+
+function formatFeedbackCount(n) {
+    const num = Number(n) || 0;
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return String(num);
+}
+
+function updateAllVideoFeedbackUI(key) {
+    if (!key) return;
+    const data = window.videoFeedbackCache[key] || { views: 0, likes: 0, dislikes: 0 };
+    const myVote = localStorage.getItem('vvote_' + key); // 'like' | 'dislike' | null
+
+    const viewsFmt = formatFeedbackCount(data.views || 0);
+    const likesFmt = formatFeedbackCount(data.likes || 0);
+    const dislikesFmt = formatFeedbackCount(data.dislikes || 0);
+
+    // Actualizar pills en banners y tarjetas
+    const pills = document.querySelectorAll(`.video-feedback-pill[data-video-key="${key}"]`);
+    pills.forEach(pill => {
+        const vEl = pill.querySelector('.vcount-views');
+        if (vEl) vEl.textContent = viewsFmt;
+
+        const lEl = pill.querySelector('.vcount-likes');
+        if (lEl) lEl.textContent = likesFmt;
+
+        const dEl = pill.querySelector('.vcount-dislikes');
+        if (dEl) dEl.textContent = dislikesFmt;
+
+        const likeBtn = pill.querySelector('.vpill-like');
+        if (likeBtn) {
+            if (myVote === 'like') {
+                likeBtn.classList.add('active');
+                likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="vcount-likes">${likesFmt}</span>`;
+            } else {
+                likeBtn.classList.remove('active');
+                likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="vcount-likes">${likesFmt}</span>`;
+            }
+        }
+
+        const dislikeBtn = pill.querySelector('.vpill-dislike');
+        if (dislikeBtn) {
+            if (myVote === 'dislike') {
+                dislikeBtn.classList.add('active');
+                dislikeBtn.innerHTML = `<i class="fa-solid fa-thumbs-down"></i> <span class="vcount-dislikes">${dislikesFmt}</span>`;
+            } else {
+                dislikeBtn.classList.remove('active');
+                dislikeBtn.innerHTML = `<i class="fa-regular fa-thumbs-down"></i> <span class="vcount-dislikes">${dislikesFmt}</span>`;
+            }
+        }
+    });
+
+    // Si el modal está abierto con este video, actualizarlo también
+    if (window.currentModalVideoKey === key) {
+        const mViews = document.getElementById('modal-video-views');
+        if (mViews) mViews.textContent = `${viewsFmt} ${viewsFmt === '1' ? 'vista' : 'vistas'}`;
+
+        const mLike = document.getElementById('modal-btn-like');
+        if (mLike) {
+            if (myVote === 'like') {
+                mLike.classList.add('active');
+                mLike.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span id="modal-video-likes">${likesFmt}</span>`;
+            } else {
+                mLike.classList.remove('active');
+                mLike.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span id="modal-video-likes">${likesFmt}</span>`;
+            }
+        }
+
+        const mDislike = document.getElementById('modal-btn-dislike');
+        if (mDislike) {
+            if (myVote === 'dislike') {
+                mDislike.classList.add('active');
+                mDislike.innerHTML = `<i class="fa-solid fa-thumbs-down"></i> <span id="modal-video-dislikes">${dislikesFmt}</span>`;
+            } else {
+                mDislike.classList.remove('active');
+                mDislike.innerHTML = `<i class="fa-regular fa-thumbs-down"></i> <span id="modal-video-dislikes">${dislikesFmt}</span>`;
+            }
+        }
+    }
+}
+
+window.voteVideo = function (key, voteType) {
+    if (!key) return;
+    const currentVote = localStorage.getItem('vvote_' + key);
+    let newVote = null;
+    let likeDelta = 0;
+    let dislikeDelta = 0;
+
+    if (currentVote === voteType) {
+        // Quitar voto (toggle)
+        newVote = null;
+        if (voteType === 'like') likeDelta = -1;
+        else dislikeDelta = -1;
+    } else if (currentVote === 'like' && voteType === 'dislike') {
+        newVote = 'dislike';
+        likeDelta = -1;
+        dislikeDelta = 1;
+    } else if (currentVote === 'dislike' && voteType === 'like') {
+        newVote = 'like';
+        likeDelta = 1;
+        dislikeDelta = -1;
+    } else {
+        newVote = voteType;
+        if (voteType === 'like') likeDelta = 1;
+        else dislikeDelta = 1;
+    }
+
+    if (newVote) {
+        localStorage.setItem('vvote_' + key, newVote);
+    } else {
+        localStorage.removeItem('vvote_' + key);
+    }
+
+    // Actualización optimista local inmediata
+    window.videoFeedbackCache[key] = window.videoFeedbackCache[key] || { views: 0, likes: 0, dislikes: 0 };
+    window.videoFeedbackCache[key].likes = Math.max(0, (window.videoFeedbackCache[key].likes || 0) + likeDelta);
+    window.videoFeedbackCache[key].dislikes = Math.max(0, (window.videoFeedbackCache[key].dislikes || 0) + dislikeDelta);
+    updateAllVideoFeedbackUI(key);
+
+    // Sincronizar en Firebase
+    if (typeof db !== 'undefined' && db) {
+        db.ref('videoFeedback/' + key).transaction((current) => {
+            current = current || { views: 0, likes: 0, dislikes: 0 };
+            current.likes = Math.max(0, (current.likes || 0) + likeDelta);
+            current.dislikes = Math.max(0, (current.dislikes || 0) + dislikeDelta);
+            return current;
+        }).catch(err => console.warn('Error guardando voto en Firebase:', err));
+    }
+};
+
+window.voteCurrentModalVideo = function (voteType) {
+    if (window.currentModalVideoKey) {
+        window.voteVideo(window.currentModalVideoKey, voteType);
+    }
+};
+
+function recordVideoView(key) {
+    if (!key) return;
+    const viewedKey = 'vviewed_' + key;
+    if (sessionStorage.getItem(viewedKey)) {
+        updateAllVideoFeedbackUI(key);
+        return;
+    }
+    sessionStorage.setItem(viewedKey, '1');
+
+    // Optimista
+    window.videoFeedbackCache[key] = window.videoFeedbackCache[key] || { views: 0, likes: 0, dislikes: 0 };
+    window.videoFeedbackCache[key].views = (window.videoFeedbackCache[key].views || 0) + 1;
+    updateAllVideoFeedbackUI(key);
+
+    // Firebase
+    if (typeof db !== 'undefined' && db) {
+        db.ref('videoFeedback/' + key).transaction((current) => {
+            current = current || { views: 0, likes: 0, dislikes: 0 };
+            current.views = (current.views || 0) + 1;
+            return current;
+        }).catch(err => console.warn('Error registrando vista en Firebase:', err));
+    }
+}
+
+// Inicializar escucha en tiempo real de Firebase para todas las reacciones
+function initVideoFeedbackListener() {
+    if (window._videoFeedbackListenerInitialized) return;
+    if (typeof db !== 'undefined' && db) {
+        window._videoFeedbackListenerInitialized = true;
+        db.ref('videoFeedback').on('value', (snap) => {
+            const data = snap.val() || {};
+            window.videoFeedbackCache = data;
+            Object.keys(data).forEach(key => updateAllVideoFeedbackUI(key));
+        });
+    }
+}
+initVideoFeedbackListener();
+
+window.openVideoModal = function (url, title) {
     if (!url) return;
+    const key = getVideoFeedbackKey(url, title);
+    window.currentModalVideoKey = key;
+
+    const modalTitle = document.getElementById('video-modal-title');
+    if (modalTitle) {
+        try {
+            modalTitle.textContent = title ? decodeURIComponent(title) : 'Estreno Streaming DPC';
+        } catch (_) {
+            modalTitle.textContent = title || 'Estreno Streaming DPC';
+        }
+    }
+
+    recordVideoView(key);
+    updateAllVideoFeedbackUI(key);
+
     const modal = document.getElementById('video-modal');
     if (!modal) return window.open(url, '_blank');
 
@@ -1539,6 +1767,7 @@ function setupEventListeners() {
     const videoModal = document.getElementById('video-modal');
 
     function closeVideoModalFn() {
+        window.currentModalVideoKey = null;
         if (videoModal) videoModal.style.display = 'none';
         const iframe = document.getElementById('video-iframe');
         if (iframe) iframe.src = '';

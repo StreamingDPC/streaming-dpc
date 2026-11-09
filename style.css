@@ -306,6 +306,106 @@ header {
     transform: scale(1.05);
 }
 
+/* Banner Video Actions & Feedback Pills */
+.banner-video-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+
+.video-feedback-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 30px;
+    padding: 6px 14px;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    user-select: none;
+    transition: all 0.25s ease;
+}
+
+.video-feedback-pill:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(15, 23, 42, 0.92);
+}
+
+.vpill-views {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    padding-right: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.vpill-views i {
+    color: var(--accent-primary);
+}
+
+.vpill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.vpill-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.vpill-btn:active {
+    transform: scale(0.95);
+}
+
+.vpill-btn.active.vpill-like {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.45);
+    font-weight: 700;
+}
+.vpill-btn.active.vpill-like i {
+    transform: scale(1.1);
+}
+
+.vpill-btn.active.vpill-dislike {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.45);
+    font-weight: 700;
+}
+.vpill-btn.active.vpill-dislike i {
+    transform: scale(1.1);
+}
+
+#video-modal-footer .vpill-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+#video-modal-footer .vpill-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
 @media (max-width: 600px) {
     .featured-slider {
         min-height: 280px;
@@ -316,7 +416,21 @@ header {
     }
 
     .featured-title {
-        font-size: 2rem;
+        font-size: 1.7rem;
+    }
+
+    .banner-video-actions {
+        gap: 8px;
+    }
+
+    .video-feedback-pill {
+        padding: 4px 10px;
+        gap: 6px;
+    }
+
+    .vpill-views, .vpill-btn {
+        font-size: 0.78rem;
+        padding: 3px 6px;
     }
 }
 

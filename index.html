@@ -1533,8 +1533,9 @@
     <!-- Video Modal -->
     <div id="video-modal" class="modal" style="z-index: 2000;">
         <div class="modal-content"
-            style="max-width: 800px; padding: 0.5rem; background: var(--bg-dark); border: 2px solid var(--accent-primary); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
-            <div style="display: flex; justify-content: flex-end; padding: 0.5rem;">
+            style="max-width: 800px; padding: 0.75rem; background: var(--bg-dark); border: 2px solid var(--accent-primary); border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0.5rem 0.6rem 0.5rem;">
+                <h3 id="video-modal-title" style="margin: 0; color: #fff; font-size: 1.1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%;">Estreno Streaming DPC</h3>
                 <span class="close-modal" id="video-modal-close"
                     style="color: white; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</span>
             </div>
@@ -1546,6 +1547,21 @@
                 <video id="video-player"
                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display:none; background:#000;"
                     controls playsinline preload="auto"></video>
+            </div>
+            <!-- Video Stats & Feedback Bar inside Modal -->
+            <div id="video-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0.5rem 0.3rem 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #cbd5e1; font-size: 0.9rem; font-weight: 600;">
+                    <i class="fa-solid fa-eye" style="color: var(--accent-primary);"></i>
+                    <span id="modal-video-views">0 vistas</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.6rem;" id="modal-video-actions">
+                    <button type="button" class="vpill-btn vpill-like" id="modal-btn-like" onclick="voteCurrentModalVideo('like')" title="Me gusta">
+                        <i class="fa-regular fa-thumbs-up"></i> <span id="modal-video-likes">0</span>
+                    </button>
+                    <button type="button" class="vpill-btn vpill-dislike" id="modal-btn-dislike" onclick="voteCurrentModalVideo('dislike')" title="No me gusta">
+                        <i class="fa-regular fa-thumbs-down"></i> <span id="modal-video-dislikes">0</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
