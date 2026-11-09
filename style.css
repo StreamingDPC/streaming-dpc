@@ -651,6 +651,11 @@ header {
     border-color: #8b5cf6 !important;
     box-shadow: 0 0 14px rgba(139, 92, 246, 0.5);
 }
+.platform-chip[data-platform="max_privada"].active {
+    background: rgba(168, 85, 247, 0.28) !important;
+    border-color: #c084fc !important;
+    box-shadow: 0 0 14px rgba(192, 132, 252, 0.55);
+}
 .platform-chip[data-platform="paramount"].active {
     background: rgba(56, 189, 248, 0.22) !important;
     border-color: #38bdf8 !important;
