@@ -15359,6 +15359,7 @@
             { key: 'Netflix', regex: /\b(netflix)\b/i },
             { key: 'Disney Privada', regex: /\b((?:disney|dixney)\s*privad[ao]?|dopv|dpv)\b/i },
             { key: 'Disney', regex: /\b(disney\+?|disneyplus|dixney)\b/i },
+            { key: 'HBO Max Privada', regex: /\b((?:hbo\s*max|hbomax|max)\s*privad[ao]?|mopv|mpv)\b/i },
             { key: 'HBO Max', regex: /\b(hbo\s*max|hbomax|max\b)/i },
             { key: 'Prime Video', regex: /\b(prime\s*video|primevideo|prime|amazon)\b/i },
             { key: 'Paramount', regex: /\b(paramount\+?|paramountplus)\b/i },
@@ -15398,6 +15399,10 @@
             return str
                 .replace(/Dixney\s*Privad[ao]?/gi, 'Disney Privada')
                 .replace(/Disney\s*Privad[ao]?/gi, 'Disney Privada')
+                .replace(/(?:Hbo\s*Max|Max\s*\(HBO\)|Max)\s*Privad[ao]?/gi, 'HBO Max Privada')
+                .replace(/\bMopv\b/gi, 'HBO Max Privada')
+                .replace(/\bNopv\b/gi, 'Netflix Privada')
+                .replace(/\bDopv\b/gi, 'Disney Privada')
                 .replace(/Dixney/gi, 'Disney')
                 .replace(/Disney\+/gi, 'Disney')
                 .replace(/Paramount\+/gi, 'Paramount')
@@ -16228,7 +16233,11 @@
 
                         const cleanCat = prodCat.replace(/[\s\-_]/g, '');
                         if (cleanCat.includes('individual') || cleanCat.includes('ventasextras')) {
-                            if (prodMarca.includes('privada')) { itemBono = parseInt(storeConfig.incentiveNetflixPrivada) || 0; itemBonoNombre = 'Netflix Privada'; }
+                            if (prodMarca.includes('privada')) {
+                                if (prodMarca.includes('disney')) { itemBono = parseInt(storeConfig.incentiveDisneyPrivada || storeConfig.incentiveDisney) || 0; itemBonoNombre = 'Disney Privada'; }
+                                else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { itemBono = parseInt(storeConfig.incentiveMaxPrivada || storeConfig.incentiveMax) || 0; itemBonoNombre = 'HBO Max Privada'; }
+                                else { itemBono = parseInt(storeConfig.incentiveNetflixPrivada) || 0; itemBonoNombre = 'Netflix Privada'; }
+                            }
                             else if (prodMarca.includes('netflix')) { itemBono = parseInt(storeConfig.incentiveNetflix) || 0; itemBonoNombre = 'Netflix'; }
                             else if (prodMarca.includes('disney')) { itemBono = parseInt(storeConfig.incentiveDisney) || 0; itemBonoNombre = 'Disney'; }
                             else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { itemBono = parseInt(storeConfig.incentiveMax) || 0; itemBonoNombre = 'HBO Max'; }
@@ -16411,7 +16420,11 @@
                                 const cleanCat = prodCat.replace(/[\s\-_]/g, '');
                                 // Bloque Individuales
                                 if (cleanCat.includes('individual') || cleanCat.includes('ventasextras')) {
-                                    if (prodMarca.includes('privada')) { itemBono = parseInt(storeConfig.incentiveNetflixPrivada) || 0; itemBonoNombre = 'Netflix Privada'; }
+                                    if (prodMarca.includes('privada')) {
+                                        if (prodMarca.includes('disney')) { itemBono = parseInt(storeConfig.incentiveDisneyPrivada || storeConfig.incentiveDisney) || 0; itemBonoNombre = 'Disney Privada'; }
+                                        else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { itemBono = parseInt(storeConfig.incentiveMaxPrivada || storeConfig.incentiveMax) || 0; itemBonoNombre = 'HBO Max Privada'; }
+                                        else { itemBono = parseInt(storeConfig.incentiveNetflixPrivada) || 0; itemBonoNombre = 'Netflix Privada'; }
+                                    }
                                     else if (prodMarca.includes('netflix')) { itemBono = parseInt(storeConfig.incentiveNetflix) || 0; itemBonoNombre = 'Netflix'; }
                                     else if (prodMarca.includes('disney')) { itemBono = parseInt(storeConfig.incentiveDisney) || 0; itemBonoNombre = 'Disney'; }
                                     else if (prodMarca.includes('max') || prodMarca.includes('hbo')) { itemBono = parseInt(storeConfig.incentiveMax) || 0; itemBonoNombre = 'HBO Max'; }
@@ -19944,10 +19957,34 @@
                             }
                         }
 
+                        let recordPlatform = cleanPlatformName(platform);
+                        const slotNumber = parseInt(r[0], 10);
+                        const pantallasCode = headerCols.pantallasIdx !== -1 ? r[headerCols.pantallasIdx] : '';
+                        if (sheetMeta.key === 'NO') {
+                            if (slotNumber === 5 || slotNumber === 6 || /nopv|npv|privad/i.test(pantallasCode) || rawPinCol.includes('@')) {
+                                recordPlatform = 'Netflix Privada';
+                            }
+                        } else if (sheetMeta.key === 'DO') {
+                            if (slotNumber === 7 || /dopv|dpv|privad/i.test(pantallasCode) || rawPinCol.includes('@')) {
+                                recordPlatform = 'Disney Privada';
+                            }
+                        } else if (sheetMeta.key === 'MO') {
+                            if (/mopv|mpv|privad/i.test(pantallasCode) || /privad/i.test(clientName) || /privad/i.test(profileName) || rawPinCol.includes('@')) {
+                                recordPlatform = 'HBO Max Privada';
+                            }
+                        }
+                        if (/mopv/i.test(pantallasCode)) {
+                            recordPlatform = 'HBO Max Privada';
+                        } else if (/nopv/i.test(pantallasCode)) {
+                            recordPlatform = 'Netflix Privada';
+                        } else if (/dopv/i.test(pantallasCode)) {
+                            recordPlatform = 'Disney Privada';
+                        }
+
                         excelRecords.push({
                             sheet: actualName,
                             sheetMeta,
-                            platform,
+                            platform: recordPlatform,
                             seller,
                             city,
                             clientName,

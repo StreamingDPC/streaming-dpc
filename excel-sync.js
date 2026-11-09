@@ -39,6 +39,9 @@ const PLATFORM_PRICE_CATALOG = {
     'Disney Privada':  { id: 1776951379850, clientPrice: 37000, sellerPrice: 34000 },
     'Dixney Privada':  { id: 1776951379850, clientPrice: 37000, sellerPrice: 34000 },
     'Disney':          { id: 1772292389962, clientPrice: 13000, sellerPrice: 10000 },
+    'HBO Max Privada': { id: 1772292225209, clientPrice: 35000, sellerPrice: 30000 },
+    'Max (HBO) Privada': { id: 1772292225209, clientPrice: 35000, sellerPrice: 30000 },
+    'Max Privada':     { id: 1772292225209, clientPrice: 35000, sellerPrice: 30000 },
     'Max (HBO)':       { id: 1772292225208, clientPrice: 13000, sellerPrice: 10000 },
     'Hbo Max':         { id: 1772292225208, clientPrice: 13000, sellerPrice: 10000 },
     'Prime Video':     { id: 1772292697799, clientPrice: 9000,  sellerPrice: 6000 },
@@ -241,6 +244,7 @@ const KNOWN_PLATFORM_PATTERNS = [
     { key: 'Netflix', regex: /\b(netflix)\b/i },
     { key: 'Disney Privada', regex: /\b((?:disney|dixney)\s*privad[ao]?|dopv|dpv)\b/i },
     { key: 'Disney', regex: /\b(disney\+?|disneyplus|dixney)\b/i },
+    { key: 'HBO Max Privada', regex: /\b((?:hbo\s*max|hbomax|max)\s*privad[ao]?|mopv|mpv)\b/i },
     { key: 'Max (HBO)', regex: /\b(hbo\s*max|hbomax|max\b)/i },
     { key: 'Prime Video', regex: /\b(prime\s*video|primevideo|prime|amazon)\b/i },
     { key: 'Paramount', regex: /\b(paramount\+?|paramountplus)\b/i },
@@ -280,6 +284,10 @@ function cleanPlatformName(str) {
     return str
         .replace(/Dixney\s*Privad[ao]?/gi, 'Disney Privada')
         .replace(/Disney\s*Privad[ao]?/gi, 'Disney Privada')
+        .replace(/(?:Hbo\s*Max|Max\s*\(HBO\)|Max)\s*Privad[ao]?/gi, 'HBO Max Privada')
+        .replace(/\bMopv\b/gi, 'HBO Max Privada')
+        .replace(/\bNopv\b/gi, 'Netflix Privada')
+        .replace(/\bDopv\b/gi, 'Disney Privada')
         .replace(/Dixney/gi, 'Disney')
         .replace(/Disney\+/gi, 'Disney')
         .replace(/Paramount\+/gi, 'Paramount')
@@ -573,7 +581,7 @@ function codeMatchesPlatform(code, platName) {
         return /\b(do|dopv|dpv|disney)\b/i.test(c) || c.includes('DO') || c.includes('DISNEY');
     }
     if (p.includes('max') || p.includes('hbo')) {
-        return /\b(mo|max|hbo)\b/i.test(c) || c.includes('MO') || c.includes('MAX');
+        return /\b(mo|mopv|mpv|max|hbo)\b/i.test(c) || c.includes('MO') || c.includes('MOPV') || c.includes('MAX');
     }
     if (p.includes('prime') || p.includes('amazon')) {
         return /\b(po|prime)\b/i.test(c) || c.includes('PO') || c.includes('PRIME');
@@ -706,7 +714,7 @@ function parseWorkbookFromBuffer(buffer) {
                 }
             }
 
-            // Determinar si es Netflix Privada (líneas 5 y 6 / Nopv) o Disney Privada (línea 7 / Dopv)
+            // Determinar si es Netflix Privada (líneas 5 y 6 / Nopv), Disney Privada (línea 7 / Dopv) o HBO Max Privada (Mopv / Privada)
             let recordPlatform = cleanPlatformName(platform);
             const slotNumber = parseInt(r[0], 10);
             if (sheetMeta.key === 'NO') {
@@ -717,6 +725,17 @@ function parseWorkbookFromBuffer(buffer) {
                 if (slotNumber === 7 || /dopv|dpv|privad/i.test(pantallasCode) || rawPinCol.includes('@')) {
                     recordPlatform = 'Disney Privada';
                 }
+            } else if (sheetMeta.key === 'MO') {
+                if (/mopv|mpv|privad/i.test(pantallasCode) || /privad/i.test(clientName) || /privad/i.test(profileName) || rawPinCol.includes('@')) {
+                    recordPlatform = 'HBO Max Privada';
+                }
+            }
+            if (/mopv/i.test(pantallasCode)) {
+                recordPlatform = 'HBO Max Privada';
+            } else if (/nopv/i.test(pantallasCode)) {
+                recordPlatform = 'Netflix Privada';
+            } else if (/dopv/i.test(pantallasCode)) {
+                recordPlatform = 'Disney Privada';
             }
 
             records.push({
@@ -1181,6 +1200,13 @@ async function syncExcelToFirebase(customBuffer = null) {
                             sp.platform = 'Disney Privada';
                             if (screenCount === 1) {
                                 it.name = 'Disney Privada';
+                                it.id = pInfo.id;
+                                it.finalPrice = pInfo.price;
+                            }
+                        } else if ((rec.sheetMeta.key === 'MO' || /mopv|mpv/i.test(rec.pantallasCode)) && (rec.platform === 'HBO Max Privada' || /privad/i.test(spPlat) || /mopv|mpv/i.test(rec.pantallasCode) || /privad/i.test(rec.clientName))) {
+                            sp.platform = 'HBO Max Privada';
+                            if (screenCount === 1) {
+                                it.name = 'HBO Max Privada';
                                 it.id = pInfo.id;
                                 it.finalPrice = pInfo.price;
                             }
