@@ -503,6 +503,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 11 Nov",
+    "title": "Suzane Von Richthofen",
+    "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/11/suzane von richthofen.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 10 Nov",
     "title": "El Plan Del Diablo",
     "desc": "Estreno exclusivo del 10 de Noviembre • Streaming DPC",
