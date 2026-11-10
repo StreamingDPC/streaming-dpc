@@ -75,6 +75,17 @@
   },
   {
     "badge": "Estreno 24 Nov",
+    "title": "Rob Lowe",
+    "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/24/rob lowe.mp4",
+    "day": 24,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 24 Nov",
     "title": "Un Ultimo Pedido",
     "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
     "img": "",
