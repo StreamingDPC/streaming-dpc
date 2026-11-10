@@ -536,6 +536,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 12 Nov",
+    "title": "Valentin Elizalde",
+    "desc": "Estreno exclusivo del 12 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/12/valentin elizalde.mp4",
+    "day": 12,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 11 Nov",
     "title": "Aeropuerto Brasil T8",
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
