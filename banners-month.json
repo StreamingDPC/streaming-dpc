@@ -8,6 +8,17 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 28 Nov",
+    "title": "Los 12 Desafios Navideños De Salish",
+    "desc": "Estreno exclusivo del 28 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/28/los 12 desafios navideños de salish.mp4",
+    "day": 28,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 27 Nov",
     "title": "El Niño",
     "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
