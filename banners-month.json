@@ -229,6 +229,17 @@
   },
   {
     "badge": "Estreno 18 Nov",
+    "title": "Contienda De Compras",
+    "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/18/contienda de compras.mp4",
+    "day": 18,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 18 Nov",
     "title": "El Juego De Viena",
     "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
     "img": "",
