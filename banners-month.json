@@ -152,6 +152,17 @@
   },
   {
     "badge": "Estreno 20 Nov",
+    "title": "Predicadores Mediaticos",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/predicadores mediaticos.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
     "title": "Yellowjackets",
     "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
     "img": "",
