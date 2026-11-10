@@ -405,11 +405,22 @@
   },
   {
     "badge": "Estreno 13 Nov",
-    "title": "El Intercambio Navideño",
+    "title": "El Crimen De Pasos",
     "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
-    "btnLink": "videos/13/el intercambio navideño.mp4",
+    "btnLink": "videos/13/el crimen de pasos.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 13 Nov",
+    "title": "El Final De La Calle Oak",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/el final de la calle oak.mp4",
     "day": 13,
     "month": "Noviembre",
     "monthAbbr": "Nov"
