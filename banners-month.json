@@ -96,6 +96,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 23 Nov",
+    "title": "Los Juicios De Karen Read",
+    "desc": "Estreno exclusivo del 23 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/23/los juicios de karen read.mp4",
+    "day": 23,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 20 Nov",
     "title": "El Camino Azul",
     "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
