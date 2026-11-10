@@ -393,6 +393,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 12 Nov",
+    "title": "Nos Conocimos En Estambul",
+    "desc": "Estreno exclusivo del 12 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/12/nos conocimos en estambul.mp4",
+    "day": 12,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 11 Nov",
     "title": "Aeropuerto Brasil T8",
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
