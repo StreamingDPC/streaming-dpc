@@ -437,6 +437,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 13 Nov",
+    "title": "Smalls",
+    "desc": "Estreno exclusivo del 13 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/13/smalls.mp4",
+    "day": 13,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 12 Nov",
     "title": "Alien (1)",
     "desc": "Estreno exclusivo del 12 de Noviembre • Streaming DPC",
