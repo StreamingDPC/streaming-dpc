@@ -27,11 +27,15 @@ if (rangeIdx !== -1) {
         fromDay = Number(parts[0]);
         toDay = Number(parts[1]);
         count = 'all';
+    } else {
+        console.error('\n❌ Error: Debes especificar un rango válido con dos números (ej: --range "3-13" o "del 3 al 13").');
+        console.error('   No se publicará ningún estado para evitar publicar videos no deseados.\n');
+        process.exit(1);
     }
 }
 
 // 2. Detectar argumento suelto con rango ej: "2-12", "del 2 al 12", "2 al 12", "2 a 12", "2 hasta 12"
-if (fromDay === null) {
+if (fromDay === null && rangeIdx === -1) {
     const combinedArgs = args.join(' ');
     const rangeMatch = combinedArgs.match(/(?:del?\s+)?(\d+)\s*(?:-|a|al|hasta)\s*(\d+)/i);
     if (rangeMatch && !combinedArgs.includes('--day') && !combinedArgs.includes('-d')) {
@@ -43,8 +47,8 @@ if (fromDay === null) {
 
 // 3. Detectar flag --day o -d
 const dayIdx = args.findIndex(a => a === '--day' || a === '-d');
-if (dayIdx !== -1 && args[dayIdx + 1] && fromDay === null) {
-    const rawVal = args[dayIdx + 1];
+if (dayIdx !== -1 && fromDay === null) {
+    const rawVal = args[dayIdx + 1] || '';
     const parts = rawVal.match(/\d+/g);
     if (parts && parts.length >= 2) {
         fromDay = Number(parts[0]);
@@ -53,6 +57,10 @@ if (dayIdx !== -1 && args[dayIdx + 1] && fromDay === null) {
     } else if (parts && parts.length === 1) {
         targetDay = Number(parts[0]);
         count = 'all';
+    } else {
+        console.error('\n❌ Error: Debes especificar el número de día (ej: --day 13).');
+        console.error('   No se publicará ningún estado para evitar publicar videos no deseados.\n');
+        process.exit(1);
     }
 }
 

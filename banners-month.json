@@ -1095,27 +1095,5 @@
     "day": 3,
     "month": "Noviembre",
     "monthAbbr": "Nov"
-  },
-  {
-    "badge": "Estreno 2 Nov",
-    "title": "Coleccion Magia Y Diversion",
-    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
-    "img": "",
-    "btnText": "Ver Video",
-    "btnLink": "videos/2/coleccion magia y diversion.mp4",
-    "day": 2,
-    "month": "Noviembre",
-    "monthAbbr": "Nov"
-  },
-  {
-    "badge": "Estreno 2 Nov",
-    "title": "Viernes Negro",
-    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
-    "img": "",
-    "btnText": "Ver Video",
-    "btnLink": "videos/2/viernes negro.mp4",
-    "day": 2,
-    "month": "Noviembre",
-    "monthAbbr": "Nov"
   }
 ]

@@ -69,26 +69,79 @@ echo  4. Subir solo los ultimos N videos (ej: 10)
 echo  5. Subir 1 video de prueba (el mas reciente)
 echo.
 set /p SUB_OPCION="Selecciona una opcion (1, 2, 3, 4 o 5): "
-if "%SUB_OPCION%"=="1" (
-    node post-status-cli.js --all
-) else if "%SUB_OPCION%"=="2" (
+
+if "%SUB_OPCION%"=="1" goto PUB_TODOS
+if "%SUB_OPCION%"=="2" goto PUB_DIA
+if "%SUB_OPCION%"=="3" goto PUB_RANGO
+if "%SUB_OPCION%"=="4" goto PUB_CANTIDAD
+if "%SUB_OPCION%"=="5" goto PUB_PRUEBA
+
+echo Opcion invalida.
+echo.
+pause
+exit /b 0
+
+:PUB_TODOS
+echo.
+echo Subiendo TODOS los videos a tus Estados de WhatsApp...
+node post-status-cli.js --all
+echo.
+pause
+exit /b 0
+
+:PUB_DIA
+echo.
+set /p DIA_ESTADO="Ingresa el numero del dia a publicar en Estados (ej: 10): "
+if "%DIA_ESTADO%"=="" (
+    echo No ingresaste ningun dia. Operacion cancelada.
     echo.
-    set /p DIA_ESTADO="Ingresa el numero del dia a publicar en Estados (ej: 10): "
-    node post-status-cli.js --day %DIA_ESTADO%
-) else if "%SUB_OPCION%"=="3" (
-    echo.
-    echo Puedes escribir el rango como: 2-12 (o del 2 al 12)
-    set /p RANGO_ESTADO="Ingresa el rango de dias a publicar (ej: 2-12): "
-    node post-status-cli.js --range "%RANGO_ESTADO%"
-) else if "%SUB_OPCION%"=="4" (
-    echo.
-    set /p CANT_ESTADO="Ingresa la cantidad de videos a publicar (ej: 10): "
-    node post-status-cli.js %CANT_ESTADO%
-) else if "%SUB_OPCION%"=="5" (
-    node post-status-cli.js 1
-) else (
-    echo Opcion invalida.
+    pause
+    exit /b 0
 )
+echo.
+echo Subiendo los videos del dia %DIA_ESTADO%...
+node post-status-cli.js --day %DIA_ESTADO%
+echo.
+pause
+exit /b 0
+
+:PUB_RANGO
+echo.
+echo Puedes escribir el rango como: 3-13 (o del 3 al 13)
+set /p RANGO_ESTADO="Ingresa el rango de dias a publicar (ej: 3-13): "
+if "%RANGO_ESTADO%"=="" (
+    echo No ingresaste ningun rango. Operacion cancelada.
+    echo.
+    pause
+    exit /b 0
+)
+echo.
+echo Subiendo videos en el rango %RANGO_ESTADO%...
+node post-status-cli.js --range "%RANGO_ESTADO%"
+echo.
+pause
+exit /b 0
+
+:PUB_CANTIDAD
+echo.
+set /p CANT_ESTADO="Ingresa la cantidad de videos a publicar (ej: 10): "
+if "%CANT_ESTADO%"=="" (
+    echo No ingresaste ninguna cantidad. Operacion cancelada.
+    echo.
+    pause
+    exit /b 0
+)
+echo.
+echo Subiendo %CANT_ESTADO% videos a tus Estados de WhatsApp...
+node post-status-cli.js %CANT_ESTADO%
+echo.
+pause
+exit /b 0
+
+:PUB_PRUEBA
+echo.
+echo Subiendo 1 video de prueba a tus Estados de WhatsApp...
+node post-status-cli.js 1
 echo.
 pause
 exit /b 0
