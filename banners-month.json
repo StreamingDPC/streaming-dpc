@@ -74,6 +74,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 24 Nov",
+    "title": "Un Ultimo Pedido",
+    "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/24/un ultimo pedido.mp4",
+    "day": 24,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 20 Nov",
     "title": "El Camino Azul",
     "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
