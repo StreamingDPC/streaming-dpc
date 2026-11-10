@@ -668,11 +668,19 @@
                     </div>
 
                     <!-- Barra de Estado / Resumen -->
-                    <div id="admin-product-results-bar" class="smart-results-bar" style="display:none; margin-top: 0.8rem; padding: 8px 12px;">
+                    <div id="admin-product-results-bar" class="smart-results-bar" style="display:none; margin-top: 0.8rem; padding: 8px 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                         <div id="admin-product-results-summary" class="smart-results-text" style="font-size: 0.84rem;"></div>
-                        <button type="button" class="smart-results-close-btn" onclick="resetAdminProductSmartSearch()" style="font-size: 0.75rem; padding: 3px 10px;">
-                            ✕ Ver Todo
-                        </button>
+                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" id="btn-send-product-prices-robot" onclick="sendAdminProductFilteredPrices(false)" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: 1px solid #34d399; padding: 6px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16,185,129,0.3); transition: all 0.2s ease;">
+                                <i class="fa-solid fa-robot"></i> Enviar Precios al Cliente
+                            </button>
+                            <button type="button" id="btn-send-product-prices-wa" onclick="sendAdminProductFilteredPrices(true)" style="background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid #25d366; padding: 6px 10px; border-radius: 10px; font-size: 0.76rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Enviar directo por WhatsApp Web">
+                                <i class="fa-brands fa-whatsapp"></i> Directo
+                            </button>
+                            <button type="button" class="smart-results-close-btn" onclick="resetAdminProductSmartSearch()" style="font-size: 0.75rem; padding: 4px 10px;">
+                                ✕ Ver Todo
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="admin-list" class="admin-list">
@@ -8246,6 +8254,7 @@
             }
 
             updateAdminProductChipsUI();
+            window._lastAdminFilteredProducts = [];
             renderAdminList();
         }
         window.resetAdminProductSmartSearch = resetAdminProductSmartSearch;
@@ -8294,6 +8303,7 @@
 
             listDiv.innerHTML = '';
             let matchedCount = 0;
+            const currentFilteredProducts = [];
 
             dynamicProducts.forEach((p, index) => {
                 if (!p) return;
@@ -8330,6 +8340,7 @@
                 }
 
                 matchedCount++;
+                currentFilteredProducts.push(p);
 
                 const isActive = p.active !== false; // Si no tiene, default es true
                 const inStock = p.inStock !== false;
@@ -8364,6 +8375,9 @@
                         ${!inStock ? '<br><span style="color:#ff4d4d; font-size: 0.75rem; font-weight: bold;">[AGOTADO]</span>' : ''}
                     </div>
                     <div class="item-actions">
+                        <button class="btn-icon" style="color: #25d366;" onclick="sendSingleAdminProductPrice(${index})" title="Enviar precio al cliente por WhatsApp">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </button>
                         <button class="btn-icon btn-toggle" onclick="toggleActive(${index})" title="${isActive ? 'Pausar/Ocultar' : 'Activar/Mostrar'}">
                             <i class="fa-solid ${isActive ? 'fa-eye' : 'fa-eye-slash'}"></i>
                         </button>
@@ -8384,12 +8398,16 @@
                 listDiv.appendChild(div);
             });
 
+            window._lastAdminFilteredProducts = currentFilteredProducts;
+
             // Actualizar chips de UI
             updateAdminProductChipsUI();
 
             // Actualizar barra de resumen
             const resultsBar = document.getElementById('admin-product-results-bar');
             const resultsSummary = document.getElementById('admin-product-results-summary');
+            const sendProdBtn = document.getElementById('btn-send-product-prices-robot');
+            const directProdBtn = document.getElementById('btn-send-product-prices-wa');
 
             if (resultsBar && resultsSummary) {
                 if (hasFilters) {
@@ -8417,6 +8435,8 @@
                             <strong>No se encontraron productos</strong> para (${platNames || 'tu filtro'}${durLabel}${catLabel}${queryLabel}).
                         `;
                     }
+                    if (sendProdBtn) sendProdBtn.style.display = matchedCount > 0 ? 'inline-flex' : 'none';
+                    if (directProdBtn) directProdBtn.style.display = matchedCount > 0 ? 'inline-flex' : 'none';
                 } else {
                     resultsBar.style.display = 'none';
                 }
@@ -16056,6 +16076,115 @@
 
         window.sendAdminManualPricesDirectWa = function () {
             window.sendAdminManualPricesRobot(true);
+        };
+
+        window.sendAdminProductFilteredPrices = function (isDirectWa, specificProduct) {
+            let productsToQuote = [];
+            if (specificProduct) {
+                productsToQuote = [specificProduct];
+            } else if (window._lastAdminFilteredProducts && window._lastAdminFilteredProducts.length > 0) {
+                productsToQuote = window._lastAdminFilteredProducts;
+            } else if (window._lastAdminMatchedProducts && window._lastAdminMatchedProducts.length > 0) {
+                productsToQuote = window._lastAdminMatchedProducts;
+            }
+
+            if (!productsToQuote || productsToQuote.length === 0) {
+                alert('⚠️ Filtra o selecciona primero una pantalla o combo para enviarle los precios al cliente.');
+                return;
+            }
+
+            const phoneInput = document.getElementById('manual-client-phone');
+            let defaultPhone = phoneInput ? phoneInput.value.trim() : '';
+
+            let phone = prompt('📱 Ingresa el número de WhatsApp del cliente para enviarle los precios (Ej: 3001234567):', defaultPhone);
+            if (!phone) return;
+            phone = phone.trim();
+
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '57' + cleanPhone;
+
+            if (cleanPhone.length < 7) {
+                alert('⚠️ Por favor ingresa un número de teléfono válido.');
+                return;
+            }
+
+            const quoteBlocks = [];
+            const processedBases = new Set();
+
+            productsToQuote.forEach(product => {
+                if (!product) return;
+                const baseName = (product.name || '').replace(/\s*\(\s*\d+\s*meses?\s*\)/i, '').trim();
+                const baseKey = (baseName + '___' + product.category).toLowerCase();
+                if (processedBases.has(baseKey)) return;
+                processedBases.add(baseKey);
+
+                const screens = typeof getAdminProductScreenCount === 'function' ? getAdminProductScreenCount(product) : 1;
+                const numEmojis = { 1: '1️⃣', 2: '2️⃣', 3: '3️⃣', 4: '4️⃣', 5: '5️⃣', 6: '6️⃣' };
+                const emoji = numEmojis[screens] || '📺';
+                const screenWord = screens === 1 ? 'Pantalla' : 'Pantallas';
+
+                // Buscar hermanos de duración con el mismo nombre base y categoría
+                const siblings = (dynamicProducts || []).filter(p => {
+                    if (!p || p.active === false || p.category !== product.category) return false;
+                    const pBase = (p.name || '').replace(/\s*\(\s*\d+\s*meses?\s*\)/i, '').trim();
+                    return pBase.toLowerCase() === baseName.toLowerCase();
+                });
+
+                const items = (siblings.length > 0 ? siblings : [product]).map(p => {
+                    let m = p.months || 1;
+                    if (!p.months) {
+                        if (/2\s*mes/i.test(p.name)) m = 2;
+                        else if (/3\s*mes/i.test(p.name)) m = 3;
+                    }
+                    return { months: parseInt(m, 10), price: p.price || 0 };
+                });
+
+                // Ordenar por meses ascendente (1, 2, 3)
+                items.sort((a, b) => a.months - b.months);
+
+                const lines = items.map(item => {
+                    const durText = item.months === 1 ? '1 Mes' : `${item.months} Meses`;
+                    const priceFormatted = '$' + (item.price || 0).toLocaleString('es-CO');
+                    const numHolder = isDirectWa ? emoji : `{N${screens}}`;
+                    return `${durText} *${baseName}* ${numHolder} *${screenWord}* ${priceFormatted}`;
+                });
+
+                quoteBlocks.push(lines.join('\n'));
+            });
+
+            if (quoteBlocks.length === 0) {
+                alert('⚠️ No se encontraron precios válidos para los productos seleccionados.');
+                return;
+            }
+
+            const fullMessage = quoteBlocks.join('\n\n');
+
+            if (isDirectWa) {
+                window.openWhatsapp(cleanPhone, fullMessage);
+            } else {
+                const adminPhone = (storeConfig && storeConfig.whatsappNumber) || '';
+                let cleanAdmin = adminPhone.toString().replace(/\D/g, '');
+                if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
+
+                if (!cleanAdmin) {
+                    window.openWhatsapp(cleanPhone, fullMessage);
+                    return;
+                }
+
+                const command = `CMD_MKT@@@TEL:${cleanPhone}@@@TX:${fullMessage}@@@MEDIA:`;
+                window.openWhatsapp(cleanAdmin, command);
+            }
+        };
+
+        window.sendAdminProductPricesDirectWa = function (specificProduct) {
+            window.sendAdminProductFilteredPrices(true, specificProduct);
+        };
+
+        window.sendSingleAdminProductPrice = function (index) {
+            const prod = (dynamicProducts || [])[index];
+            if (prod) {
+                window.sendAdminProductFilteredPrices(true, prod);
+            }
         };
 
         window.renderManualClientProducts = function () {

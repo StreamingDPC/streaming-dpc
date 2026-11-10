@@ -18,11 +18,11 @@ if (args.includes('--all') || args.includes('all')) {
     count = 1;
 }
 
-// Soporte para flag --range (ej: --range 2-12)
+// 1. Detectar flag --range o -r (ej: --range "2-12", --range "del 2 al 12")
 const rangeIdx = args.findIndex(a => a === '--range' || a === '-r');
-if (rangeIdx !== -1 && args[rangeIdx + 1]) {
-    const raw = args[rangeIdx + 1];
-    const parts = raw.match(/\d+/g);
+if (rangeIdx !== -1) {
+    const nextArg = args[rangeIdx + 1] || '';
+    const parts = (nextArg + ' ' + (args[rangeIdx + 2] || '')).match(/\d+/g);
     if (parts && parts.length >= 2) {
         fromDay = Number(parts[0]);
         toDay = Number(parts[1]);
@@ -30,42 +30,38 @@ if (rangeIdx !== -1 && args[rangeIdx + 1]) {
     }
 }
 
-// Detectar argumento suelto con rango ej: "2-12" o "del 2 al 12"
-const rawRangeArg = args.find((a, idx) => {
-    if (idx > 0 && (args[idx - 1] === '--range' || args[idx - 1] === '-r')) return false;
-    return /\d+\s*[-a]\s*\d+/i.test(a.trim());
-});
-if (rawRangeArg && fromDay === null) {
-    const parts = rawRangeArg.match(/\d+/g);
-    if (parts && parts.length >= 2) {
-        fromDay = Number(parts[0]);
-        toDay = Number(parts[1]);
+// 2. Detectar argumento suelto con rango ej: "2-12", "del 2 al 12", "2 al 12", "2 a 12", "2 hasta 12"
+if (fromDay === null) {
+    const combinedArgs = args.join(' ');
+    const rangeMatch = combinedArgs.match(/(?:del?\s+)?(\d+)\s*(?:-|a|al|hasta)\s*(\d+)/i);
+    if (rangeMatch && !combinedArgs.includes('--day') && !combinedArgs.includes('-d')) {
+        fromDay = Number(rangeMatch[1]);
+        toDay = Number(rangeMatch[2]);
         count = 'all';
     }
 }
 
+// 3. Detectar flag --day o -d
 const dayIdx = args.findIndex(a => a === '--day' || a === '-d');
-if (dayIdx !== -1 && args[dayIdx + 1]) {
+if (dayIdx !== -1 && args[dayIdx + 1] && fromDay === null) {
     const rawVal = args[dayIdx + 1];
-    if (rawVal.includes('-')) {
-        const parts = rawVal.match(/\d+/g);
-        if (parts && parts.length >= 2) {
-            fromDay = Number(parts[0]);
-            toDay = Number(parts[1]);
-            count = 'all';
-        }
-    } else {
-        targetDay = Number(rawVal);
+    const parts = rawVal.match(/\d+/g);
+    if (parts && parts.length >= 2) {
+        fromDay = Number(parts[0]);
+        toDay = Number(parts[1]);
+        count = 'all';
+    } else if (parts && parts.length === 1) {
+        targetDay = Number(parts[0]);
         count = 'all';
     }
 }
 
-const numArg = args.find((a, idx) => {
-    if (idx > 0 && (args[idx - 1] === '--day' || args[idx - 1] === '-d' || args[idx - 1] === '--range' || args[idx - 1] === '-r')) return false;
-    return !isNaN(Number(a)) && a.trim() !== '';
-});
-if (numArg && targetDay === null && fromDay === null && !args.includes('--all') && !args.includes('all')) {
-    count = Number(numArg);
+// 4. Cantidad numérica pura si no es rango ni día
+if (targetDay === null && fromDay === null) {
+    const singleNum = args.find(a => !isNaN(Number(a)) && a.trim() !== '');
+    if (singleNum && !args.includes('--all') && !args.includes('all')) {
+        count = Number(singleNum);
+    }
 }
 
 function checkBotStatus() {

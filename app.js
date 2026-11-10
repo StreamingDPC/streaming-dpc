@@ -609,6 +609,13 @@ window.moveBannerSlider = function (dir) {
 //  🎬 SISTEMA DE VISTAS Y ME GUSTA / NO ME GUSTA EN VIDEOS
 // ================================================================
 window.videoFeedbackCache = {};
+try {
+    const cachedFb = localStorage.getItem('vfeedback_cache');
+    if (cachedFb) {
+        window.videoFeedbackCache = JSON.parse(cachedFb) || {};
+    }
+} catch (_) {}
+
 window.currentModalVideoKey = null;
 
 function getVideoFeedbackKey(url, title) {
@@ -734,16 +741,26 @@ window.voteVideo = function (key, voteType) {
     window.videoFeedbackCache[key] = window.videoFeedbackCache[key] || { views: 0, likes: 0, dislikes: 0 };
     window.videoFeedbackCache[key].likes = Math.max(0, (window.videoFeedbackCache[key].likes || 0) + likeDelta);
     window.videoFeedbackCache[key].dislikes = Math.max(0, (window.videoFeedbackCache[key].dislikes || 0) + dislikeDelta);
+    try {
+        localStorage.setItem('vfeedback_cache', JSON.stringify(window.videoFeedbackCache));
+    } catch (_) {}
     updateAllVideoFeedbackUI(key);
 
-    // Sincronizar en Firebase
+    // Sincronizar en Firebase (nodo clientProfiles/_videoFeedback con permisos habilitados)
     if (typeof db !== 'undefined' && db) {
-        db.ref('videoFeedback/' + key).transaction((current) => {
+        const feedbackRef = db.ref('clientProfiles/_videoFeedback/' + key);
+        feedbackRef.transaction((current) => {
             current = current || { views: 0, likes: 0, dislikes: 0 };
             current.likes = Math.max(0, (current.likes || 0) + likeDelta);
             current.dislikes = Math.max(0, (current.dislikes || 0) + dislikeDelta);
             return current;
-        }).catch(err => console.warn('Error guardando voto en Firebase:', err));
+        }).catch(err => {
+            console.warn('Error guardando voto en Firebase:', err);
+            feedbackRef.update({
+                likes: window.videoFeedbackCache[key].likes,
+                dislikes: window.videoFeedbackCache[key].dislikes
+            }).catch(e => console.warn('Fallback update error:', e));
+        });
     }
 };
 
@@ -765,15 +782,24 @@ function recordVideoView(key) {
     // Optimista
     window.videoFeedbackCache[key] = window.videoFeedbackCache[key] || { views: 0, likes: 0, dislikes: 0 };
     window.videoFeedbackCache[key].views = (window.videoFeedbackCache[key].views || 0) + 1;
+    try {
+        localStorage.setItem('vfeedback_cache', JSON.stringify(window.videoFeedbackCache));
+    } catch (_) {}
     updateAllVideoFeedbackUI(key);
 
-    // Firebase
+    // Firebase (nodo clientProfiles/_videoFeedback con permisos habilitados)
     if (typeof db !== 'undefined' && db) {
-        db.ref('videoFeedback/' + key).transaction((current) => {
+        const feedbackRef = db.ref('clientProfiles/_videoFeedback/' + key);
+        feedbackRef.transaction((current) => {
             current = current || { views: 0, likes: 0, dislikes: 0 };
             current.views = (current.views || 0) + 1;
             return current;
-        }).catch(err => console.warn('Error registrando vista en Firebase:', err));
+        }).catch(err => {
+            console.warn('Error registrando vista en Firebase:', err);
+            feedbackRef.update({
+                views: window.videoFeedbackCache[key].views
+            }).catch(e => console.warn('Fallback views update error:', e));
+        });
     }
 }
 
@@ -782,10 +808,15 @@ function initVideoFeedbackListener() {
     if (window._videoFeedbackListenerInitialized) return;
     if (typeof db !== 'undefined' && db) {
         window._videoFeedbackListenerInitialized = true;
-        db.ref('videoFeedback').on('value', (snap) => {
+        db.ref('clientProfiles/_videoFeedback').on('value', (snap) => {
             const data = snap.val() || {};
-            window.videoFeedbackCache = data;
-            Object.keys(data).forEach(key => updateAllVideoFeedbackUI(key));
+            window.videoFeedbackCache = Object.assign({}, window.videoFeedbackCache, data);
+            try {
+                localStorage.setItem('vfeedback_cache', JSON.stringify(window.videoFeedbackCache));
+            } catch (_) {}
+            Object.keys(window.videoFeedbackCache).forEach(key => updateAllVideoFeedbackUI(key));
+        }, (err) => {
+            console.warn('Error escuchando reacciones de video en Firebase:', err);
         });
     }
 }
