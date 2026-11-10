@@ -647,6 +647,17 @@
   },
   {
     "badge": "Estreno 11 Nov",
+    "title": "Matilda",
+    "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/11/matilda.mp4",
+    "day": 11,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 11 Nov",
     "title": "Style Wars",
     "desc": "Estreno exclusivo del 11 de Noviembre • Streaming DPC",
     "img": "",
