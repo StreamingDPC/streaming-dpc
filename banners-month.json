@@ -1084,16 +1084,5 @@
     "day": 4,
     "month": "Noviembre",
     "monthAbbr": "Nov"
-  },
-  {
-    "badge": "Estreno 3 Nov",
-    "title": "Bass X Machina",
-    "desc": "Estreno exclusivo del 3 de Noviembre • Streaming DPC",
-    "img": "",
-    "btnText": "Ver Video",
-    "btnLink": "videos/3/bass x machina.mp4",
-    "day": 3,
-    "month": "Noviembre",
-    "monthAbbr": "Nov"
   }
 ]
