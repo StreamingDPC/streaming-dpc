@@ -6218,6 +6218,102 @@ window.openCRMPlatformSelector = function (nameEnc, phone, start, end, pin, item
     modal.style.display = 'flex';
 }
 
+const DEFAULT_CRM_PLATFORMS = {
+    'Netflix | TV': { name: 'Netflix | TV', manualUrl: '' },
+    'Netflix | Cel o Pc': { name: 'Netflix | Cel o Pc', manualUrl: '' },
+    'Netflix Privada | TV': { name: 'Netflix Privada | TV', manualUrl: '' },
+    'Disney | TV': { name: 'Disney | TV', manualUrl: '' },
+    'Disney | Cel o Pc': { name: 'Disney | Cel o Pc', manualUrl: '' },
+    'Hbo Max | TV': { name: 'Hbo Max | TV', manualUrl: '' },
+    'Hbo Max | Cel o Pc': { name: 'Hbo Max | Cel o Pc', manualUrl: '' },
+    'Prime Video | TV': { name: 'Prime Video | TV', manualUrl: '' },
+    'Prime Video | Cel o Pc': { name: 'Prime Video | Cel o Pc', manualUrl: '' },
+    'Paramount | TV': { name: 'Paramount | TV', manualUrl: '' },
+    'Paramount | Cel o Pc': { name: 'Paramount | Cel o Pc', manualUrl: '' },
+    'Crunchyroll | TV': { name: 'Crunchyroll | TV', manualUrl: '' },
+    'Crunchyroll | Cel o Pc': { name: 'Crunchyroll | Cel o Pc', manualUrl: '' },
+    'Vix | TV': { name: 'Vix | TV', manualUrl: '' },
+    'Vix | Cel o Pc': { name: 'Vix | Cel o Pc', manualUrl: '' },
+    'Apple | TV': { name: 'Apple | TV', manualUrl: '' }
+};
+
+const DEFAULT_CRM_GALLERY_DICT = {
+    'Netflix | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\Netflix TV\\1.jpg', text: '*Para iniciar Netflix en TV*\n\n*Paso 1* Clic Iniciar sesión' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\Netflix TV\\2.jpg', text: '*Paso 2* Envíame el código que aparece' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\Netflix TV\\3.jpg', text: '*Paso 3* clic ver ahora y listo ya puedes disfrutar del servicio\n\nSi te salió este letrero dar clic en *NO CONTINUAR*' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\Netflix TV\\IMG-20250129-WA0004.jpg', text: 'Si te aparece letrero solo te quedan días de acceso hacer caso omiso clic *ahora no o aceptar*' }
+    ],
+    'Netflix | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\nuevo ingreso netflix pcel\\paso 1.png', text: '*Para iniciar sesión en PC o Cel seguir los siguientes pasos*\n\n*Paso 1* Clic inicio de sesión ingresar el email y dar clic en continuar.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\nuevo ingreso netflix pcel\\paso 2.png', text: '*Paso 2* Ingresa el código que se te envié y dale clic en iniciar sesión. y listo a disfrutar del servicio.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Netflix Privada | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Netflix\\Netflix TV\\1.jpg', text: '*Para iniciar Netflix Privada en TV*\n\n*Paso 1* Clic iniciar sesión\n*Paso 2* Envíame el código que aparece\n\nListo ya puedes disfrutar del servicio' }
+    ],
+    'Disney | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney tv\\1.jpg', text: '*Iniciar Disney Tv*\n\n*Paso 1* clic iniciar sesión' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney tv\\2.jpg', text: '*Paso 2* El código que aparece en tu tv envíamelo' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney tv\\3.jpg', text: '*Paso 3* Espera que tu proveedor registre el código inicia solo dar listo\n\n*Streaming DPC* Siempre pensando en tu Entretenimiento' }
+    ],
+    'Disney | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney pcel\\1 disney.jpg', text: '*Disney para ingresar a cel. o pc*\n\n*Paso 1* clic iniciar sesión ingresar email' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney pcel\\2 disney.jpg', text: '*Paso 2* Enviar un código de acceso único' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Disney\\Disney pcel\\3 disney.jpg', text: '*Paso 3* Espera que tu proveedor tenga el código y te lo envié lo ingresas y listo\n\n*Streaming DPC* Siempre pensando en tu entretenimiento' }
+    ],
+    'Hbo Max | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\TV\\paso 1 max.jpg', text: '*Hbo Max Para iniciar sesión en TV seguir los siguientes pasos*\n\n*Paso 1* Clic inicio de sesión,' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\TV\\paso 2 max.jpg', text: '*Paso 2* Envíame el código que aparece y espera que solo ingrese.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\TV\\paso 3 max.jpg', text: '*Paso 3* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Hbo Max | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\Cel o pc\\paso 1 max pc.jpg', text: '*Hbo Max Para iniciar sesión en PC o Cel seguir los siguientes pasos*\n\n*Paso 1* Clic inicio de sesión,' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\Cel o pc\\paso 2 max pc.jpg', text: '*Paso 2* ingresar el email y dar clic en continuar.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\Cel o pc\\paso 3 max pc.jpg', text: '*Paso 3* Clic en Obtén un código y espera que tu proveedor te lo envié.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\Cel o pc\\paso 4 max pc.jpg', text: '*Paso 4* Ingresar el código.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Max\\Cel o pc\\paso 5 max pc.jpg', text: '*Paso 5* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Prime Video | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\prime\\codigo prime video.jpg', text: '*Como iniciar sesión con Prime Video*\n\n*En el TV al iniciar aparece un código*\n\n*Envíame ese código para registrar la pantalla y espera a que sola ingrese*' }
+    ],
+    'Prime Video | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\prime\\paso 1.jpg', text: '*Como ingresar al Celular*\n\n*Paso 1* ingresa el email que se te envió\n• *Dale Clic en Continuar*' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\prime\\paso 2.jpg', text: '• *Paso 2* Ingresa la contraseña que se te envió\n• seleccionar el recuadro recuérdame\n• *Clic* en iniciar sesión' }
+    ],
+    'Paramount | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Paramount\\paso 1.jpg', text: '*Paramount Para iniciar sesión en TV seguir los siguientes pasos*\n\n*Paso 1* Clic en inicio de sesión o ya tengo Paramount,' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Paramount\\paso 2.jpg', text: '*Paso 2* Clic en la red.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Paramount\\paso 3.jpg', text: '*Paso 3* El código que aparece ahí envíamelo.\n*Paso 4* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Paramount | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Paramount\\pcel\\paso 1.jpg', text: '*Paramount Para iniciar sesión en Cel o Pc seguir los siguientes pasos*\n\n*Paso 1* Clic en inicio de sesión o ya tengo Paramount,\n*Paso 2* Ingresa email y contraseña que te envié' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Paramount\\pcel\\p2.bmp', text: '*Paso 3* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Crunchyroll | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\paso 1 crunchy.jpg', text: '*Crunchyroll Para iniciar sesión en TV seguir los siguientes pasos*\n\n*Paso 1* Clic en Acceder o inicio de sesión,' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\paso 2 crunchy.jpg', text: '*Paso 2* Clic en acceder con código y el código que aparece ahí envíalo' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\paso 3 crunchy.jpg', text: '*Paso 3* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Crunchyroll | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\pcel\\paso 1 crunchy.jpg', text: '*Crunchyroll Para iniciar sesión en Cel o Pc seguir los siguientes pasos*\n\n*Paso 1* Clic en Acceder o inicio de sesión,' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\pcel\\paso 2.bmp', text: '*Paso 2* ingresa el email y contraseña que te envié' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Crunchyroll\\pcel\\paso 3 crunchy.jpg', text: '*Paso 3* Listo elije tu perfil y que lo disfrutes.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Vix | TV': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\Paso 1 vix.jpg', text: '*Vix Para iniciar sesión en TV seguir los siguientes pasos*\n\n*Paso 1* Clic en inicio de sesión.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\Paso 2 vix.jpg', text: '*Paso 2* El código que aparece ahí envíamelo.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\Paso 3 vix.jpg', text: '*Paso 3* Clic en el circulo superior derecha y elije tu perfil.' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\Paso 4 vix.jpg', text: '*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Vix | Cel o Pc': [
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\pcel\\1.jpg', text: '*Vix Para iniciar sesión en Cel o Pc seguir los siguientes pasos*\n\n*Paso 1* Ingresa el email' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\pcel\\2.jpg', text: '*Paso 2* Clic iniciar sesión con contraseña' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\pcel\\3.bmp', text: '*Paso 3* Ingresa la contraseña' },
+        { photo: 'D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\ingresar a netflix\\Vix\\pcel\\4.jpg', text: '*Paso 4* Clic en Entendido y listo elije tu perfil.\n\n*Streaming DPC* Siempre pensando en tu entretenimiento.' }
+    ],
+    'Apple | TV': []
+};
+
 window.filterCRMPlatforms = function (val) {
     renderCRMPlatformsList(val.toLowerCase());
 }
@@ -6232,17 +6328,9 @@ window.renderCRMPlatformsList = function (filter) {
     
     const keysSet = new Set([
         ...Object.keys(platforms),
-        ...Object.keys(dict)
+        ...Object.keys(dict),
+        ...Object.keys(DEFAULT_CRM_PLATFORMS)
     ]);
-
-    const standardList = ['Netflix', 'Apple TV', 'Disney +', 'Hbo Max', 'Prime Video', 'Paramount +', 'Vix +', 'Crunchyroll', 'Spotify', 'YouTube Premium'];
-    standardList.forEach(k => {
-        const norm = k.toLowerCase().replace(/[\+\s]/g, '');
-        const exists = Array.from(keysSet).some(existing => existing.split(' | ')[0].toLowerCase().replace(/[\+\s]/g, '') === norm);
-        if (!exists) {
-            keysSet.add(k);
-        }
-    });
 
     let allKeys = Array.from(keysSet);
 
@@ -6329,15 +6417,15 @@ window.sendCRMStep1Message = function (platformName) {
     const { name, phone, start, end, pin, sellerName } = _crmTargetClient;
     const dict = storeConfig.crmGalleryDict || {};
     let resolvedKey = platformName;
-    let items = dict[resolvedKey] || [];
+    let items = dict[resolvedKey] || (typeof DEFAULT_CRM_GALLERY_DICT !== 'undefined' ? DEFAULT_CRM_GALLERY_DICT[resolvedKey] : null) || [];
 
     if (!items || items.length === 0) {
-        const allKeys = Object.keys(dict);
+        const allKeys = Array.from(new Set([...Object.keys(dict), ...(typeof DEFAULT_CRM_GALLERY_DICT !== 'undefined' ? Object.keys(DEFAULT_CRM_GALLERY_DICT) : [])]));
         const pClean = platformName.toLowerCase().replace(/[\+\s]/g, '');
         const found = allKeys.find(k => k.toLowerCase().replace(/[\+\s]/g, '').includes(pClean) || pClean.includes(k.toLowerCase().replace(/[\+\s]/g, '')));
         if (found) {
             resolvedKey = found;
-            items = dict[resolvedKey] || [];
+            items = dict[resolvedKey] || (typeof DEFAULT_CRM_GALLERY_DICT !== 'undefined' ? DEFAULT_CRM_GALLERY_DICT[resolvedKey] : null) || [];
         }
     }
 
@@ -6395,7 +6483,9 @@ window.sendCRMStep1Message = function (platformName) {
                     .filter(u => u && u.length > 3);
                 urls.forEach(url => {
                     allLocalPhotos.push(url);
-                    extraText += `\n🔗 Foto guía: ${url}`;
+                    if (url.startsWith('http://') || url.startsWith('https://')) {
+                        extraText += `\n🔗 Foto guía: ${url}`;
+                    }
                 });
             }
         });
@@ -6413,7 +6503,9 @@ window.sendCRMStep1Message = function (platformName) {
         if (matchedProd && matchedProd.image && matchedProd.image.trim()) {
             const imgUrl = matchedProd.image.trim();
             allLocalPhotos.push(imgUrl);
-            extraText += `\n🔗 Foto guía: ${imgUrl}`;
+            if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+                extraText += `\n🔗 Foto guía: ${imgUrl}`;
+            }
         }
     }
 
@@ -6423,7 +6515,8 @@ window.sendCRMStep1Message = function (platformName) {
         extraText += `\n\n🌐 *Enlace / Guía de acceso:* ${manualGuideUrl.trim()}`;
     }
 
-    dataVars.link = (allLocalPhotos.length > 0 ? allLocalPhotos[0] : (manualGuideUrl || ''));
+    const webPhotoUrl = allLocalPhotos.find(u => u.startsWith('http://') || u.startsWith('https://'));
+    dataVars.link = webPhotoUrl || manualGuideUrl || '';
     mainText = replaceCRMVars(template, dataVars);
 
     const fullMsg = mainText + extraText;
