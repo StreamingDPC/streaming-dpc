@@ -535,6 +535,37 @@
                             <option value="admin">Administrador (Global)</option>
                         </select>
                     </div>
+
+                    <!-- SECCIÓN PROMOCIÓN Y DESCUENTOS (BLACK FRIDAY / CAMPAÑAS) -->
+                    <div class="form-col" style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(255, 71, 87, 0.12), rgba(255, 107, 129, 0.05)); border: 1px dashed #ff4757; padding: 14px 16px; border-radius: 12px; margin: 6px 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+                            <span style="color: #ff6b81; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-fire"></i> Promoción & Descuentos (Black Friday / Campañas)
+                            </span>
+                            <small style="color: #94a3b8; font-size: 0.75rem;">Si dejas el porcentaje en 0 o vacío, no aplica descuento.</small>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div>
+                                <label style="font-size: 0.82rem; color: #ff6b81; margin-bottom: 4px; display: block; font-weight: 600;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Concepto de la Promoción
+                                </label>
+                                <input type="text" id="new-promo-label" placeholder="Ej: Black Friday, Promo Navidad..." style="border: 1px solid rgba(255, 71, 87, 0.5); font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.82rem; color: #00d2d3; margin-bottom: 4px; display: block; font-weight: 600;">
+                                    <i class="fa-solid fa-percent"></i> % Descuento Cliente (Público)
+                                </label>
+                                <input type="number" id="new-client-discount" min="0" max="100" step="any" placeholder="Ej: 15 (% de descuento)" style="border: 1px solid rgba(0, 210, 211, 0.5); font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.82rem; color: #2ecc71; margin-bottom: 4px; display: block; font-weight: 600;">
+                                    <i class="fa-solid fa-percent"></i> % Descuento Vendedor (Mayorista)
+                                </label>
+                                <input type="number" id="new-seller-discount" min="0" max="100" step="any" placeholder="Ej: 10 (% de descuento)" style="border: 1px solid rgba(46, 204, 113, 0.5); font-size: 0.85rem;">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-col">
                         <label>Marca (para Autocompletar Logo)</label>
                         <input type="text" id="new-brand" placeholder="Ej: Netflix, Combo, Disney+">
@@ -8374,6 +8405,10 @@
                         <br>
                         <span style="font-size: 0.8rem; color: var(--text-primary)">$${p.price.toLocaleString()}</span> - 
                         <span style="font-size: 0.8rem; color: #ccc;">${p.category} | ${p.brand}</span>${p.purchasePrice ? `<br><span style="color:#f39c12; font-size: 0.75rem; font-weight: 600;"><i class="fa-solid fa-tag"></i> Costo: ${p.purchasePrice.toLocaleString()}</span>` : ''}
+                        ${(p.clientDiscountPercent > 0 || p.sellerDiscountPercent > 0 || p.promoLabel) ? `
+                            <br><span style="background: linear-gradient(135deg, #ff4757, #ff6b81); color: white; border-radius: 8px; padding: 2px 7px; font-size: 0.72rem; font-weight: bold; display: inline-block; margin-top: 3px;">
+                                <i class="fa-solid fa-fire"></i> ${p.promoLabel || 'Promoción'}: Cli -${p.clientDiscountPercent || 0}% | Vend -${p.sellerDiscountPercent || 0}%
+                            </span>` : ''}
                         ${p.stock > 0 ? `<br><span style="color:#f39c12; font-size: 0.75rem; font-weight: bold;">[Stock: ${p.stock}]</span>` : ''}
                         ${!inStock ? '<br><span style="color:#ff4d4d; font-size: 0.75rem; font-weight: bold;">[AGOTADO]</span>' : ''}
                     </div>
@@ -8906,6 +8941,15 @@
             document.getElementById('new-owner').value = p.owner || 'admin';
             document.getElementById('owner-col').style.display = p.category === 'ventas_extras' ? 'block' : 'none';
             document.getElementById('new-brand').value = p.brand || '';
+            if (document.getElementById('new-promo-label')) {
+                document.getElementById('new-promo-label').value = p.promoLabel || '';
+            }
+            if (document.getElementById('new-client-discount')) {
+                document.getElementById('new-client-discount').value = (p.clientDiscountPercent !== undefined && p.clientDiscountPercent !== null) ? p.clientDiscountPercent : '';
+            }
+            if (document.getElementById('new-seller-discount')) {
+                document.getElementById('new-seller-discount').value = (p.sellerDiscountPercent !== undefined && p.sellerDiscountPercent !== null) ? p.sellerDiscountPercent : '';
+            }
             document.getElementById('new-image').value = p.image || '';
             document.getElementById('new-desc').value = p.desc || '';
             document.getElementById('new-stock').value = p.stock || 0;
@@ -8970,6 +9014,15 @@
             document.getElementById('new-owner').value = p.owner || 'admin';
             document.getElementById('owner-col').style.display = p.category === 'ventas_extras' ? 'block' : 'none';
             document.getElementById('new-brand').value = p.brand;
+            if (document.getElementById('new-promo-label')) {
+                document.getElementById('new-promo-label').value = p.promoLabel || '';
+            }
+            if (document.getElementById('new-client-discount')) {
+                document.getElementById('new-client-discount').value = (p.clientDiscountPercent !== undefined && p.clientDiscountPercent !== null) ? p.clientDiscountPercent : '';
+            }
+            if (document.getElementById('new-seller-discount')) {
+                document.getElementById('new-seller-discount').value = (p.sellerDiscountPercent !== undefined && p.sellerDiscountPercent !== null) ? p.sellerDiscountPercent : '';
+            }
             document.getElementById('new-image').value = p.image || '';
             document.getElementById('new-desc').value = p.desc || '';
             document.getElementById('new-stock').value = p.stock || 0;
@@ -9014,6 +9067,9 @@
             if (document.getElementById('combo-cost-hint')) document.getElementById('combo-cost-hint').style.display = 'none';
             if (document.getElementById('btn-recalc-combo-single')) document.getElementById('btn-recalc-combo-single').style.display = 'none';
             document.getElementById('new-brand').value = '';
+            if (document.getElementById('new-promo-label')) document.getElementById('new-promo-label').value = '';
+            if (document.getElementById('new-client-discount')) document.getElementById('new-client-discount').value = '';
+            if (document.getElementById('new-seller-discount')) document.getElementById('new-seller-discount').value = '';
             document.getElementById('new-image').value = '';
             document.getElementById('new-desc').value = '';
             document.getElementById('new-stock').value = '0';
@@ -9053,6 +9109,9 @@
             }
             const category = document.getElementById('new-category').value;
             const months = parseInt(document.getElementById('new-months') ? document.getElementById('new-months').value : 1) || 1;
+            const promoLabel = document.getElementById('new-promo-label') ? document.getElementById('new-promo-label').value.trim() : '';
+            const clientDiscountPercent = parseFloat(document.getElementById('new-client-discount') ? document.getElementById('new-client-discount').value : 0) || 0;
+            const sellerDiscountPercent = parseFloat(document.getElementById('new-seller-discount') ? document.getElementById('new-seller-discount').value : 0) || 0;
             const owner = category === 'ventas_extras' ? document.getElementById('new-owner').value : null;
             const brand = document.getElementById('new-brand').value;
             const desc = document.getElementById('new-desc').value.trim();
@@ -9119,6 +9178,9 @@
                     allowExhaustedSeller,
                     reserveRules,
                     image,
+                    promoLabel,
+                    clientDiscountPercent,
+                    sellerDiscountPercent,
                     active: true
                 };
                 dynamicProducts.unshift(newProduct);
@@ -9136,6 +9198,9 @@
                 dynamicProducts[editIndex].reserveRules = reserveRules;
                 dynamicProducts[editIndex].purchasePrice = purchasePrice;
                 dynamicProducts[editIndex].image = image;
+                dynamicProducts[editIndex].promoLabel = promoLabel;
+                dynamicProducts[editIndex].clientDiscountPercent = clientDiscountPercent;
+                dynamicProducts[editIndex].sellerDiscountPercent = sellerDiscountPercent;
                 // doesn't touch active status
                 cancelEdit();
             }
@@ -16296,7 +16361,12 @@
                         if (/2\s*mes/i.test(p.name)) m = 2;
                         else if (/3\s*mes/i.test(p.name)) m = 3;
                     }
-                    return { months: parseInt(m, 10), price: p.price || 0 };
+                    return { 
+                        months: parseInt(m, 10), 
+                        price: p.price || 0,
+                        clientDiscountPercent: parseFloat(p.clientDiscountPercent) || 0,
+                        promoLabel: p.promoLabel || ''
+                    };
                 });
 
                 // Ordenar por meses ascendente (1, 2, 3)
@@ -16304,8 +16374,14 @@
 
                 const lines = items.map(item => {
                     const durText = item.months === 1 ? '1 Mes' : `${item.months} Meses`;
-                    const priceFormatted = '$' + (item.price || 0).toLocaleString('es-CO');
                     const numHolder = isDirectWa ? emoji : `{N${screens}}`;
+                    if (item.clientDiscountPercent > 0) {
+                        const discAmt = Math.round(item.price * (item.clientDiscountPercent / 100));
+                        const finalP = Math.max(0, item.price - discAmt);
+                        const label = item.promoLabel ? ` (${item.promoLabel})` : '';
+                        return `${durText} *${baseName}* ${numHolder} *${screenWord}* ~$${(item.price || 0).toLocaleString('es-CO')}~ 🔥 *Oferta${label} -${item.clientDiscountPercent}%: $${finalP.toLocaleString('es-CO')}*`;
+                    }
+                    const priceFormatted = '$' + (item.price || 0).toLocaleString('es-CO');
                     return `${durText} *${baseName}* ${numHolder} *${screenWord}* ${priceFormatted}`;
                 });
 

@@ -1014,7 +1014,14 @@ function renderProductCards(productList, emptyMessage) {
         card.className = 'product-card';
         // Usar imagen por defecto si no tiene
         const imgUrl = product.image || 'https://img.icons8.com/color/96/movie.png';
-        const displayPrice = getPrice(product);
+        const rawBasePrice = getPrice(product);
+        const clientDiscountPct = parseFloat(product.clientDiscountPercent) || 0;
+        const sellerDiscountPct = parseFloat(product.sellerDiscountPercent) || 0;
+        const activePromoPct = !isSellerMode ? clientDiscountPct : sellerDiscountPct;
+        const hasPromo = activePromoPct > 0;
+        const promoDiscountAmt = hasPromo ? Math.round(rawBasePrice * (activePromoPct / 100)) : 0;
+        const displayPrice = hasPromo ? Math.max(0, rawBasePrice - promoDiscountAmt) : rawBasePrice;
+        const promoLabelText = product.promoLabel && product.promoLabel.trim() ? product.promoLabel.trim() : 'Promoción';
 
         let sellerBadge = isSellerMode ? `<span style="background:#27ae60; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; margin-left:0.5rem">Precio Vendedor</span>` : '';
         let inStock = product.inStock !== false;
@@ -1083,14 +1090,22 @@ function renderProductCards(productList, emptyMessage) {
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
                 ${product.brand ? `<span class="brand-badge" style="margin-bottom: 0;">${product.brand}</span>` : ''}
                 ${product.months && product.months > 1 ? `<span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 210, 211, 0.15); color: #00d2d3; border: 1px solid #00d2d3; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: bold;"><i class="fa-solid fa-calendar-days"></i> ${product.months} Meses</span>` : ''}
+                ${hasPromo ? `<span style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, #ff4757, #ff6b81); color: white; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: bold; box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);"><i class="fa-solid fa-fire"></i> ${promoLabelText} -${activePromoPct}%</span>` : ''}
             </div>
             <h3 class="product-title">${product.name}</h3>
             <p class="product-desc" style="margin-bottom: 0.5rem">${product.desc || 'Pantalla original premium con garantía.'}</p>
-            ${isSellerMode ? `<div style="color: #00d2d3; font-size: 0.85rem; font-weight: bold; margin-bottom: 0.4rem;"><i class="fa-solid fa-tag"></i> Sugerido al Cliente: $${product.price.toLocaleString()}</div>` : ''}
+            ${isSellerMode ? `
+                <div style="color: #00d2d3; font-size: 0.85rem; font-weight: bold; margin-bottom: 0.4rem;">
+                    <i class="fa-solid fa-tag"></i> Sugerido al Cliente: $${product.price.toLocaleString()}
+                    ${clientDiscountPct > 0 ? ` <span style="color:#ff6b81; font-size:0.75rem;">(Con ${clientDiscountPct}% Cli: $${Math.max(0, product.price - Math.round(product.price * (clientDiscountPct / 100))).toLocaleString()})</span>` : ''}
+                </div>` : ''}
             ${sellerBadge}
             ${product.stock > 0 ? `<div style="color:#f39c12; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.5rem;"><i class="fa-solid fa-layer-group"></i> Disponibles: ${product.stock}</div>` : ''}
             <div class="price-row" style="margin-top:1rem">
-                <span class="price">$${displayPrice.toLocaleString()}</span>
+                <div style="display: flex; flex-direction: column;">
+                    ${hasPromo ? `<span style="font-size: 0.78rem; color: #94a3b8; text-decoration: line-through;">$${rawBasePrice.toLocaleString()}</span>` : ''}
+                    <span class="price" style="${hasPromo ? 'color: #ff4757; font-weight: 800;' : ''}">$${displayPrice.toLocaleString()}</span>
+                </div>
                 ${buttonHtml}
             </div>
         `;
@@ -1459,6 +1474,7 @@ function processCartDiscounts() {
     let promoCount = 0;
     let promoDiscountTotal = 0;
     let genericDiscountTotal = 0;
+    let specialProductPromoDiscountTotal = 0;
     let total = 0;
     let processedCart = [];
 
@@ -1468,7 +1484,19 @@ function processCartDiscounts() {
         let discountNote = "";
         let isIndividual = item.category === 'individual';
 
-        if (isIndividual) {
+        // 🏷️ Descuento Promocional por Pantalla / Producto (Black Friday / Campañas)
+        let clientDiscountPct = parseFloat(item.clientDiscountPercent) || 0;
+        let sellerDiscountPct = parseFloat(item.sellerDiscountPercent) || 0;
+        let activeDiscountPct = !isSellerMode ? clientDiscountPct : sellerDiscountPct;
+        let itemPromoDiscountAmount = 0;
+        let promoConcept = (item.promoLabel && item.promoLabel.trim()) ? item.promoLabel.trim() : 'Black Friday';
+
+        if (activeDiscountPct > 0) {
+            itemPromoDiscountAmount = Math.round(basePrice * (activeDiscountPct / 100));
+            finalPrice = Math.max(0, basePrice - itemPromoDiscountAmount);
+            discountNote = `<span style="color:${isSellerMode ? '#a29bfe' : '#ff4757'}; font-size:0.75rem; font-weight:bold;">(-$${itemPromoDiscountAmount.toLocaleString()} ${promoConcept} -${activeDiscountPct}%)</span>`;
+            specialProductPromoDiscountTotal += itemPromoDiscountAmount;
+        } else if (isIndividual) {
             let isPromoBannerActiveEnabled = (isClientPromoActive || isSellerPromoActive);
             let isGenericDiscountApplicable = individualCount >= 2;
             let appliedPromo = false;
@@ -1502,12 +1530,23 @@ function processCartDiscounts() {
         total += finalPrice;
         processedCart.push({
             ...item,
+            basePrice,
+            promoDiscountAmount: itemPromoDiscountAmount,
+            promoPercent: activeDiscountPct,
+            promoConcept: itemPromoDiscountAmount > 0 ? promoConcept : null,
             finalPrice,
             discountNote
         });
     });
 
-    return { processedCart, total, promoDiscountTotal, genericDiscountTotal, actualPromoCount: promoCount };
+    return { 
+        processedCart, 
+        total, 
+        promoDiscountTotal, 
+        genericDiscountTotal, 
+        specialProductPromoDiscountTotal, 
+        actualPromoCount: promoCount 
+    };
 }
 
 function updateCartUI() {
@@ -1536,7 +1575,9 @@ function renderCartItems() {
             <div style="flex: 1;">
                 <p style="font-weight:600; margin-bottom: 0.2rem;">${item.name} ${item.discountNote}</p>
                 <input type="text" class="input-modern cart-custom-name" data-index="${index}" placeholder="Nombre o Alias (Ej: Para María)" value="${item.customName || ''}" style="padding: 0.3rem; font-size: 0.8rem; width: 100%; border: 1px solid var(--glass-border); border-radius: 4px; background: rgba(0,0,0,0.2);">
-                <p style="font-size:0.8rem; color:#a0a0a0; margin-top: 0.3rem;">$${item.finalPrice.toLocaleString()}</p>
+                <p style="font-size:0.8rem; color:#a0a0a0; margin-top: 0.3rem;">
+                    ${item.promoDiscountAmount > 0 ? `<span style="text-decoration: line-through; color: #777; margin-right: 6px;">$${(item.basePrice || item.finalPrice).toLocaleString()}</span><b style="color: #ff4757;">$${item.finalPrice.toLocaleString()}</b>` : `$${item.finalPrice.toLocaleString()}`}
+                </p>
             </div>
             <button onclick="removeFromCart(${index})" style="background:none; border:none; color:#ff4d00; cursor:pointer; padding: 0.5rem;">
                 <i class="fa-solid fa-trash"></i>
@@ -5160,10 +5201,28 @@ function setupEventListeners() {
 
         message += `\nHola, me gustaría adquirir las siguientes pantallas:\n\n`;
 
+        let totalBaseCost = 0;
+        let totalSpecialPromoDiscount = 0;
+        let promoConceptsList = [];
+
         stats.processedCart.forEach((item, i) => {
             let fp = isNaN(item.finalPrice) ? 0 : item.finalPrice;
+            let bp = item.basePrice !== undefined ? item.basePrice : getPrice(item);
+            totalBaseCost += bp;
             let displayItemName = item.customName ? `${item.name} (${item.customName})` : item.name;
-            message += `${i + 1}. *${displayItemName || 'Pantalla'}* - $${fp.toLocaleString()}\n`;
+
+            if (item.promoDiscountAmount > 0) {
+                totalSpecialPromoDiscount += item.promoDiscountAmount;
+                const concept = item.promoConcept || 'Black Friday';
+                if (!promoConceptsList.includes(concept)) promoConceptsList.push(concept);
+
+                message += `${i + 1}. *${displayItemName || 'Pantalla'}*\n`;
+                message += `   • Costo: $${bp.toLocaleString()}\n`;
+                message += `   • Descuento otorgado por: ${concept} (${item.promoPercent}%): -$${item.promoDiscountAmount.toLocaleString()}\n`;
+                message += `   • Subtotal: $${fp.toLocaleString()}\n\n`;
+            } else {
+                message += `${i + 1}. *${displayItemName || 'Pantalla'}* - $${fp.toLocaleString()}\n`;
+            }
         });
 
         if (stats.promoDiscountTotal > 0) {
@@ -5178,7 +5237,20 @@ function setupEventListeners() {
             }
         }
 
-        if (customClientPrice) {
+        if (totalSpecialPromoDiscount > 0) {
+            const conceptNames = promoConceptsList.join(' / ');
+            message += `\n🏷️ *Descuento otorgado por:* ${conceptNames}\n`;
+            message += `• Costo: $${totalBaseCost.toLocaleString()}\n`;
+            message += `• Descuento: -$${totalSpecialPromoDiscount.toLocaleString()}\n`;
+            if (customClientPrice) {
+                message += `• Total cobrado al cliente: $${customClientPrice.toLocaleString()}\n`;
+                let fTotal = isNaN(stats.total) ? 0 : stats.total;
+                message += `• Total a pagar (Mayorista): $${fTotal.toLocaleString()}\n\n`;
+            } else {
+                let fTotal = isNaN(total) ? 0 : total;
+                message += `• Total a pagar: $${fTotal.toLocaleString()}\n\n`;
+            }
+        } else if (customClientPrice) {
             message += `\n💰 *Total cobrado al cliente:* $${customClientPrice.toLocaleString()}\n`;
             let fTotal = isNaN(stats.total) ? 0 : stats.total;
             message += `💼 *Valor Mayorista (Para el Admin):* $${fTotal.toLocaleString()}\n\n`;
@@ -5331,12 +5403,19 @@ function setupEventListeners() {
             expirationDate: saleExp,
             fechaCompraOriginal: saleAnchor, // Cap Month
             months: productMonths,
+            baseCost: totalBaseCost,
+            promoDiscountTotal: totalSpecialPromoDiscount,
+            promoConcept: promoConceptsList.length > 0 ? promoConceptsList.join(' / ') : null,
             items: stats.processedCart.map(item => ({
                 id: item.id || Date.now(),
                 name: item.customName ? `${item.name} (${item.customName})` : (item.name || 'Pantalla'),
                 customName: item.customName || null,
                 category: item.category || 'individual',
                 months: item.months || productMonths,
+                basePrice: item.basePrice || item.finalPrice || 0,
+                promoDiscountAmount: item.promoDiscountAmount || 0,
+                promoPercent: item.promoPercent || 0,
+                promoConcept: item.promoConcept || null,
                 finalPrice: isNaN(item.finalPrice) ? 0 : item.finalPrice
             })),
             total: isNaN(total) ? 0 : total,
@@ -5843,24 +5922,55 @@ window.sendTicketToAdminFromDash = function (cNameEnc, cPhone, itemsJsonEncoded)
     message += `Hola, me gustaría procesar el pago de estas pantallas para mi cliente:\n\n`;
 
     let totalMayorista = 0;
+    let totalMayoristaBase = 0;
+    let totalMayoristaDescuento = 0;
+    let appliedConcepts = [];
 
     saleItems.forEach((item, i) => {
         const pDb = products.find(p => p.id === item.id) || products.find(p => item.name && item.name.includes(p.name));
-        let pWholesale = pDb && pDb.sellerPrice ? pDb.sellerPrice : (item.finalPrice || 0);
+        let baseWholesale = pDb && pDb.sellerPrice ? pDb.sellerPrice : (item.basePrice || item.finalPrice || 0);
 
         if (pDb && typeof pDb.sellerPrice === 'number' && pDb.sellerPrice > 0) {
-            pWholesale = pDb.sellerPrice;
-        } else if (pDb && typeof pDb.price === 'number' && pDb.price > 0 && pWholesale === 0) {
-            pWholesale = pDb.price;
+            baseWholesale = pDb.sellerPrice;
+        } else if (pDb && typeof pDb.price === 'number' && pDb.price > 0 && baseWholesale === 0) {
+            baseWholesale = pDb.price;
         }
 
+        let sellerPct = (pDb && pDb.sellerDiscountPercent) ? parseFloat(pDb.sellerDiscountPercent) : (item.promoPercent || 0);
+        let promoConcept = (pDb && pDb.promoLabel && pDb.promoLabel.trim()) ? pDb.promoLabel.trim() : (item.promoConcept || 'Black Friday');
+
+        let pDiscount = 0;
+        let pWholesale = baseWholesale;
+        if (sellerPct > 0) {
+            pDiscount = Math.round(baseWholesale * (sellerPct / 100));
+            pWholesale = Math.max(0, baseWholesale - pDiscount);
+            totalMayoristaDescuento += pDiscount;
+            if (!appliedConcepts.includes(promoConcept)) appliedConcepts.push(promoConcept);
+        }
+
+        totalMayoristaBase += baseWholesale;
         totalMayorista += pWholesale;
 
         let displayItemName = item.customName ? `${item.name} (${item.customName})` : item.name;
-        message += `${i + 1}. *${displayItemName}* - $${pWholesale.toLocaleString()} (P. Vendedor)\n`;
+        if (pDiscount > 0) {
+            message += `${i + 1}. *${displayItemName}*\n`;
+            message += `   • Costo Mayorista: $${baseWholesale.toLocaleString()}\n`;
+            message += `   • Descuento otorgado por: ${promoConcept} (${sellerPct}%): -$${pDiscount.toLocaleString()}\n`;
+            message += `   • Subtotal: $${pWholesale.toLocaleString()}\n\n`;
+        } else {
+            message += `${i + 1}. *${displayItemName}* - $${pWholesale.toLocaleString()} (P. Vendedor)\n`;
+        }
     });
 
-    message += `\n💼 *Valor Mayorista (Para el Admin):* $${totalMayorista.toLocaleString()}\n\n`;
+    if (totalMayoristaDescuento > 0) {
+        const conceptNames = appliedConcepts.join(' / ');
+        message += `\n🏷️ *DESCUENTO OTORGADO POR: ${conceptNames.toUpperCase()}*\n`;
+        message += `• Costo: $${totalMayoristaBase.toLocaleString()}\n`;
+        message += `• Descuento: -$${totalMayoristaDescuento.toLocaleString()}\n`;
+        message += `• Total a pagar: $${totalMayorista.toLocaleString()}\n\n`;
+    } else {
+        message += `\n💼 *Valor Mayorista (Para el Admin):* $${totalMayorista.toLocaleString()}\n\n`;
+    }
 
     let currentPaymentInfo = storeConfig.paymentInfo || '💳 *Por favor contáctame para indicarte mis métodos de pago...*';
     message += `${currentPaymentInfo}\n\n`;
@@ -5869,7 +5979,7 @@ window.sendTicketToAdminFromDash = function (cNameEnc, cPhone, itemsJsonEncoded)
     const adminPhone = formatWaPhone(storeConfig.whatsappNumber || '573155182545');
     const encodedMsg = encodeURIComponent(message);
     window.open(`https://wa.me/${adminPhone}?text=${encodedMsg}`, '_blank');
-}
+};
 
 window.sendReminderFromDash = async function (saleId, cName, cPhone, itemsEncoded) {
     if (!reminderEditorModal) return;
