@@ -6229,8 +6229,22 @@ window.renderCRMPlatformsList = function (filter) {
     list.innerHTML = '';
     const dict = storeConfig.crmGalleryDict || {};
     const platforms = storeConfig.crmPlatforms || {};
-    let allKeys = Object.keys(platforms);
-    if (allKeys.length === 0) allKeys = Object.keys(dict);
+    
+    const keysSet = new Set([
+        ...Object.keys(platforms),
+        ...Object.keys(dict)
+    ]);
+
+    const standardList = ['Netflix', 'Apple TV', 'Disney +', 'Hbo Max', 'Prime Video', 'Paramount +', 'Vix +', 'Crunchyroll', 'Spotify', 'YouTube Premium'];
+    standardList.forEach(k => {
+        const norm = k.toLowerCase().replace(/[\+\s]/g, '');
+        const exists = Array.from(keysSet).some(existing => existing.split(' | ')[0].toLowerCase().replace(/[\+\s]/g, '') === norm);
+        if (!exists) {
+            keysSet.add(k);
+        }
+    });
+
+    let allKeys = Array.from(keysSet);
 
     const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
     const keys = allKeys.filter(k => k.toLowerCase().includes(filter));
@@ -6298,17 +6312,34 @@ function replaceCRMVars(text, data) {
         .replace(/{nombre}/ig, data.name || '')
         .replace(/{pantalla}/ig, data.platformName || '')
         .replace(/{inicio}/ig, data.start || '')
-        .replace(/{Fin}/ig, data.end || '')
+        .replace(/{fin}/ig, data.end || '')
         .replace(/{pin}/ig, data.pin || 'N/A')
         .replace(/{correo}/ig, data.email || 'N/A')
+        .replace(/{email}/ig, data.email || 'N/A')
         .replace(/{clave}/ig, data.pass || 'N/A')
-        .replace(/{perfil}/ig, data.profile || 'N/A');
+        .replace(/{pass}/ig, data.pass || 'N/A')
+        .replace(/{password}/ig, data.pass || 'N/A')
+        .replace(/{perfil}/ig, data.profile || 'N/A')
+        .replace(/{link}/ig, data.link || '')
+        .replace(/{foto}/ig, data.link || '')
+        .replace(/{fotos}/ig, data.link || '');
 }
 
 window.sendCRMStep1Message = function (platformName) {
     const { name, phone, start, end, pin, sellerName } = _crmTargetClient;
     const dict = storeConfig.crmGalleryDict || {};
-    const items = dict[platformName] || [];
+    let resolvedKey = platformName;
+    let items = dict[resolvedKey] || [];
+
+    if (!items || items.length === 0) {
+        const allKeys = Object.keys(dict);
+        const pClean = platformName.toLowerCase().replace(/[\+\s]/g, '');
+        const found = allKeys.find(k => k.toLowerCase().replace(/[\+\s]/g, '').includes(pClean) || pClean.includes(k.toLowerCase().replace(/[\+\s]/g, '')));
+        if (found) {
+            resolvedKey = found;
+            items = dict[resolvedKey] || [];
+        }
+    }
 
     let targetEmail = _crmTargetClient.email && _crmTargetClient.email.trim() ? _crmTargetClient.email : 'N/A';
 
@@ -6324,22 +6355,76 @@ window.sendCRMStep1Message = function (platformName) {
         });
     }
 
-    const dataVars = { name, platformName, start, end, pin, email: targetEmail, pass: _crmTargetClient.pass, profile: _crmTargetClient.profile };
+    const cleanPlatformName = platformName.includes(' | ') ? platformName.split(' | ')[0].trim() : platformName;
+    const dataVars = { 
+        name, 
+        platformName: cleanPlatformName, 
+        start, 
+        end, 
+        pin, 
+        email: targetEmail, 
+        pass: _crmTargetClient.pass, 
+        profile: _crmTargetClient.profile,
+        link: ''
+    };
     let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
     let mainText = replaceCRMVars(template, dataVars);
 
+    let allLocalPhotos = [];
     let extraText = "";
-    if (items.length > 0) {
+
+    let itemsArray = [];
+    if (Array.isArray(items)) {
+        itemsArray = items;
+    } else if (items && typeof items === 'object') {
+        itemsArray = Object.keys(items)
+            .filter(k => !isNaN(Number(k)))
+            .sort((a, b) => Number(a) - Number(b))
+            .map(k => items[k]);
+    }
+
+    if (itemsArray.length > 0) {
         extraText += "\n\n🚀 *DETALLES Y GUÍA:*";
-        items.forEach((item, index) => {
+        itemsArray.forEach((item, index) => {
+            if (!item) return;
             let itemText = replaceCRMVars(item.text, dataVars);
             if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
-            if (item.photo && !storeConfig.useLocalRobotCRM) {
-                const urls = item.photo.split(/[,,;]/).map(u => u.trim()).filter(u => u);
-                urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
+            if (item.photo) {
+                const urls = item.photo.split(/[\r\n,;]+/)
+                    .map(u => u.trim().replace(/^["']+|["']+$/g, '').trim())
+                    .filter(u => u && u.length > 3);
+                urls.forEach(url => {
+                    allLocalPhotos.push(url);
+                    extraText += `\n🔗 Foto guía: ${url}`;
+                });
             }
         });
     }
+
+    // Fallback: si no hay fotos configuradas en la galería, buscar en el catálogo de productos
+    if (allLocalPhotos.length === 0) {
+        const prods = (typeof products !== 'undefined' ? products : (typeof dynamicProducts !== 'undefined' ? dynamicProducts : [])) || [];
+        const targetClean = cleanPlatformName.toLowerCase();
+        const matchedProd = prods.find(p => {
+            if (!p || !p.name || !p.image) return false;
+            const pLower = p.name.toLowerCase();
+            return pLower === targetClean || pLower.includes(targetClean) || targetClean.includes(pLower);
+        });
+        if (matchedProd && matchedProd.image && matchedProd.image.trim()) {
+            const imgUrl = matchedProd.image.trim();
+            allLocalPhotos.push(imgUrl);
+            extraText += `\n🔗 Foto guía: ${imgUrl}`;
+        }
+    }
+
+    const manualGuideUrl = (items && items.guideUrl) || 
+                           (storeConfig.crmPlatforms && storeConfig.crmPlatforms[resolvedKey] && storeConfig.crmPlatforms[resolvedKey].manualUrl) || '';
+    if (manualGuideUrl && manualGuideUrl.trim()) {
+        extraText += `\n\n🌐 *Enlace / Guía de acceso:* ${manualGuideUrl.trim()}`;
+    }
+
+    dataVars.link = (allLocalPhotos.length > 0 ? allLocalPhotos[0] : (manualGuideUrl || ''));
+    mainText = replaceCRMVars(template, dataVars);
 
     const fullMsg = mainText + extraText;
     let waPhone = phone.toString().replace(/\D/g, '');

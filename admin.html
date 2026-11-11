@@ -7571,46 +7571,49 @@
                 const newCrmPlatforms = {};
                 const platformsContainer = document.getElementById('crm-platforms-container');
                 if (platformsContainer) {
-                    platformsContainer.querySelectorAll('.crm-platform-section').forEach((section, index) => {
-                        const nameEl = section.querySelector('.platform-name-input');
-                        const variantEl = section.querySelector('.platform-variant-input');
-                        const guideUrlEl = section.querySelector('.platform-guide-url');
+                    const sections = platformsContainer.querySelectorAll('.crm-platform-section');
+                    if (sections.length > 0) {
+                        sections.forEach((section, index) => {
+                            const nameEl = section.querySelector('.platform-name-input');
+                            const variantEl = section.querySelector('.platform-variant-input');
+                            const guideUrlEl = section.querySelector('.platform-guide-url');
 
-                        let name = nameEl ? nameEl.value.trim() : '';
-                        let variant = variantEl ? variantEl.value.trim() : '';
-                        let guideUrl = guideUrlEl ? guideUrlEl.value.trim() : '';
+                            let name = nameEl ? nameEl.value.trim() : '';
+                            let variant = variantEl ? variantEl.value.trim() : '';
+                            let guideUrl = guideUrlEl ? guideUrlEl.value.trim() : '';
 
-                        if (!name) name = "Carpeta " + (index + 1);
+                            if (!name) name = "Carpeta " + (index + 1);
 
-                        let keyBase = variant ? `${name} | ${variant}` : name;
-                        let finalName = keyBase;
-                        let counter = 1;
-                        while (newCrmDict.hasOwnProperty(finalName)) {
-                            finalName = keyBase + " (" + counter + ")";
-                            counter++;
-                        }
-
-                        const items = [];
-                        section.querySelectorAll('.gallery-item').forEach(item => {
-                            const photoEl = item.querySelector('.gallery-photo');
-                            const textEl = item.querySelector('.gallery-text');
-                            const photo = photoEl ? photoEl.value.trim() : '';
-                            const text = textEl ? textEl.value.trim() : '';
-
-                            const cleanPhoto = (photo === 'undefined') ? '' : photo;
-                            const cleanText = (text === 'undefined') ? '' : text;
-
-                            if (cleanPhoto || cleanText) {
-                                items.push({ photo: cleanPhoto, text: cleanText });
+                            let keyBase = variant ? `${name} | ${variant}` : name;
+                            let finalName = keyBase;
+                            let counter = 1;
+                            while (newCrmDict.hasOwnProperty(finalName)) {
+                                finalName = keyBase + " (" + counter + ")";
+                                counter++;
                             }
-                        });
 
-                        newCrmDict[finalName] = items;
-                        newCrmPlatforms[finalName] = { name: finalName, manualUrl: guideUrl };
-                    });
-                    storeConfig.crmGalleryDict = newCrmDict;
-                    storeConfig.crmPlatforms = newCrmPlatforms;
-                    storeConfig.crmGallery = [];
+                            const items = [];
+                            section.querySelectorAll('.gallery-item').forEach(item => {
+                                const photoEl = item.querySelector('.gallery-photo');
+                                const textEl = item.querySelector('.gallery-text');
+                                const photo = photoEl ? photoEl.value.trim() : '';
+                                const text = textEl ? textEl.value.trim() : '';
+
+                                const cleanPhoto = (photo === 'undefined') ? '' : photo;
+                                const cleanText = (text === 'undefined') ? '' : text;
+
+                                if (cleanPhoto || cleanText) {
+                                    items.push({ photo: cleanPhoto, text: cleanText });
+                                }
+                            });
+
+                            newCrmDict[finalName] = items;
+                            newCrmPlatforms[finalName] = { name: finalName, manualUrl: guideUrl };
+                        });
+                        storeConfig.crmGalleryDict = newCrmDict;
+                        storeConfig.crmPlatforms = newCrmPlatforms;
+                        storeConfig.crmGallery = [];
+                    }
                 }
 
                 await db.ref('storeConfig').set(storeConfig);
@@ -9181,7 +9184,13 @@
             container.appendChild(div);
 
             const photosList = div.querySelector('.platform-photos-list');
-            dataItems.forEach(item => addPhotoTextToPlatform(platformId, item));
+            const itemsArray = Array.isArray(dataItems)
+                ? dataItems
+                : Object.keys(dataItems || {})
+                    .filter(k => !isNaN(Number(k)))
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map(k => dataItems[k]);
+            itemsArray.forEach(item => addPhotoTextToPlatform(platformId, item));
         }
 
         window.addPhotoTextToPlatform = function (platformId, data = { photo: '', text: '' }) {
@@ -13294,8 +13303,22 @@
             list.innerHTML = '';
             const dict = storeConfig.crmGalleryDict || {};
             const platforms = storeConfig.crmPlatforms || {};
-            let allKeys = Object.keys(platforms);
-            if (allKeys.length === 0) allKeys = Object.keys(dict);
+            
+            const keysSet = new Set([
+                ...Object.keys(platforms),
+                ...Object.keys(dict)
+            ]);
+
+            const standardList = ['Netflix', 'Apple TV', 'Disney +', 'Hbo Max', 'Prime Video', 'Paramount +', 'Vix +', 'Crunchyroll', 'Spotify', 'YouTube Premium'];
+            standardList.forEach(k => {
+                const norm = normalizePlatformAlias(k);
+                const exists = Array.from(keysSet).some(existing => normalizePlatformAlias(existing.split(' | ')[0]) === norm);
+                if (!exists) {
+                    keysSet.add(k);
+                }
+            });
+
+            let allKeys = Array.from(keysSet);
 
             const purchasedItemsStr = (_crmTargetClient.itemsRaw || '').toLowerCase();
 
@@ -13421,11 +13444,17 @@
                 .replace(/{nombre}/ig, data.name || '')
                 .replace(/{pantalla}/ig, data.platformName || '')
                 .replace(/{inicio}/ig, data.start || '')
-                .replace(/{Fin}/ig, data.end || '')
+                .replace(/{fin}/ig, data.end || '')
                 .replace(/{pin}/ig, data.pin || 'N/A')
                 .replace(/{correo}/ig, data.email || 'N/A')
+                .replace(/{email}/ig, data.email || 'N/A')
                 .replace(/{clave}/ig, data.pass || 'N/A')
-                .replace(/{perfil}/ig, data.profile || 'N/A');
+                .replace(/{pass}/ig, data.pass || 'N/A')
+                .replace(/{password}/ig, data.pass || 'N/A')
+                .replace(/{perfil}/ig, data.profile || 'N/A')
+                .replace(/{link}/ig, data.link || '')
+                .replace(/{foto}/ig, data.link || '')
+                .replace(/{fotos}/ig, data.link || '');
         }
 
         window.sendCRMStep1Message = function (platformName, optScreen) {
@@ -13510,7 +13539,8 @@
                 pin: targetPin,
                 email: targetEmail,
                 pass: targetPass,
-                profile: targetProfile
+                profile: targetProfile,
+                link: ''
             };
 
             let template = storeConfig.msgTemplate1 || "¡Hola {cliente}! Aquí tienes los datos de tu pantalla de {pantalla}:";
@@ -13543,13 +13573,28 @@
                             .map(u => u.trim().replace(/^["']+|["']+$/g, '').trim())
                             .filter(u => u && u.length > 3);
 
-                        if (useRobot) {
-                            urls.forEach(url => allLocalPhotos.push(url));
-                        } else {
-                            urls.forEach(url => extraText += `\n🔗 Foto guía: ${url}`);
-                        }
+                        urls.forEach(url => {
+                            allLocalPhotos.push(url);
+                            extraText += `\n🔗 Foto guía: ${url}`;
+                        });
                     }
                 });
+            }
+
+            // Fallback: si no hay fotos configuradas en la galería para esta plataforma, buscar en el catálogo de productos
+            if (allLocalPhotos.length === 0) {
+                const prods = (typeof dynamicProducts !== 'undefined' ? dynamicProducts : (typeof products !== 'undefined' ? products : [])) || [];
+                const targetNorm = normalizePlatformAlias(cleanPlatformName);
+                const matchedProd = prods.find(p => {
+                    if (!p || !p.name || !p.image) return false;
+                    const pNorm = normalizePlatformAlias(p.name);
+                    return pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm);
+                });
+                if (matchedProd && matchedProd.image && matchedProd.image.trim()) {
+                    const imgUrl = matchedProd.image.trim();
+                    allLocalPhotos.push(imgUrl);
+                    extraText += `\n🔗 Foto guía: ${imgUrl}`;
+                }
             }
 
             // Añadir enlace de guía si está configurado en crmGalleryDict o crmPlatforms
@@ -13558,6 +13603,10 @@
             if (manualGuideUrl && manualGuideUrl.trim()) {
                 extraText += `\n\n🌐 *Enlace / Guía de acceso:* ${manualGuideUrl.trim()}`;
             }
+
+            // Resolver variable {link} o {foto} para la plantilla
+            dataVars.link = (allLocalPhotos.length > 0 ? allLocalPhotos[0] : (manualGuideUrl || ''));
+            mainText = replaceCRMVars(template, dataVars);
 
             const fullMsgForClient = mainText + extraText;
 
