@@ -165,7 +165,7 @@ if not "%DIA%"=="" (
     git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html videos
     git commit -m "chore: actualizar y limpiar videos/banners" || echo No habia cambios pendientes.
 )
-git push all main
+git push origin main
 
 echo.
 echo ================================================================
