@@ -1,6 +1,5 @@
 # GitHub Pages Jekyll configuration
 exclude:
-  - videos
   - node_modules
   - package-lock.json
   - package.json
