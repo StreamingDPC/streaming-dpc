@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 15 Nov",
+    "title": "Black Butler",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/black butler.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 15 Nov",
+    "title": "El Cine Segun Philomena",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/el cine segun philomena.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 15 Nov",
+    "title": "Los Elegidos T6",
+    "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/15/los elegidos t6.mp4",
+    "day": 15,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 14 Nov",
     "title": "Sinterklass",
     "desc": "Estreno exclusivo del 14 de Noviembre • Streaming DPC",
