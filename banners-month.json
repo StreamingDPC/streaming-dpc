@@ -655,5 +655,49 @@
     "day": 5,
     "month": "Noviembre",
     "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Publi Streaming",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/2/publi streaming.mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Whatsapp Video 2026 11 12 At 5.46.44 Pm",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/2/WhatsApp Video 2026-11-12 at 5.46.44 PM.mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Whatsapp Video 2026 11 12 At 5.47.12 Pm (1)",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/2/WhatsApp Video 2026-11-12 at 5.47.12 PM (1).mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 2 Nov",
+    "title": "Whatsapp Video 2026 11 12 At 5.47.12 Pm",
+    "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/2/WhatsApp Video 2026-11-12 at 5.47.12 PM.mp4",
+    "day": 2,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
   }
 ]
