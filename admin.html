@@ -421,8 +421,10 @@
     </script>
     <script>
         window.openWhatsapp = function (phone, text) {
+            let cleanP = String(phone || '').replace(/\D/g, '');
+            if (cleanP.length === 10 && cleanP.startsWith('3')) cleanP = '57' + cleanP;
             let encodedText = encodeURIComponent(text);
-            let url = (phone && phone !== 'null' && phone !== 'undefined') ? 'https://wa.me/' + phone + '?text=' + encodedText : 'https://wa.me/?text=' + encodedText;
+            let url = (cleanP && phone !== 'null' && phone !== 'undefined') ? 'https://wa.me/' + cleanP + '?text=' + encodedText : 'https://wa.me/?text=' + encodedText;
             window.open(url, '_blank');
         }
     </script>
@@ -14807,16 +14809,16 @@
                 }
             }
 
-            const msg = `¡Hola *${cName}*! 👋\n\n` +
-                `Aquí tienes tus datos de acceso para ingresar a *Streaming DPC* y participar en la Ruleta o revisar tus cuentas:\n\n` +
-                `📱 *Celular:* ${cleanPhone}\n` +
-                `🔑 *PIN:* *${clientPin}*\n\n` +
-                `👉 Ingresa aquí: https://streamingdpc.onrender.com/`;
+            const msg = `\u00A1Hola *${cName}*! \uD83D\uDC4B\n\n` +
+                `Aqu\u00ED tienes tus datos de acceso para ingresar a *Streaming DPC* y participar en la Ruleta o revisar tus cuentas:\n\n` +
+                `\uD83D\uDCF1 *Celular:* ${cleanPhone}\n` +
+                `\uD83D\uDD11 *PIN:* *${clientPin}*\n\n` +
+                `\uD83D\uDC49 Ingresa aqu\u00ED: https://streamingdpc.onrender.com/`;
 
+            const waNum = (cleanPhone.length === 10 && cleanPhone.startsWith('3')) ? ('57' + cleanPhone) : cleanPhone;
             if (typeof window.openWhatsapp === 'function') {
-                window.openWhatsapp(cleanPhone, msg);
+                window.openWhatsapp(waNum, msg);
             } else {
-                const waNum = (cleanPhone.length === 10 && cleanPhone.startsWith('3')) ? ('57' + cleanPhone) : cleanPhone;
                 window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
             }
         };
