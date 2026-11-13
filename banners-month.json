@@ -8,6 +8,28 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 17 Nov",
+    "title": "Cuando Un Testigo Se Retracta",
+    "desc": "Estreno exclusivo del 17 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/17/cuando un testigo se retracta.mp4",
+    "day": 17,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 17 Nov",
+    "title": "Mi Villano Favorito 4",
+    "desc": "Estreno exclusivo del 17 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/17/mi villano favorito 4.mp4",
+    "day": 17,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 15 Nov",
     "title": "Black Butler",
     "desc": "Estreno exclusivo del 15 de Noviembre • Streaming DPC",
