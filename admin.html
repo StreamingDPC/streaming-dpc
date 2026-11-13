@@ -14705,9 +14705,68 @@
             }
 
             if (price2 && price3) {
-                return `✨ *Si deseas mejor descuento por meses:*\n👉 *2 Meses:* $${price2.toLocaleString()}\n👉 *3 Meses:* $${price3.toLocaleString()}`;
+                const discPct2 = p2 ? (isSeller ? (parseFloat(p2.sellerDiscountPercent) || 0) : (parseFloat(p2.clientDiscountPercent) || 0)) : 0;
+                const discPct3 = p3 ? (isSeller ? (parseFloat(p3.sellerDiscountPercent) || 0) : (parseFloat(p3.clientDiscountPercent) || 0)) : 0;
+                const label2 = (p2 && p2.promoLabel) ? p2.promoLabel.trim() : 'Promoción';
+                const label3 = (p3 && p3.promoLabel) ? p3.promoLabel.trim() : 'Promoción';
+
+                const final2 = discPct2 > 0 ? Math.max(0, price2 - Math.round(price2 * (discPct2 / 100))) : price2;
+                const final3 = discPct3 > 0 ? Math.max(0, price3 - Math.round(price3 * (discPct3 / 100))) : price3;
+
+                const line2 = discPct2 > 0
+                    ? `👉 *2 Meses:* ~$${price2.toLocaleString()}~ 🔥 *${label2} (-${discPct2}%): $${final2.toLocaleString()}*`
+                    : `👉 *2 Meses:* $${price2.toLocaleString()}`;
+                const line3 = discPct3 > 0
+                    ? `👉 *3 Meses:* ~$${price3.toLocaleString()}~ 🔥 *${label3} (-${discPct3}%): $${final3.toLocaleString()}*`
+                    : `👉 *3 Meses:* $${price3.toLocaleString()}`;
+
+                return `✨ *Si deseas mejor descuento por meses:*\n${line2}\n${line3}`;
             }
             return '';
+        };
+
+        window.getRenewalTotalText = function (itemsStr, baseTotal, isSeller = false) {
+            const totalNum = parseFloat(baseTotal) || 0;
+            if (!itemsStr || totalNum <= 0) return `$${totalNum > 0 ? totalNum.toLocaleString() : '0'}`;
+            const pCatalog = (typeof dynamicProducts !== 'undefined' ? dynamicProducts : []).filter(x => x && x.active !== false);
+
+            function normalizeComboName(name) {
+                return (name || '')
+                    .toLowerCase()
+                    .replace(/[🎬♦*]/g, '')
+                    .replace(/\(combo prediseñado\)/gi, '')
+                    .replace(/\s*\([123]\s*mes(?:es)?\)/gi, '')
+                    .replace(/max\s*\(\s*hbo\s*\)/gi, 'hbo max')
+                    .replace(/\bhbo\b(?! max)/gi, 'hbo max')
+                    .replace(/\bprime\b(?! video)/gi, 'prime video')
+                    .replace(/[+,/&]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            const targetWords = normalizeComboName(itemsStr).split(' ').filter(Boolean).sort();
+            const is2m = /\b2\s*mes/i.test(itemsStr);
+            const is3m = /\b3\s*mes/i.test(itemsStr);
+
+            const matched = pCatalog.find(x => {
+                if (!x || !x.name) return false;
+                if (is2m && !/\b2\s*mes/i.test(x.name)) return false;
+                if (is3m && !/\b3\s*mes/i.test(x.name)) return false;
+                if (!is2m && !is3m && /\b[236]\s*mes/i.test(x.name)) return false;
+                const pWords = normalizeComboName(x.name).split(' ').filter(Boolean).sort();
+                return targetWords.length === pWords.length && targetWords.every((w, i) => w === pWords[i]);
+            });
+
+            if (matched) {
+                const discPct = isSeller ? (parseFloat(matched.sellerDiscountPercent) || 0) : (parseFloat(matched.clientDiscountPercent) || 0);
+                if (discPct > 0) {
+                    const discAmt = Math.round(totalNum * (discPct / 100));
+                    const finalTotal = Math.max(0, totalNum - discAmt);
+                    const label = (matched.promoLabel || 'Promoción').trim();
+                    return `~$${totalNum.toLocaleString()}~ 🔥 *${label} (-${discPct}%): $${finalTotal.toLocaleString()}*`;
+                }
+            }
+            return `$${totalNum.toLocaleString()}`;
         };
 
         async function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
@@ -14743,12 +14802,16 @@
                 }
             }
 
+            const totalFormatted = (typeof window.getRenewalTotalText === 'function')
+                ? window.getRenewalTotalText(itemsStr, saleTotal, false)
+                : (`$${saleTotal > 0 ? saleTotal.toLocaleString() : "0"}`);
+
             let msg = template
                 .replace(/{cliente}/g, cName)
                 .replace(/{pantallas}/g, itemsStr)
                 .replace(/{celular}/g, clientPhone || "N/A")
                 .replace(/{pin}/g, clientPin)
-                .replace(/{total}/g, saleTotal > 0 ? saleTotal.toLocaleString() : "0")
+                .replace(/\$?{total}/g, totalFormatted)
                 .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
             // Inyectar Promo / Ranking Navideño si está activado para Recordatorios
@@ -15586,13 +15649,17 @@
 
                     let templateSeller = storeConfig.sellerReminderTomorrowTemplate || "Hola *{vendedor}* \uD83D\uDC4B\n\nTe damos Aviso Previo que la cuenta de tu cliente *{cliente}* (\uD83D\uDCF1 {celular})\n\nCon: {pantallas}\n\uD83D\uDC49 *FINALIZA MA\u00d1ANA* \uD83D\uDC48\n\nPor favor cont\u00e1ctalo para gestionar su renovaci\u00f3n y evitar cortes.\n\nCelular: {celular} y Pin: {pin}\n\uD83D\uDCB0 *Total:* ${total}";
 
+                    const sellerTotalFormatted = (typeof window.getRenewalTotalText === 'function')
+                        ? window.getRenewalTotalText(itemsStr, r.sale.total || 0, true)
+                        : (`$${(r.sale.total || 0).toLocaleString()}`);
+
                     let msgSeller = templateSeller
                         .replace(/{vendedor}/g, r.seller)
                         .replace(/{cliente}/g, r.name)
                         .replace(/{pantallas}/g, itemsStr)
                         .replace(/{celular}/g, r.phone || "N/A")
                         .replace(/{pin}/g, clientPin)
-                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
+                        .replace(/\$?{total}/g, sellerTotalFormatted)
                         .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
                     // BUSCAR WHATSAPP DEL VENDEDOR PARA COLA
@@ -15633,12 +15700,16 @@
                         }
                     }
 
+                    const directTotalFormatted = (typeof window.getRenewalTotalText === 'function')
+                        ? window.getRenewalTotalText(itemsStr, r.sale.total || 0, false)
+                        : (`$${(r.sale.total || 0).toLocaleString()}`);
+
                     let msgDirect = templateUsed
                         .replace(/{cliente}/g, r.name)
                         .replace(/{pantallas}/g, itemsStr)
                         .replace(/{celular}/g, r.phone || "N/A")
                         .replace(/{pin}/g, clientPin)
-                        .replace(/{total}/g, (r.sale.total || 0).toLocaleString())
+                        .replace(/\$?{total}/g, directTotalFormatted)
                         .replace(/{pago}/g, storeConfig.paymentInfo || "");
 
                     // Inyectar Promo / Ranking Navideño si está activado para Recordatorios
