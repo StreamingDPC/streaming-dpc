@@ -14278,7 +14278,10 @@
                             <span style="font-size:0.8rem; color:#ff7675; margin-left:6px;">(${c.sales.length} compra${c.sales.length > 1 ? 's vencidas' : ' vencida'})</span><br>
                             <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
                         </div>
-                        <div class="item-actions" style="display:flex; align-items:center; gap:8px;">
+                        <div class="item-actions" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-sm" onclick="sendClientPinByWhatsapp('${c.phone}', '${encodeURIComponent(c.name)}')" style="background:rgba(241,196,15,0.14); color:#f1c40f; border:1px solid rgba(241,196,15,0.4); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Enviar PIN de acceso por WhatsApp al cliente">
+                                <i class="fa-solid fa-key"></i> Enviar PIN
+                            </button>
                             <button type="button" class="btn btn-sm" onclick="showClientAnnualSummaryModal('${c.phone}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.sellerName || '')}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Ver y enviar resumen anual de compras al cliente">
                                 <i class="fa-solid fa-receipt"></i> Resumen de Compras
                             </button>
@@ -14422,7 +14425,10 @@
                             <strong style="color: white; font-size:1.1rem">${safeDecode(c.name)}</strong> <span style="font-size:0.8rem; color:#ccc;">(${c.count} compras)</span><br>
                             <span style="font-size: 0.8rem; color: #a0a0a0;">📱 ${c.phone} | 📍 ${c.city}</span>
                         </div>
-                        <div class="item-actions" style="display:flex; align-items:center; gap:8px;">
+                        <div class="item-actions" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-sm" onclick="sendClientPinByWhatsapp('${c.phone}', '${encodeURIComponent(c.name)}')" style="background:rgba(241,196,15,0.14); color:#f1c40f; border:1px solid rgba(241,196,15,0.4); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Enviar PIN de acceso por WhatsApp al cliente">
+                                <i class="fa-solid fa-key"></i> Enviar PIN
+                            </button>
                             <button type="button" class="btn btn-sm" onclick="showClientAnnualSummaryModal('${c.phone}', '${encodeURIComponent(c.name)}', '${encodeURIComponent(c.sellerName || '')}')" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Ver y enviar resumen anual de compras al cliente">
                                 <i class="fa-solid fa-receipt"></i> Resumen de Compras
                             </button>
@@ -14767,6 +14773,52 @@
                 }
             }
             return `$${totalNum.toLocaleString()}`;
+        };
+
+        window.sendClientPinByWhatsapp = async function (clientPhone, encodedName) {
+            const cName = safeDecode(encodedName || '') || 'Cliente';
+            const cleanPhone = String(clientPhone || '').replace(/\D/g, '');
+            if (!cleanPhone) {
+                return alert('Este cliente no tiene un número de celular válido.');
+            }
+
+            let clientPin = '';
+            try {
+                const snap = await db.ref(`clientProfiles/${cleanPhone}`).once('value');
+                if (snap.exists() && snap.val()) {
+                    const prof = snap.val();
+                    clientPin = prof.ticketPin ? String(prof.ticketPin) : (prof.pin ? String(prof.pin) : '');
+                }
+            } catch (e) {
+                console.warn('Error leyendo PIN del cliente:', e);
+            }
+
+            if (!clientPin || clientPin === 'No asignado') {
+                const suggestedPin = String(Math.floor(1000 + Math.random() * 9000));
+                const typedPin = prompt(`⚠️ ${cName} (${cleanPhone}) aún no tiene un PIN asignado.\n\nEscribe el PIN de 4 dígitos que deseas asignarle y enviarle:`, suggestedPin);
+                if (typedPin === null) return;
+                const finalPin = typedPin.trim();
+                if (!finalPin) return alert('El PIN no puede estar vacío.');
+                try {
+                    await db.ref(`clientProfiles/${cleanPhone}/pin`).set(finalPin);
+                    clientPin = finalPin;
+                } catch (err) {
+                    return alert('Error guardando PIN en Firebase: ' + err.message);
+                }
+            }
+
+            const msg = `¡Hola *${cName}*! 👋\n\n` +
+                `Aquí tienes tus datos de acceso para ingresar a *Streaming DPC* y participar en la Ruleta o revisar tus cuentas:\n\n` +
+                `📱 *Celular:* ${cleanPhone}\n` +
+                `🔑 *PIN:* *${clientPin}*\n\n` +
+                `👉 Ingresa aquí: https://streamingdpc.onrender.com/`;
+
+            if (typeof window.openWhatsapp === 'function') {
+                window.openWhatsapp(cleanPhone, msg);
+            } else {
+                const waNum = (cleanPhone.length === 10 && cleanPhone.startsWith('3')) ? ('57' + cleanPhone) : cleanPhone;
+                window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
         };
 
         async function sendAdminReminderToDirectClient(clientName, itemsEncoded, clientPhone, saleTotal) {
