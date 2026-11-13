@@ -18147,14 +18147,22 @@
 
                 // Si está en Modo Robot Local o es un Video, lo ideal para el Robot es la ruta en PC (evita about:blank#blocked)
                 if (mode === 'robot' || isVideo) {
-                    const lastFolder = localStorage.getItem('last_mkt_folder') || 'F:\\';
+                    const cleanMktFolderPath = (raw) => {
+                        let p = String(raw || '').trim().replace(/^["'`]+|["'`]+$/g, '');
+                        p = p.replace(/[\\/]+$/, '');
+                        if (/\.(jpe?g|png|gif|webp|bmp|mp4|mov|avi|mkv|webm)$/i.test(p)) {
+                            const lastSep = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'));
+                            if (lastSep > -1) p = p.substring(0, lastSep);
+                        }
+                        if (p && !p.endsWith('\\') && !p.endsWith('/')) p += '\\';
+                        return p;
+                    };
+
+                    const lastFolder = cleanMktFolderPath(localStorage.getItem('last_mkt_folder') || 'F:\\') || 'F:\\';
                     const promptPath = prompt(`📁 Archivo seleccionado: "${file.name}"\n\n🤖 Para que tu Robot Local envíe este ${isVideo ? 'Video' : 'Archivo'} en ALTA RESOLUCIÓN sin que Chrome se bloquee ("about:blank#blocked"), ingresa la carpeta donde está guardado en tu PC:\n\n(Ejemplo: F:\\ o F:\\CMR Whatsapp\\ o C:\\Users\\...\\Desktop\\)`, lastFolder);
                     
                     if (promptPath !== null) {
-                        let cleanFolder = promptPath.trim();
-                        if (cleanFolder && !cleanFolder.endsWith('\\') && !cleanFolder.endsWith('/')) {
-                            cleanFolder += '\\';
-                        }
+                        const cleanFolder = cleanMktFolderPath(promptPath);
                         localStorage.setItem('last_mkt_folder', cleanFolder);
                         const fullLocalPath = cleanFolder + file.name;
 
