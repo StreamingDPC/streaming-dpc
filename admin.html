@@ -646,6 +646,10 @@
                             style="width: auto; padding: 0.45rem 0.9rem; border-radius: 10px; background: rgba(243, 156, 18, 0.15); border: 1px solid #f39c12; color: #f39c12; font-weight: bold; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.45rem;">
                             <i class="fa-solid fa-calculator"></i> Recalcular Costos Combos
                         </button>
+                        <button type="button" class="btn-icon" onclick="applyMassComboBlackFriday()" title="Aplicar etiqueta BLACK FRIDAY y porcentajes seguros a todos los combos (15% ViX, 12% HBO Max, 5% otros, 3% margen justo)"
+                            style="width: auto; padding: 0.45rem 0.9rem; border-radius: 10px; background: rgba(255, 71, 87, 0.15); border: 1px solid #ff4757; color: #ff4757; font-weight: bold; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.45rem;">
+                            <i class="fa-solid fa-fire"></i> Black Friday Masivo (Combos)
+                        </button>
                     </div>
                 </div>
                 <!-- Buscador Inteligente en Gestionar Productos -->
@@ -8058,6 +8062,84 @@
                 if (!isSilent) alert('Todos los combos ya tienen sus costos al día.');
             }
             return updatedCount;
+        };
+
+        window.applyMassComboBlackFriday = async function () {
+            const list = dynamicProducts || [];
+            const comboCats = ['combos2', 'combos3', 'combos4', 'combos5', 'promociones'];
+            const targets = [];
+
+            list.forEach((p, idx) => {
+                if (!p) return;
+                const cat = (p.category || '').toLowerCase().trim();
+                if (!comboCats.includes(cat)) return;
+
+                const name = String(p.name || '');
+                const nl = name.toLowerCase();
+                let basePct = 5;
+                if (nl.includes('vix')) basePct = 15;
+                else if (nl.includes('hbo')) basePct = 12;
+
+                const price = parseFloat(p.price) || 0;
+                const sPrice = parseFloat(p.sellerPrice) || price;
+                const cost = parseFloat(p.purchasePrice) || 0;
+                let months = parseInt(p.months) || 1;
+                if (nl.includes('(2 meses)')) months = 2;
+                else if (nl.includes('(3 meses)')) months = 3;
+
+                let chosenPct = basePct;
+                let adjustedReason = '';
+
+                if (cost > 0) {
+                    const sFinalBase = sPrice - Math.round(sPrice * (basePct / 100));
+                    const sProfitBase = sFinalBase - cost;
+                    const minCushion = 2000 * months;
+
+                    if (sProfitBase < minCushion) {
+                        const sFinal3 = sPrice - Math.round(sPrice * 0.03);
+                        const sProfit3 = sFinal3 - cost;
+                        if (sProfit3 >= 500 * months) {
+                            chosenPct = 3;
+                            adjustedReason = `ajustado ${basePct}%→3%`;
+                        } else {
+                            chosenPct = 0;
+                            adjustedReason = `protegido 0%`;
+                        }
+                    }
+                }
+
+                targets.push({ idx, p, chosenPct, adjustedReason });
+            });
+
+            if (targets.length === 0) {
+                return alert('No se encontraron combos para actualizar.');
+            }
+
+            const count15 = targets.filter(t => t.chosenPct === 15).length;
+            const count12 = targets.filter(t => t.chosenPct === 12).length;
+            const count5 = targets.filter(t => t.chosenPct === 5).length;
+            const count3 = targets.filter(t => t.chosenPct === 3).length;
+            const count0 = targets.filter(t => t.chosenPct === 0).length;
+
+            const msg = `🔥 Se aplicará la promoción "BLACK FRIDAY" (mismo % a Cliente y Vendedor) a ${targets.length} combos:\n\n` +
+                `• Con ViX (15%): ${count15} combos\n` +
+                `• Con HBO Max (12%): ${count12} combos\n` +
+                `• Otros sin ViX/HBO (5%): ${count5} combos\n` +
+                `• Protegidos por colchón (3%): ${count3} combos\n` +
+                (count0 > 0 ? `• Protegidos sin descuento (0%): ${count0} combos\n` : '') +
+                `\n¿Confirmas aplicar y guardar en la nube?`;
+
+            if (!confirm(msg)) return;
+
+            targets.forEach(t => {
+                t.p.promoLabel = 'BLACK FRIDAY';
+                t.p.clientDiscountPercent = t.chosenPct;
+                t.p.sellerDiscountPercent = t.chosenPct;
+            });
+
+            await saveProductsToStorage();
+            renderAdminList();
+            alert(`✅ ¡Listo! Se actualizaron ${targets.length} combos con BLACK FRIDAY sin pérdidas.`);
         };
 
         window.autoSyncCombosWithIndividualCosts = async function (changedProductName) {
