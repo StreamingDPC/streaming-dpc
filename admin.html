@@ -9,6 +9,8 @@
     <meta http-equiv="Expires" content="0">
     <title>Panel de Administración | Streaming DPC</title>
     <link rel="stylesheet" href="style.css?v=3.9.93">
+    <link rel="stylesheet" href="promo-floating.css?v=1.0.0">
+    <script src="promo-floating.js?v=1.0.0" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -773,6 +775,92 @@
 
         <!-- TAB BANNERS -->
         <div id="tab-banners" class="tab-content">
+            <!-- CONTROL DE PUBLICIDAD FLOTANTE (BLACK FRIDAY / PROMO ESPECIAL) -->
+            <div class="admin-form" style="background: linear-gradient(145deg, rgba(255, 46, 99, 0.1), rgba(251, 191, 36, 0.06)); border: 1px solid rgba(255, 46, 99, 0.45); border-radius: 16px; margin-bottom: 1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="color: #fbbf24; margin: 0 0 4px 0;"><i class="fa-solid fa-bolt" style="color:#ff2e63;"></i> Publicidad Flotante (Black Friday / Promo Especial)</h3>
+                        <p style="font-size:0.84rem; color:#cbd5e1; margin:0;">Aparece al abrir la tienda (clientes y vendedores), cada 15 min y se autocierra en 1 min. Incluye botones directos a Combos 1-5, Fin de Mes y Ruleta Navideña.</p>
+                    </div>
+                    <button type="button" onclick="previewAdminFloatingPromo()" style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color:#111827; border:none; padding: 0.6rem 1.1rem; border-radius: 10px; font-weight: 800; cursor: pointer; display:inline-flex; align-items:center; gap:6px; box-shadow: 0 4px 14px rgba(251,191,36,0.35);">
+                        <i class="fa-solid fa-eye"></i> Vista Previa
+                    </button>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-col">
+                        <label>Estado de la Publicidad Flotante</label>
+                        <select id="conf-floatingPromoEnabled">
+                            <option value="false">🔴 Desactivada (Apagada)</option>
+                            <option value="true">🟢 Activa / Encendida</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Sonido al Abrir / Clic</label>
+                        <select id="conf-floatingPromoSound">
+                            <option value="true">🔊 Con Sonido (Fanfarria)</option>
+                            <option value="false">🔇 Silenciada</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label>Fecha y Hora de Inicio (Opcional)</label>
+                        <input type="datetime-local" id="conf-floatingPromoStart">
+                    </div>
+                    <div class="form-col">
+                        <label>Fecha y Hora de Fin (Opcional - Activa cuenta regresiva)</label>
+                        <input type="datetime-local" id="conf-floatingPromoEnd">
+                    </div>
+                    <div class="form-col">
+                        <label>Etiqueta Superior (Badge)</label>
+                        <input type="text" id="conf-floatingPromoBadge" placeholder="Ej: 🖤 BLACK FRIDAY • TIEMPO LIMITADO">
+                    </div>
+                    <div class="form-col">
+                        <label>Etiqueta de Descuento</label>
+                        <input type="text" id="conf-floatingPromoDiscountTag" placeholder="Ej: 3% AL 15% OFF">
+                    </div>
+                    <div class="form-col">
+                        <label>Título Principal</label>
+                        <input type="text" id="conf-floatingPromoTitle" placeholder="Ej: ¡Aprovecha Black Friday!">
+                    </div>
+                    <div class="form-col">
+                        <label>Texto Botón Final (Ruleta Navideña)</label>
+                        <input type="text" id="conf-floatingPromoRuletaText" placeholder="Ej: 🎄🎰 ¡Gira la Ruleta Navideña! 🎁">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>Mensaje / Descripción de la Promo</label>
+                        <textarea id="conf-floatingPromoDesc" rows="2" placeholder="Súper descuentos en los combos del 3% al 15% de descuento..."></textarea>
+                    </div>
+                    <div class="form-col">
+                        <label>Reaparecer cada (Minutos)</label>
+                        <input type="number" id="conf-floatingPromoIntervalMin" min="1" max="180" value="15">
+                    </div>
+                    <div class="form-col">
+                        <label>Autocerrar después de (Segundos)</label>
+                        <input type="number" id="conf-floatingPromoAutoCloseSec" min="10" max="300" value="60">
+                    </div>
+                    <div class="form-col" style="grid-column: 1 / -1;">
+                        <label>Imagen de la Promo (URL o Subir Imagen)</label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <input type="text" id="conf-floatingPromoImage" placeholder="Pega una URL de imagen o sube una desde tu PC..." oninput="updateFloatingPromoAdminPreview()" style="flex:1; min-width:220px;">
+                            <label for="floating-promo-img-file" style="margin:0; padding:0.65rem 1rem; background:rgba(0,210,211,0.18); border:1px solid #00d2d3; color:#00d2d3; border-radius:10px; cursor:pointer; font-weight:700; font-size:0.85rem; white-space:nowrap;">
+                                <i class="fa-solid fa-upload"></i> Subir Imagen
+                            </label>
+                            <input type="file" id="floating-promo-img-file" accept="image/*" style="display:none;" onchange="handleFloatingPromoImageUpload(this)">
+                            <button type="button" onclick="clearFloatingPromoImage()" style="padding:0.65rem 0.9rem; background:rgba(239,68,68,0.15); border:1px solid #ef4444; color:#f87171; border-radius:10px; cursor:pointer; font-weight:700; font-size:0.85rem;">
+                                <i class="fa-solid fa-trash"></i> Quitar
+                            </button>
+                        </div>
+                        <div id="floating-promo-img-preview-wrap" style="display:none; margin-top:10px;">
+                            <img id="floating-promo-img-preview" src="" alt="Vista previa" style="max-height:140px; border-radius:12px; border:1px solid rgba(255,255,255,0.2);">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="save-btn" onclick="saveConfig()" style="margin-top: 1rem; background: linear-gradient(135deg, #ff2e63, #dc2626); color:#fff; font-weight:800;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Publicidad Flotante
+                </button>
+            </div>
+
             <div class="admin-form">
                 <h3 style="color: #ff416c; margin-bottom: 1rem;"><i class="fa-solid fa-star" style="color:#ff416c;"></i>
                     Configuración General de Banners Principales</h3>
@@ -7226,6 +7314,20 @@
                 if (document.getElementById('conf-mainBannerBtnText')) document.getElementById('conf-mainBannerBtnText').value = storeConfig.mainBannerBtnText || '';
                 if (document.getElementById('conf-mainBannerBtnLink')) document.getElementById('conf-mainBannerBtnLink').value = storeConfig.mainBannerBtnLink || '';
 
+                if (document.getElementById('conf-floatingPromoEnabled')) document.getElementById('conf-floatingPromoEnabled').value = storeConfig.floatingPromoEnabled === true ? 'true' : 'false';
+                if (document.getElementById('conf-floatingPromoSound')) document.getElementById('conf-floatingPromoSound').value = storeConfig.floatingPromoSound === false ? 'false' : 'true';
+                if (document.getElementById('conf-floatingPromoStart')) document.getElementById('conf-floatingPromoStart').value = storeConfig.floatingPromoStart || '';
+                if (document.getElementById('conf-floatingPromoEnd')) document.getElementById('conf-floatingPromoEnd').value = storeConfig.floatingPromoEnd || '';
+                if (document.getElementById('conf-floatingPromoBadge')) document.getElementById('conf-floatingPromoBadge').value = storeConfig.floatingPromoBadge !== undefined ? storeConfig.floatingPromoBadge : '🖤 BLACK FRIDAY • TIEMPO LIMITADO';
+                if (document.getElementById('conf-floatingPromoDiscountTag')) document.getElementById('conf-floatingPromoDiscountTag').value = storeConfig.floatingPromoDiscountTag !== undefined ? storeConfig.floatingPromoDiscountTag : '3% AL 15% OFF';
+                if (document.getElementById('conf-floatingPromoTitle')) document.getElementById('conf-floatingPromoTitle').value = storeConfig.floatingPromoTitle || '¡Aprovecha Black Friday!';
+                if (document.getElementById('conf-floatingPromoDesc')) document.getElementById('conf-floatingPromoDesc').value = storeConfig.floatingPromoDesc || 'Súper descuentos en los combos del 3% al 15% de descuento. ¡Elige tu combo favorito o prueba tu suerte!';
+                if (document.getElementById('conf-floatingPromoRuletaText')) document.getElementById('conf-floatingPromoRuletaText').value = storeConfig.floatingPromoRuletaText || '🎄🎰 ¡Gira la Ruleta Navideña! 🎁';
+                if (document.getElementById('conf-floatingPromoIntervalMin')) document.getElementById('conf-floatingPromoIntervalMin').value = storeConfig.floatingPromoIntervalMin || 15;
+                if (document.getElementById('conf-floatingPromoAutoCloseSec')) document.getElementById('conf-floatingPromoAutoCloseSec').value = storeConfig.floatingPromoAutoCloseSec || 60;
+                if (document.getElementById('conf-floatingPromoImage')) document.getElementById('conf-floatingPromoImage').value = storeConfig.floatingPromoImage || '';
+                if (typeof updateFloatingPromoAdminPreview === 'function') updateFloatingPromoAdminPreview();
+
                 if (document.getElementById('conf-clientPromoDiscount')) document.getElementById('conf-clientPromoDiscount').value = storeConfig.clientPromoDiscount || 0;
                 if (document.getElementById('conf-clientPromoLimit')) document.getElementById('conf-clientPromoLimit').value = storeConfig.clientPromoLimit || 0;
                 if (document.getElementById('conf-sellerPromoDiscount')) document.getElementById('conf-sellerPromoDiscount').value = storeConfig.sellerPromoDiscount || 0;
@@ -7533,6 +7635,19 @@
 
                 if (document.getElementById('conf-mainBannerEnabled')) storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === "true";
                 if (document.getElementById('conf-mainBannerBadge')) storeConfig.mainBannerBadge = document.getElementById('conf-mainBannerBadge').value;
+
+                if (document.getElementById('conf-floatingPromoEnabled')) storeConfig.floatingPromoEnabled = document.getElementById('conf-floatingPromoEnabled').value === "true";
+                if (document.getElementById('conf-floatingPromoSound')) storeConfig.floatingPromoSound = document.getElementById('conf-floatingPromoSound').value === "true";
+                if (document.getElementById('conf-floatingPromoStart')) storeConfig.floatingPromoStart = document.getElementById('conf-floatingPromoStart').value;
+                if (document.getElementById('conf-floatingPromoEnd')) storeConfig.floatingPromoEnd = document.getElementById('conf-floatingPromoEnd').value;
+                if (document.getElementById('conf-floatingPromoBadge')) storeConfig.floatingPromoBadge = document.getElementById('conf-floatingPromoBadge').value;
+                if (document.getElementById('conf-floatingPromoDiscountTag')) storeConfig.floatingPromoDiscountTag = document.getElementById('conf-floatingPromoDiscountTag').value;
+                if (document.getElementById('conf-floatingPromoTitle')) storeConfig.floatingPromoTitle = document.getElementById('conf-floatingPromoTitle').value;
+                if (document.getElementById('conf-floatingPromoDesc')) storeConfig.floatingPromoDesc = document.getElementById('conf-floatingPromoDesc').value;
+                if (document.getElementById('conf-floatingPromoRuletaText')) storeConfig.floatingPromoRuletaText = document.getElementById('conf-floatingPromoRuletaText').value;
+                if (document.getElementById('conf-floatingPromoIntervalMin')) storeConfig.floatingPromoIntervalMin = parseInt(document.getElementById('conf-floatingPromoIntervalMin').value, 10) || 15;
+                if (document.getElementById('conf-floatingPromoAutoCloseSec')) storeConfig.floatingPromoAutoCloseSec = parseInt(document.getElementById('conf-floatingPromoAutoCloseSec').value, 10) || 60;
+                if (document.getElementById('conf-floatingPromoImage')) storeConfig.floatingPromoImage = document.getElementById('conf-floatingPromoImage').value.trim();
                 if (document.getElementById('conf-mainBannerTitle')) storeConfig.mainBannerTitle = document.getElementById('conf-mainBannerTitle').value;
                 if (document.getElementById('conf-mainBannerDesc')) storeConfig.mainBannerDesc = document.getElementById('conf-mainBannerDesc').value;
                 if (document.getElementById('conf-mainBannerImage')) storeConfig.mainBannerImage = document.getElementById('conf-mainBannerImage').value;
@@ -9678,6 +9793,73 @@
         function saveBannerToggle() {
             storeConfig.mainBannerEnabled = document.getElementById('conf-mainBannerEnabled').value === 'true';
             db.ref('storeConfig').set(storeConfig);
+        }
+
+        function updateFloatingPromoAdminPreview() {
+            const urlInput = document.getElementById('conf-floatingPromoImage');
+            const wrap = document.getElementById('floating-promo-img-preview-wrap');
+            const img = document.getElementById('floating-promo-img-preview');
+            if (!urlInput || !wrap || !img) return;
+            const val = urlInput.value.trim();
+            if (val) {
+                img.src = val;
+                wrap.style.display = 'block';
+            } else {
+                img.src = '';
+                wrap.style.display = 'none';
+            }
+        }
+
+        function clearFloatingPromoImage() {
+            const urlInput = document.getElementById('conf-floatingPromoImage');
+            const fileInput = document.getElementById('floating-promo-img-file');
+            if (urlInput) urlInput.value = '';
+            if (fileInput) fileInput.value = '';
+            updateFloatingPromoAdminPreview();
+        }
+
+        function handleFloatingPromoImageUpload(input) {
+            const file = input && input.files && input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const maxW = 900;
+                    const scale = img.width > maxW ? maxW / img.width : 1;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(img.width * scale);
+                    canvas.height = Math.round(img.height * scale);
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.82);
+                    const urlInput = document.getElementById('conf-floatingPromoImage');
+                    if (urlInput) urlInput.value = compressed;
+                    updateFloatingPromoAdminPreview();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function previewAdminFloatingPromo() {
+            if (typeof window.previewFloatingPromo !== 'function') {
+                alert('Cargando módulo de vista previa, intenta de nuevo en un segundo.');
+                return;
+            }
+            window.previewFloatingPromo({
+                badge: document.getElementById('conf-floatingPromoBadge')?.value || '',
+                discountTag: document.getElementById('conf-floatingPromoDiscountTag')?.value || '',
+                title: document.getElementById('conf-floatingPromoTitle')?.value || '¡Aprovecha Black Friday!',
+                desc: document.getElementById('conf-floatingPromoDesc')?.value || '',
+                image: document.getElementById('conf-floatingPromoImage')?.value.trim() || '',
+                startDate: document.getElementById('conf-floatingPromoStart')?.value || '',
+                endDate: document.getElementById('conf-floatingPromoEnd')?.value || '',
+                intervalMinutes: parseInt(document.getElementById('conf-floatingPromoIntervalMin')?.value, 10) || 15,
+                autoCloseSeconds: parseInt(document.getElementById('conf-floatingPromoAutoCloseSec')?.value, 10) || 60,
+                soundEnabled: document.getElementById('conf-floatingPromoSound')?.value !== 'false',
+                ruletaBtnText: document.getElementById('conf-floatingPromoRuletaText')?.value || '🎄🎰 ¡Gira la Ruleta Navideña! 🎁'
+            });
         }
 
         function renderBannersList() {

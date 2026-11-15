@@ -6681,6 +6681,7 @@ const loadInitialData = () => {
 
     Promise.all([configPromise, productsPromise]).then(([configSnap, prodsSnap]) => {
         storeConfig = configSnap.val() || {};
+        if (typeof window.syncFloatingPromoConfig === 'function') window.syncFloatingPromoConfig(storeConfig);
         const pObj = prodsSnap.val() || [];
         products = Array.isArray(pObj) ? pObj : Object.values(pObj);
 
@@ -6711,6 +6712,7 @@ loadInitialData();
 // PASO 2: En vivo — solo escuchar cambios de storeConfig y products (NO toda la DB)
 db.ref('storeConfig').on('value', (snap) => {
     storeConfig = snap.val() || {};
+    if (typeof window.syncFloatingPromoConfig === 'function') window.syncFloatingPromoConfig(storeConfig);
     applyTabsVisibility();
     if (!window.appInitialized) return;
     setupConfigUI();

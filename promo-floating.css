@@ -1,0 +1,468 @@
+/* ==========================================================================
+   PUBLICIDAD FLOTANTE - BLACK FRIDAY & RULETA NAVIDEÑA
+   ========================================================================== */
+
+@keyframes fpFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fpPopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.86) translateY(24px);
+    }
+    70% {
+        transform: scale(1.02) translateY(-3px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes fpBorderGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes fpPulseGold {
+    0%, 100% {
+        box-shadow: 0 0 14px rgba(251, 191, 36, 0.45), 0 0 28px rgba(239, 68, 68, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(251, 191, 36, 0.8), 0 0 42px rgba(239, 68, 68, 0.55);
+        transform: scale(1.015);
+    }
+}
+
+@keyframes fpFloatSpark {
+    0% {
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+    30% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateY(-70px) scale(1.3);
+        opacity: 0;
+    }
+}
+
+.fp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: rgba(5, 5, 10, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fpFadeIn 0.3s ease forwards;
+}
+
+.fp-overlay.fp-visible {
+    display: flex;
+}
+
+.fp-card-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 24px;
+    padding: 2px;
+    background: linear-gradient(125deg, #ff2e63, #fbbf24, #00d2d3, #ff2e63);
+    background-size: 300% 300%;
+    animation: fpBorderGlow 5s ease infinite, fpPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(255, 46, 99, 0.28);
+}
+
+.fp-card {
+    position: relative;
+    background: radial-gradient(circle at top right, rgba(255, 46, 99, 0.16), transparent 45%),
+                radial-gradient(circle at bottom left, rgba(251, 191, 36, 0.12), transparent 45%),
+                linear-gradient(165deg, #13131f 0%, #09090f 100%);
+    border-radius: 22px;
+    overflow: hidden;
+    color: #ffffff;
+    max-height: 92vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.fp-sparks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.fp-spark {
+    position: absolute;
+    bottom: -10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 10px #fbbf24;
+    animation: fpFloatSpark 3.5s linear infinite;
+}
+
+.fp-top-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fp-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(15, 15, 24, 0.8);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.fp-icon-btn:hover {
+    background: rgba(255, 46, 99, 0.85);
+    color: #fff;
+    border-color: #ff2e63;
+    transform: scale(1.08);
+}
+
+.fp-hero-img-wrap {
+    position: relative;
+    width: 100%;
+    max-height: 210px;
+    overflow: hidden;
+    background: #0d0d15;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fp-hero-img {
+    width: 100%;
+    height: 100%;
+    max-height: 210px;
+    object-fit: cover;
+    display: block;
+}
+
+.fp-hero-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, #0c0c14 0%, transparent 55%);
+    pointer-events: none;
+}
+
+.fp-body {
+    position: relative;
+    z-index: 2;
+    padding: 20px 20px 16px;
+    text-align: center;
+}
+
+.fp-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.fp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff2e63, #dc2626);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(255, 46, 99, 0.45);
+}
+
+.fp-discount-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #111827;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+}
+
+.fp-title {
+    margin: 0 0 8px;
+    font-size: 1.55rem;
+    line-height: 1.2;
+    font-weight: 900;
+    background: linear-gradient(90deg, #ffffff 0%, #fde68a 50%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 18px rgba(251, 191, 36, 0.15);
+}
+
+.fp-desc {
+    margin: 0 0 14px;
+    font-size: 0.94rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+}
+
+/* Cuenta regresiva de vigencia de la promo */
+.fp-countdown-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.fp-countdown-label {
+    font-size: 0.72rem;
+    color: #fbbf24;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fp-countdown-units {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fp-cd-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 34px;
+    padding: 3px 5px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fp-cd-unit strong {
+    font-size: 0.92rem;
+    color: #fff;
+    line-height: 1.1;
+}
+
+.fp-cd-unit span {
+    font-size: 0.6rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+/* Botones de Combos 1-5 + Fin de Mes */
+.fp-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 10px;
+}
+
+.fp-combos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.fp-combo-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+
+.fp-combo-btn i,
+.fp-combo-btn .fp-btn-emoji {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.fp-combo-btn:hover {
+    transform: translateY(-2px);
+    border-color: #00d2d3;
+    background: linear-gradient(145deg, rgba(0, 210, 211, 0.22), rgba(0, 210, 211, 0.06));
+    box-shadow: 0 6px 16px rgba(0, 210, 211, 0.25);
+}
+
+.fp-combo-btn.fp-btn-finde {
+    border-color: rgba(255, 46, 99, 0.45);
+    background: linear-gradient(145deg, rgba(255, 46, 99, 0.22), rgba(255, 46, 99, 0.06));
+}
+
+.fp-combo-btn.fp-btn-finde:hover {
+    border-color: #ff2e63;
+    background: linear-gradient(145deg, rgba(255, 46, 99, 0.35), rgba(255, 46, 99, 0.12));
+    box-shadow: 0 6px 16px rgba(255, 46, 99, 0.35);
+}
+
+/* Botón final: Ruleta Navideña */
+.fp-ruleta-btn {
+    width: 100%;
+    padding: 13px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(251, 191, 36, 0.65);
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 45%, #d97706 100%);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    animation: fpPulseGold 2.2s ease-in-out infinite;
+    transition: filter 0.2s ease;
+    margin-bottom: 14px;
+}
+
+.fp-ruleta-btn:hover {
+    filter: brightness(1.12);
+}
+
+/* Barra de autocierre 1 min */
+.fp-autoclose-wrap {
+    margin-top: 4px;
+}
+
+.fp-autoclose-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-bottom: 5px;
+}
+
+.fp-close-link {
+    background: none;
+    border: none;
+    color: #cbd5e1;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.72rem;
+    padding: 0;
+}
+
+.fp-close-link:hover {
+    color: #fff;
+}
+
+.fp-progress-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.fp-progress-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ff2e63, #fbbf24, #00d2d3);
+    border-radius: 999px;
+    transition: width 1s linear;
+}
+
+/* Mini botón flotante cuando está cerrado para reabrir */
+.fp-mini-pill {
+    position: fixed;
+    left: 16px;
+    bottom: 20px;
+    z-index: 4500;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    background: linear-gradient(135deg, #181826, #2d0f1e);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 15px rgba(255, 46, 99, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fp-mini-pill.fp-pill-visible {
+    display: inline-flex;
+}
+
+.fp-mini-pill:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 10px 28px rgba(255, 46, 99, 0.5);
+}
+
+.fp-mini-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 8px #fbbf24;
+}
+
+@media (max-width: 480px) {
+    .fp-body {
+        padding: 16px 14px 14px;
+    }
+    .fp-title {
+        font-size: 1.3rem;
+    }
+    .fp-combos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .fp-mini-pill {
+        left: 12px;
+        bottom: 14px;
+        padding: 8px 12px;
+        font-size: 0.75rem;
+    }
+}
