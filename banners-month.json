@@ -8,6 +8,17 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 19 Nov",
+    "title": "Los Altruistas",
+    "desc": "Estreno exclusivo del 19 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/19/los altruistas.mp4",
+    "day": 19,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 18 Nov",
     "title": "Como Proteger A Una Estrella",
     "desc": "Estreno exclusivo del 18 de Noviembre • Streaming DPC",
