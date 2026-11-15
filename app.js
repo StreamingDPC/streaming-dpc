@@ -6674,17 +6674,41 @@ const runInit = () => {
     }
 };
 
-// PASO 1: Carga Ultra-Rápida (Cache-First + REST HTTP/2 Gzip vs Firebase SDK)
-const CACHE_CFG_KEY = 'dpc_cache_storeConfig_v1';
-const CACHE_PROD_KEY = 'dpc_cache_products_v1';
+// PASO 1: Carga Ultra-Rápida (IndexedDB Cache-First + REST HTTP/2 Gzip vs Firebase SDK)
+const IDB_NAME = 'dpc_fast_cache_db';
+const IDB_STORE = 'catalog';
 const RTDB_REST_BASE = 'https://streamingdpc-7e7fa-default-rtdb.firebaseio.com';
 
+const openCatalogIDB = () => new Promise((resolve, reject) => {
+    if (!window.indexedDB) return reject(new Error('No IDB'));
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+        const dbInst = req.result;
+        if (!dbInst.objectStoreNames.contains(IDB_STORE)) {
+            dbInst.createObjectStore(IDB_STORE);
+        }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+});
+
 const saveCatalogCache = (cfg, prods) => {
-    try {
-        if (cfg) localStorage.setItem(CACHE_CFG_KEY, JSON.stringify(cfg));
-        if (prods) localStorage.setItem(CACHE_PROD_KEY, JSON.stringify(prods));
-    } catch (e) { /* Ignorar si localStorage está lleno */ }
+    openCatalogIDB().then(dbInst => {
+        const tx = dbInst.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        if (cfg) store.put(cfg, 'storeConfig');
+        if (prods) store.put(prods, 'products');
+    }).catch(() => {});
 };
+
+const readCatalogCache = () => openCatalogIDB().then(dbInst => new Promise((resolve) => {
+    const tx = dbInst.transaction(IDB_STORE, 'readonly');
+    const store = tx.objectStore(IDB_STORE);
+    const reqCfg = store.get('storeConfig');
+    const reqProds = store.get('products');
+    tx.oncomplete = () => resolve({ cfg: reqCfg.result, prods: reqProds.result });
+    tx.onerror = () => resolve({ cfg: null, prods: null });
+})).catch(() => ({ cfg: null, prods: null }));
 
 const applyInitialCatalogData = (cfgData, prodsData) => {
     storeConfig = cfgData || {};
@@ -6710,27 +6734,14 @@ const applyInitialCatalogData = (cfgData, prodsData) => {
     }
 };
 
-const loadInitialData = () => {
-    // 1. Hidratación instantánea desde caché local (< 50ms en celular y PC)
-    let hydratedFromCache = false;
+const loadInitialData = async () => {
+    // 1. Hidratación instantánea desde IndexedDB (soporta >50MB, < 80ms en celular y PC)
     if (!publicSellerRef) {
-        try {
-            const rawCfg = localStorage.getItem(CACHE_CFG_KEY);
-            const rawProds = localStorage.getItem(CACHE_PROD_KEY);
-            if (rawCfg && rawProds) {
-                const cachedCfg = JSON.parse(rawCfg);
-                const cachedProds = JSON.parse(rawProds);
-                if (cachedCfg && Array.isArray(cachedProds) && cachedProds.length > 0) {
-                    hydratedFromCache = true;
-                    applyInitialCatalogData(cachedCfg, cachedProds);
-                }
-            }
-        } catch (e) {}
-    }
-
-    if (hydratedFromCache) {
-        // Los listeners .on('value') de PASO 2 actualizarán todo en segundo plano
-        return;
+        const cached = await readCatalogCache();
+        if (cached && cached.cfg && Array.isArray(cached.prods) && cached.prods.length > 0) {
+            applyInitialCatalogData(cached.cfg, cached.prods);
+            return; // Los listeners .on('value') de PASO 2 actualizarán todo en segundo plano
+        }
     }
 
     // 2. Primera visita sin caché: competir REST HTTPS (Gzip) vs Firebase WebSocket

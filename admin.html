@@ -722,6 +722,14 @@
                         </div>
                     </div>
                 </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem; padding:10px 14px; border-radius:12px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.3);">
+                    <span style="font-size:0.82rem; color:#fde68a;">
+                        <i class="fa-solid fa-gauge-high"></i> <strong>Acelerador de Carga Móvil:</strong> Comprime automáticamente imágenes pesadas de productos para que la tienda abra en 1-2 segundos en celular.
+                    </span>
+                    <button type="button" id="btn-optimize-product-images" onclick="optimizeHeavyProductImages()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#111827; border:none; padding:7px 14px; border-radius:10px; font-size:0.8rem; font-weight:800; cursor:pointer; white-space:nowrap;">
+                        ⚡ Optimizar Imágenes Pesadas
+                    </button>
+                </div>
                 <div id="admin-list" class="admin-list">
                     <!-- Se llenará con JS -->
                 </div>
@@ -9860,6 +9868,72 @@
                 soundEnabled: document.getElementById('conf-floatingPromoSound')?.value !== 'false',
                 ruletaBtnText: document.getElementById('conf-floatingPromoRuletaText')?.value || '🎄🎰 ¡Gira la Ruleta Navideña! 🎁'
             });
+        }
+
+        async function optimizeHeavyProductImages() {
+            if (!Array.isArray(dynamicProducts) || dynamicProducts.length === 0) {
+                alert('No hay productos cargados.');
+                return;
+            }
+            const heavyItems = dynamicProducts.filter(p => p && typeof p.image === 'string' && p.image.startsWith('data:image') && p.image.length > 25000);
+            if (heavyItems.length === 0) {
+                alert('✅ Todas las imágenes de tus productos ya están optimizadas.');
+                return;
+            }
+            const beforeMB = (dynamicProducts.reduce((acc, p) => acc + (p && p.image ? p.image.length : 0), 0) / 1048576).toFixed(2);
+            if (!confirm(`Se encontraron ${heavyItems.length} productos con imágenes pesadas (Total actual: ${beforeMB} MB).\n\n¿Deseas comprimirlas automáticamente a tamaño web ligero (450px) para que el catálogo cargue muchísimo más rápido en celulares?\n\n(La calidad visual en las tarjetas se mantiene nítida)`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-optimize-product-images');
+            const origText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Optimizando...';
+            }
+
+            const compressDataUrl = (dataUrl) => new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxW = 450;
+                    const scale = img.width > maxW ? maxW / img.width : 1;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(img.width * scale));
+                    canvas.height = Math.max(1, Math.round(img.height * scale));
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const out = canvas.toDataURL('image/webp', 0.78);
+                    resolve(out.length < dataUrl.length ? out : dataUrl);
+                };
+                img.onerror = () => resolve(dataUrl);
+                img.src = dataUrl;
+            });
+
+            try {
+                let done = 0;
+                for (let i = 0; i < dynamicProducts.length; i++) {
+                    const p = dynamicProducts[i];
+                    if (p && typeof p.image === 'string' && p.image.startsWith('data:image') && p.image.length > 25000) {
+                        p.image = await compressDataUrl(p.image);
+                        done++;
+                        if (btn && done % 10 === 0) {
+                            btn.innerHTML = `⏳ Optimizando ${done}/${heavyItems.length}...`;
+                        }
+                    }
+                }
+                const afterMB = (dynamicProducts.reduce((acc, p) => acc + (p && p.image ? p.image.length : 0), 0) / 1048576).toFixed(2);
+                await db.ref('products').set(dynamicProducts);
+                if (typeof renderAdminList === 'function') renderAdminList();
+                alert(`🚀 ¡Optimización completada!\n\nImágenes optimizadas: ${done}\nPeso anterior: ${beforeMB} MB\nPeso nuevo: ${afterMB} MB`);
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error al guardar en Firebase: ' + (err.message || err));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origText;
+                }
+            }
         }
 
         function renderBannersList() {
