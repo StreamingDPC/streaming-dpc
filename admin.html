@@ -4688,6 +4688,70 @@
         </div>
     </div>
 
+    <!-- MODAL PARA ENVIAR CAMBIO / TRANSFERENCIA DE CUENTA + CRM -->
+    <div id="account-transfer-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
+        <div style="background:var(--bg-secondary); border:1px solid rgba(0, 210, 211, 0.45); max-width:560px; width:100%; border-radius:16px; padding:1.5rem; position:relative; box-shadow:0 15px 40px rgba(0,0,0,0.75); max-height:92vh; overflow-y:auto;">
+            <button type="button" onclick="closeAccountTransferModal()"
+                style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 style="color:#00d2d3; margin:0 0 0.4rem 0; display:flex; align-items:center; gap:0.6rem; font-size:1.25rem;">
+                <i class="fa-solid fa-right-left"></i> Transferencia / Cambio de Cuenta
+            </h2>
+            <p style="color:#94a3b8; font-size:0.84rem; margin:0 0 1rem 0;">
+                Envía el aviso de transferencia por WhatsApp seguido automáticamente de las <strong>fotos y pasos CRM</strong> de esa plataforma.
+            </p>
+
+            <div id="at-screens-selector" style="display:none; margin-bottom:1rem;">
+                <label style="font-size:0.78rem; color:#cbd5e1; display:block; margin-bottom:6px; font-weight:700;">Pantallas en esta compra (clic para cargar sus datos):</label>
+                <div id="at-screens-chips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+
+            <div class="form-grid" style="gap:0.75rem;">
+                <div class="form-col">
+                    <label>Cuenta / Plataforma</label>
+                    <input type="text" id="at-platform" placeholder="Ej: Disney, Netflix, Max..." oninput="updateAccountTransferPreview()">
+                </div>
+                <div class="form-col">
+                    <label>Finaliza</label>
+                    <input type="text" id="at-end" placeholder="Ej: 8 dic" oninput="updateAccountTransferPreview()">
+                </div>
+                <div class="form-col" style="grid-column: 1 / -1;">
+                    <label>Correo</label>
+                    <input type="text" id="at-email" placeholder="correo@ejemplo.com" oninput="updateAccountTransferPreview()">
+                </div>
+                <div class="form-col">
+                    <label>Perfil #</label>
+                    <input type="text" id="at-profile" placeholder="Ej: Karen Villa" oninput="updateAccountTransferPreview()">
+                </div>
+                <div class="form-col">
+                    <label>Pin #</label>
+                    <input type="text" id="at-pin" placeholder="Ej: 8948" oninput="updateAccountTransferPreview()">
+                </div>
+            </div>
+
+            <div style="margin-top:0.85rem; display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="at-include-crm" checked onchange="updateAccountTransferPreview()" style="width:16px; height:16px; cursor:pointer;">
+                <label for="at-include-crm" style="margin:0; font-size:0.85rem; color:#e2e8f0; cursor:pointer;">
+                    Incluir <strong>fotos y pasos de guía CRM</strong> de la plataforma
+                </label>
+            </div>
+
+            <div style="margin-top:0.9rem;">
+                <label style="font-size:0.78rem; color:#94a3b8; display:block; margin-bottom:4px;">Vista previa del mensaje:</label>
+                <pre id="at-preview" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; white-space:pre-wrap; margin:0; max-height:170px; overflow-y:auto;"></pre>
+            </div>
+
+            <div style="display:flex; gap:0.6rem; margin-top:1.1rem;">
+                <button type="button" onclick="closeAccountTransferModal()" style="flex:1; padding:0.75rem; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:transparent; color:#cbd5e1; font-weight:700; cursor:pointer;">
+                    Cancelar
+                </button>
+                <button type="button" onclick="sendAccountTransferWhatsApp()" style="flex:2; padding:0.75rem; border-radius:10px; border:none; background:linear-gradient(135deg, #25d366, #128c7e); color:#fff; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fa-brands fa-whatsapp" style="font-size:1.1rem;"></i> Enviar a WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL PARA SELECCIONAR PANTALLA CRM -->
     <div id="crm-selector-modal"
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;">
@@ -11718,6 +11782,10 @@
                                     <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
                                 </button>
                                 ` : ''}
+                                <button onclick="openAccountTransferModal('${encodeURIComponent(safeClient)}', '${sale.clientPhone || ''}', '${endDate}', '${(allClientProfiles[sale.clientPhone] ? (allClientProfiles[sale.clientPhone].ticketPin || allClientProfiles[sale.clientPhone].pin) : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${safeSeller}', ${sale.expirationDate || 0})"
+                                    style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #00d2d3; background: rgba(0, 210, 211, 0.1); color:#00d2d3; font-size:0.8rem;" title="Enviar aviso de transferencia de cuenta + CRM">
+                                    <i class="fa-solid fa-right-left"></i> Cambio Cuenta
+                                </button>
 
                                 <button onclick="deleteSellerSale('${safeSeller}', '${sale.id}')" 
                                     style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;" title="Eliminar Registro (Prueba/Error)">
@@ -14162,6 +14230,255 @@
             }
         }
 
+        // =========================================================================
+        // CAMBIO / TRANSFERENCIA DE CUENTA + FOTOS Y PASOS CRM
+        // =========================================================================
+        let _atContext = null;
+
+        function formatShortEndDate(expMs, fallbackStr) {
+            if (expMs && Number(expMs) > 0) {
+                const d = new Date(Number(expMs));
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', '');
+                }
+            }
+            return fallbackStr || '';
+        }
+
+        window.openAccountTransferModal = function (nameEnc, phone, endDate, pin, itemsEnc, email, pass, profile, fullItemsJson, sellerNameEnc, expirationMs) {
+            const clientName = decodeURIComponent(nameEnc || '');
+            const itemsRaw = decodeURIComponent(itemsEnc || '');
+            const sellerName = decodeURIComponent(sellerNameEnc || '');
+            let fullItems = [];
+            try {
+                const parsed = JSON.parse(decodeURIComponent(fullItemsJson || '[]'));
+                fullItems = Array.isArray(parsed) ? parsed : Object.values(parsed || {});
+            } catch (e) {}
+
+            const screens = [];
+            fullItems.forEach(it => {
+                if (!it) return;
+                const specs = Array.isArray(it.specificEmails) ? it.specificEmails : Object.values(it.specificEmails || {});
+                specs.forEach(sp => {
+                    if (sp && (sp.platform || sp.email || sp.profile)) {
+                        screens.push({
+                            platform: sp.platform || it.name || '',
+                            email: sp.email || '',
+                            pass: sp.pass || '',
+                            profile: sp.profile || '',
+                            pin: sp.pin || ''
+                        });
+                    }
+                });
+            });
+
+            _atContext = {
+                clientName,
+                phone: phone || '',
+                endDate: formatShortEndDate(expirationMs, endDate),
+                pin: pin || '',
+                itemsRaw,
+                email: email || '',
+                pass: pass || '',
+                profile: profile || '',
+                sellerName,
+                screens
+            };
+
+            const chipsWrap = document.getElementById('at-screens-selector');
+            const chipsDiv = document.getElementById('at-screens-chips');
+            if (chipsWrap && chipsDiv) {
+                chipsDiv.innerHTML = '';
+                if (screens.length > 0) {
+                    chipsWrap.style.display = 'block';
+                    screens.forEach((scr, idx) => {
+                        const chip = document.createElement('button');
+                        chip.type = 'button';
+                        chip.style = 'padding:5px 10px; border-radius:8px; border:1px solid #00d2d3; background:rgba(0,210,211,0.12); color:#00d2d3; font-size:0.78rem; font-weight:700; cursor:pointer;';
+                        chip.textContent = `${scr.platform || 'Pantalla'} ${scr.profile ? '(' + scr.profile + ')' : ''}`;
+                        chip.onclick = () => selectAccountTransferScreen(idx);
+                        chipsDiv.appendChild(chip);
+                    });
+                } else {
+                    chipsWrap.style.display = 'none';
+                }
+            }
+
+            if (screens.length > 0) {
+                selectAccountTransferScreen(0);
+            } else {
+                const cleanPlat = itemsRaw.replace(/^\d+x\s*/i, '').split(/[,+]/)[0].trim();
+                document.getElementById('at-platform').value = cleanPlat || 'Disney';
+                document.getElementById('at-email').value = email || '';
+                document.getElementById('at-profile').value = profile || clientName || '';
+                document.getElementById('at-pin').value = pin || '';
+                document.getElementById('at-end').value = _atContext.endDate;
+                updateAccountTransferPreview();
+            }
+
+            const incCrm = document.getElementById('at-include-crm');
+            if (incCrm) incCrm.checked = true;
+
+            const modal = document.getElementById('account-transfer-modal');
+            if (modal) modal.style.display = 'flex';
+        };
+
+        window.selectAccountTransferScreen = function (idx) {
+            if (!_atContext || !_atContext.screens[idx]) return;
+            const scr = _atContext.screens[idx];
+            document.getElementById('at-platform').value = scr.platform || '';
+            document.getElementById('at-email').value = scr.email || _atContext.email || '';
+            document.getElementById('at-profile').value = scr.profile || _atContext.profile || _atContext.clientName || '';
+            document.getElementById('at-pin').value = scr.pin || _atContext.pin || '';
+            document.getElementById('at-end').value = _atContext.endDate || '';
+            updateAccountTransferPreview();
+        };
+
+        function buildAccountTransferPayload() {
+            const platform = (document.getElementById('at-platform')?.value || '').trim() || 'Streaming';
+            const email = (document.getElementById('at-email')?.value || '').trim() || 'N/A';
+            const profile = (document.getElementById('at-profile')?.value || '').trim() || (_atContext ? _atContext.clientName : 'N/A');
+            const pin = (document.getElementById('at-pin')?.value || '').trim();
+            const endStr = (document.getElementById('at-end')?.value || '').trim();
+            const includeCRM = document.getElementById('at-include-crm')?.checked !== false;
+
+            const lines = [
+                `por motivos administrativos debí Transferir la *Cuenta de ${platform}*. Presento excusas.`,
+                `INICIAR SESIÓN`,
+                `Correo: ${email}`,
+                `Perfil #: *${profile}*`
+            ];
+            if (pin) lines.push(`Pin #: ${pin}`);
+            if (endStr) lines.push(`Finaliza: ${endStr}`);
+
+            const baseMsg = lines.join('\n');
+            let extraText = '';
+            const allLocalPhotos = [];
+
+            if (includeCRM) {
+                const dict = storeConfig.crmGalleryDict || {};
+                const allKeys = Array.from(new Set([
+                    ...Object.keys(dict),
+                    ...(typeof DEFAULT_CRM_GALLERY_DICT !== 'undefined' ? Object.keys(DEFAULT_CRM_GALLERY_DICT) : [])
+                ]));
+                const matchingKeys = matchCRMKeysForPlatform(platform, allKeys);
+                let resolvedKey = platform;
+                if (matchingKeys.length > 0) {
+                    const contextStr = `${_atContext?.itemsRaw || ''}`.toLowerCase();
+                    if (contextStr.includes('tv') && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('tv'));
+                    } else if ((contextStr.includes('cel') || contextStr.includes('pc') || contextStr.includes('movil') || contextStr.includes('móvil')) && matchingKeys.some(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'));
+                    } else {
+                        resolvedKey = matchingKeys[0];
+                    }
+                }
+                const items = dict[resolvedKey] || (typeof DEFAULT_CRM_GALLERY_DICT !== 'undefined' ? DEFAULT_CRM_GALLERY_DICT[resolvedKey] : null) || [];
+                let itemsArray = [];
+                if (Array.isArray(items)) {
+                    itemsArray = items;
+                } else if (items && typeof items === 'object') {
+                    itemsArray = Object.keys(items).filter(k => !isNaN(Number(k))).sort((a, b) => Number(a) - Number(b)).map(k => items[k]);
+                }
+
+                const dataVars = {
+                    name: profile || (_atContext ? _atContext.clientName : ''),
+                    platformName: platform,
+                    start: '',
+                    end: endStr,
+                    pin: pin || 'N/A',
+                    email,
+                    pass: _atContext ? _atContext.pass : '',
+                    profile,
+                    link: ''
+                };
+
+                if (itemsArray.length > 0) {
+                    extraText += '\n\n🚀 *DETALLES Y GUÍA:*';
+                    itemsArray.forEach((item, index) => {
+                        if (!item) return;
+                        const itemText = replaceCRMVars(item.text, dataVars);
+                        if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
+                        if (item.photo) {
+                            const urls = item.photo.split(/[\r\n,;]+/).map(u => u.trim().replace(/^["']+|["']+$/g, '').trim()).filter(u => u && u.length > 3);
+                            urls.forEach(url => {
+                                allLocalPhotos.push(url);
+                                if (url.startsWith('http://') || url.startsWith('https://')) {
+                                    extraText += `\n🔗 Foto guía: ${url}`;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                const manualGuideUrl = (items && items.guideUrl) ||
+                    (storeConfig.crmPlatforms && storeConfig.crmPlatforms[resolvedKey] && storeConfig.crmPlatforms[resolvedKey].manualUrl) || '';
+                if (manualGuideUrl && manualGuideUrl.trim()) {
+                    extraText += `\n\n🌐 *Enlace / Guía de acceso:* ${manualGuideUrl.trim()}`;
+                }
+            }
+
+            return {
+                fullMsg: baseMsg + extraText,
+                allLocalPhotos
+            };
+        }
+
+        window.updateAccountTransferPreview = function () {
+            const prev = document.getElementById('at-preview');
+            if (!prev) return;
+            const { fullMsg, allLocalPhotos } = buildAccountTransferPayload();
+            const photoNote = allLocalPhotos.length > 0 ? `\n\n[📎 ${allLocalPhotos.length} foto(s) CRM adjuntas al enviar por Robot]` : '';
+            prev.textContent = fullMsg + photoNote;
+        };
+
+        window.closeAccountTransferModal = function () {
+            const modal = document.getElementById('account-transfer-modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.sendAccountTransferWhatsApp = function () {
+            if (!_atContext) return;
+            const { fullMsg, allLocalPhotos } = buildAccountTransferPayload();
+
+            const robotSelect = document.getElementById('conf-useLocalRobotCRM');
+            if (robotSelect) storeConfig.useLocalRobotCRM = robotSelect.value === 'true';
+            const useRobot = storeConfig.useLocalRobotCRM === true;
+
+            let targetWhatsAppStr = _atContext.phone;
+            let isTargetingSeller = false;
+            const sellerName = _atContext.sellerName;
+
+            if (sellerName && sellerName !== 'Página Web Oficial' && storeConfig.sellers) {
+                const sellerInfo = storeConfig.sellers.find(s => s.name === sellerName);
+                if (sellerInfo && sellerInfo.whatsapp) {
+                    if (confirm(`📦 Esta venta pertenece al vendedor "${sellerName}".\n\n¿Deseas enviar el Cambio de Cuenta al VENDEDOR?\n\n- Aceptar (OK) = Enviar al Vendedor\n- Cancelar = Enviar directo al Cliente`)) {
+                        targetWhatsAppStr = sellerInfo.whatsapp;
+                        isTargetingSeller = true;
+                    }
+                }
+            }
+
+            if (useRobot) {
+                const adminPhone = storeConfig.whatsappNumber || '';
+                if (!adminPhone) return alert('⚠️ Debes configurar tu número de WhatsApp en la pestaña Configuración → Generales.');
+                let cleanAdmin = adminPhone.toString().replace(/\D/g, '');
+                if (cleanAdmin.length === 10 && cleanAdmin.startsWith('3')) cleanAdmin = '57' + cleanAdmin;
+
+                const command = `CMD_CRM@@@TEL:${targetWhatsAppStr}@@@TX:${fullMsg}@@@IMG:${allLocalPhotos.join(',')}`;
+                if (confirm(`🤖 MODO ROBOT ACTIVO\n\nSe enviará el Cambio de Cuenta + fotos/pasos CRM a TU número (${cleanAdmin}) para reenviar ${isTargetingSeller ? 'al VENDEDOR' : 'al CLIENTE'}.\n\n¿Continuar?`)) {
+                    window.openWhatsapp(cleanAdmin, command);
+                    closeAccountTransferModal();
+                }
+            } else {
+                const encodedMsg = encodeURIComponent(fullMsg);
+                let waPhone = targetWhatsAppStr.toString().replace(/\D/g, '');
+                if (waPhone.length === 10 && waPhone.startsWith('3')) waPhone = '57' + waPhone;
+                window.open(`https://wa.me/${waPhone}?text=${encodedMsg}`, '_blank');
+                closeAccountTransferModal();
+            }
+        };
+
         async function sendAdminReminderToSeller(sellerNameEnc, clientNameEnc, itemsEncoded, clientPhone, saleTotal) {
             const sellerName = safeDecode(sellerNameEnc);
             const clientName = safeDecode(clientNameEnc);
@@ -14393,6 +14710,10 @@
                         <i class="fa-solid fa-comment-dots"></i> RESPUESTAS
                     </button>
                     ` : ''}
+                    <button onclick="openAccountTransferModal('${encodeURIComponent(clientObj.name)}', '${clientObj.phone}', '${endDate}', '${(allClientProfiles[clientObj.phone] ? (allClientProfiles[clientObj.phone].ticketPin || allClientProfiles[clientObj.phone].pin) : '')}', '${encodeURIComponent(itemsStr)}', '${(sale.email || '').replace(/'/g, "\\'")}', '${(sale.password || '').replace(/'/g, "\\'")}', '${(sale.profile || '').replace(/'/g, "\\'")}', '${encodeURIComponent(JSON.stringify(sale.items || []))}', '${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', ${sale.expirationDate || 0})"
+                        style="flex:1; padding:0.6rem 0.5rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #00d2d3; background: rgba(0, 210, 211, 0.1); color:#00d2d3; font-size:0.8rem; min-width: 110px;" title="Enviar aviso de transferencia de cuenta + CRM">
+                        <i class="fa-solid fa-right-left"></i> Cambio Cuenta
+                    </button>
 
                     <button onclick="deleteClientSale('${clientObj.phone}', '${sale.id}')" 
                         style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;">
