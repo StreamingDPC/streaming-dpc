@@ -4690,8 +4690,8 @@
 
     <!-- MODAL PARA ENVIAR CAMBIO / TRANSFERENCIA DE CUENTA + CRM -->
     <div id="account-transfer-modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
-        <div style="background:var(--bg-secondary); border:1px solid rgba(0, 210, 211, 0.45); max-width:560px; width:100%; border-radius:16px; padding:1.5rem; position:relative; box-shadow:0 15px 40px rgba(0,0,0,0.75); max-height:92vh; overflow-y:auto;">
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:10000; align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
+        <div style="background:#13131f; border:1px solid rgba(0, 210, 211, 0.45); max-width:560px; width:100%; border-radius:16px; padding:1.5rem; position:relative; box-shadow:0 15px 40px rgba(0,0,0,0.85); max-height:92vh; overflow-y:auto;">
             <button type="button" onclick="closeAccountTransferModal()"
                 style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
             <h2 style="color:#00d2d3; margin:0 0 0.4rem 0; display:flex; align-items:center; gap:0.6rem; font-size:1.25rem;">
@@ -4729,7 +4729,16 @@
                 </div>
             </div>
 
-            <div style="margin-top:0.85rem; display:flex; align-items:center; gap:8px;">
+            <div style="margin-top:0.85rem;">
+                <label style="font-size:0.78rem; color:#cbd5e1; display:block; margin-bottom:6px; font-weight:700;">Dispositivo para guía CRM (TV o CEL/PC):</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                    <button type="button" id="at-dev-auto" onclick="setAccountTransferDevice('auto')" style="flex:1; min-width:90px; padding:7px 10px; border-radius:8px; border:1px solid #00d2d3; background:rgba(0,210,211,0.2); color:#00d2d3; font-weight:800; font-size:0.8rem; cursor:pointer;">🔄 Automático</button>
+                    <button type="button" id="at-dev-tv" onclick="setAccountTransferDevice('tv')" style="flex:1; min-width:90px; padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#e2e8f0; font-weight:800; font-size:0.8rem; cursor:pointer;">📺 Para TV</button>
+                    <button type="button" id="at-dev-cel" onclick="setAccountTransferDevice('cel')" style="flex:1; min-width:90px; padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#e2e8f0; font-weight:800; font-size:0.8rem; cursor:pointer;">📱 Para CEL / PC</button>
+                </div>
+            </div>
+
+            <div style="margin-top:0.5rem; display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="at-include-crm" checked onchange="updateAccountTransferPreview()" style="width:16px; height:16px; cursor:pointer;">
                 <label for="at-include-crm" style="margin:0; font-size:0.85rem; color:#e2e8f0; cursor:pointer;">
                     Incluir <strong>fotos y pasos de guía CRM</strong> de la plataforma
@@ -14234,6 +14243,29 @@
         // CAMBIO / TRANSFERENCIA DE CUENTA + FOTOS Y PASOS CRM
         // =========================================================================
         let _atContext = null;
+        let _atSelectedDevice = 'auto';
+
+        window.setAccountTransferDevice = function (dev) {
+            _atSelectedDevice = dev || 'auto';
+            const btns = {
+                auto: document.getElementById('at-dev-auto'),
+                tv: document.getElementById('at-dev-tv'),
+                cel: document.getElementById('at-dev-cel')
+            };
+            Object.entries(btns).forEach(([k, b]) => {
+                if (!b) return;
+                if (k === _atSelectedDevice) {
+                    b.style.borderColor = '#00d2d3';
+                    b.style.background = 'rgba(0,210,211,0.22)';
+                    b.style.color = '#00d2d3';
+                } else {
+                    b.style.borderColor = 'rgba(255,255,255,0.2)';
+                    b.style.background = 'rgba(255,255,255,0.05)';
+                    b.style.color = '#e2e8f0';
+                }
+            });
+            updateAccountTransferPreview();
+        };
 
         function formatShortEndDate(expMs, fallbackStr) {
             if (expMs && Number(expMs) > 0) {
@@ -14318,6 +14350,7 @@
 
             const incCrm = document.getElementById('at-include-crm');
             if (incCrm) incCrm.checked = true;
+            setAccountTransferDevice('auto');
 
             const modal = document.getElementById('account-transfer-modal');
             if (modal) modal.style.display = 'flex';
@@ -14365,7 +14398,11 @@
                 let resolvedKey = platform;
                 if (matchingKeys.length > 0) {
                     const contextStr = `${_atContext?.itemsRaw || ''}`.toLowerCase();
-                    if (contextStr.includes('tv') && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
+                    if (_atSelectedDevice === 'tv' && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('tv'));
+                    } else if (_atSelectedDevice === 'cel' && matchingKeys.some(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'))) {
+                        resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'));
+                    } else if (contextStr.includes('tv') && matchingKeys.some(k => k.toLowerCase().includes('tv'))) {
                         resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('tv'));
                     } else if ((contextStr.includes('cel') || contextStr.includes('pc') || contextStr.includes('movil') || contextStr.includes('móvil')) && matchingKeys.some(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'))) {
                         resolvedKey = matchingKeys.find(k => k.toLowerCase().includes('cel') || k.toLowerCase().includes('pc'));
