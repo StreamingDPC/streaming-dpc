@@ -8406,7 +8406,7 @@
                 hasExactSizeMatch = dynamicProducts.some(p => {
                     if (!p) return false;
                     const isOutOfStock = p.inStock === false;
-                    if (isOutOfStock) return false;
+                    if (hideOutOfStock && isOutOfStock) return false;
                     if (hasMonths && !matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return false;
                     if (hasQuery) {
                         const qTerms = search.split(/\s+/).filter(Boolean);
@@ -8426,9 +8426,9 @@
             dynamicProducts.forEach((p, index) => {
                 if (!p) return;
 
-                // Ocultar productos agotados si se está buscando o si se activó Ocultar Agotadas
+                // Ocultar productos agotados solo si se activó Ocultar Agotadas
                 const isOutOfStock = p.inStock === false;
-                if ((hasFilters || hideOutOfStock) && isOutOfStock) return;
+                if (hideOutOfStock && isOutOfStock) return;
 
                 // Filtro por categoría
                 if (filterCat !== 'all' && p.category !== filterCat) return;
