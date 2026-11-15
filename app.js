@@ -6674,32 +6674,81 @@ const runInit = () => {
     }
 };
 
-// PASO 1: Cargar storeConfig y products en PARALELO (no toda la DB)
-const loadInitialData = () => {
-    const configPromise = db.ref('storeConfig').once('value');
-    const productsPromise = db.ref('products').once('value');
+// PASO 1: Carga Ultra-Rápida (Cache-First + REST HTTP/2 Gzip vs Firebase SDK)
+const CACHE_CFG_KEY = 'dpc_cache_storeConfig_v1';
+const CACHE_PROD_KEY = 'dpc_cache_products_v1';
+const RTDB_REST_BASE = 'https://streamingdpc-7e7fa-default-rtdb.firebaseio.com';
 
-    Promise.all([configPromise, productsPromise]).then(([configSnap, prodsSnap]) => {
-        storeConfig = configSnap.val() || {};
-        if (typeof window.syncFloatingPromoConfig === 'function') window.syncFloatingPromoConfig(storeConfig);
-        const pObj = prodsSnap.val() || [];
-        products = Array.isArray(pObj) ? pObj : Object.values(pObj);
+const saveCatalogCache = (cfg, prods) => {
+    try {
+        if (cfg) localStorage.setItem(CACHE_CFG_KEY, JSON.stringify(cfg));
+        if (prods) localStorage.setItem(CACHE_PROD_KEY, JSON.stringify(prods));
+    } catch (e) { /* Ignorar si localStorage está lleno */ }
+};
 
-                applyTabsVisibility();
-        const openPollaBtn = document.getElementById('open-polla-btn');
-        if (openPollaBtn) openPollaBtn.style.display = (storeConfig.pollaEnabled === false || (storeConfig.disabledTabs && storeConfig.disabledTabs.includes('polla'))) ? 'none' : '';
+const applyInitialCatalogData = (cfgData, prodsData) => {
+    storeConfig = cfgData || {};
+    if (typeof window.syncFloatingPromoConfig === 'function') window.syncFloatingPromoConfig(storeConfig);
+    const pObj = prodsData || [];
+    products = Array.isArray(pObj) ? pObj : Object.values(pObj);
 
-        if (publicSellerRef) {
-            db.ref(`sellerStores/${publicSellerRef}`).once('value').then(sp => {
-                const resellerData = sp.val();
-                if (resellerData) {
-                    publicSellerStoreData = resellerData;
-                    isSellerMode = false;
-                }
-                runInit();
-            }).catch(() => runInit());
-        } else {
+    applyTabsVisibility();
+    const openPollaBtn = document.getElementById('open-polla-btn');
+    if (openPollaBtn) openPollaBtn.style.display = (storeConfig.pollaEnabled === false || (storeConfig.disabledTabs && storeConfig.disabledTabs.includes('polla'))) ? 'none' : '';
+
+    if (publicSellerRef) {
+        db.ref(`sellerStores/${publicSellerRef}`).once('value').then(sp => {
+            const resellerData = sp.val();
+            if (resellerData) {
+                publicSellerStoreData = resellerData;
+                isSellerMode = false;
+            }
             runInit();
+        }).catch(() => runInit());
+    } else {
+        runInit();
+    }
+};
+
+const loadInitialData = () => {
+    // 1. Hidratación instantánea desde caché local (< 50ms en celular y PC)
+    let hydratedFromCache = false;
+    if (!publicSellerRef) {
+        try {
+            const rawCfg = localStorage.getItem(CACHE_CFG_KEY);
+            const rawProds = localStorage.getItem(CACHE_PROD_KEY);
+            if (rawCfg && rawProds) {
+                const cachedCfg = JSON.parse(rawCfg);
+                const cachedProds = JSON.parse(rawProds);
+                if (cachedCfg && Array.isArray(cachedProds) && cachedProds.length > 0) {
+                    hydratedFromCache = true;
+                    applyInitialCatalogData(cachedCfg, cachedProds);
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (hydratedFromCache) {
+        // Los listeners .on('value') de PASO 2 actualizarán todo en segundo plano
+        return;
+    }
+
+    // 2. Primera visita sin caché: competir REST HTTPS (Gzip) vs Firebase WebSocket
+    const restPromise = Promise.all([
+        fetch(`${RTDB_REST_BASE}/storeConfig.json`).then(r => { if (!r.ok) throw new Error('HTTP'); return r.json(); }),
+        fetch(`${RTDB_REST_BASE}/products.json`).then(r => { if (!r.ok) throw new Error('HTTP'); return r.json(); })
+    ]);
+
+    const sdkPromise = Promise.all([
+        db.ref('storeConfig').once('value').then(s => s.val()),
+        db.ref('products').once('value').then(s => s.val())
+    ]);
+
+    Promise.any([restPromise, sdkPromise]).then(([cfgVal, prodsVal]) => {
+        const prodsArr = Array.isArray(prodsVal) ? prodsVal : Object.values(prodsVal || {});
+        saveCatalogCache(cfgVal || {}, prodsArr);
+        if (!window.appInitialized) {
+            applyInitialCatalogData(cfgVal, prodsArr);
         }
     }).catch(err => {
         console.error('Error cargando datos iniciales:', err);
@@ -6712,6 +6761,7 @@ loadInitialData();
 // PASO 2: En vivo — solo escuchar cambios de storeConfig y products (NO toda la DB)
 db.ref('storeConfig').on('value', (snap) => {
     storeConfig = snap.val() || {};
+    saveCatalogCache(storeConfig, null);
     if (typeof window.syncFloatingPromoConfig === 'function') window.syncFloatingPromoConfig(storeConfig);
     applyTabsVisibility();
     if (!window.appInitialized) return;
@@ -6726,9 +6776,10 @@ db.ref('storeConfig').on('value', (snap) => {
 });
 
 db.ref('products').on('value', (snap) => {
-    if (!window.appInitialized) return;
     const pObj = snap.val() || [];
     products = Array.isArray(pObj) ? pObj : Object.values(pObj);
+    saveCatalogCache(null, products);
+    if (!window.appInitialized) return;
     if (typeof isSmartSearchActive === 'function' && isSmartSearchActive()) {
         applySmartSearch();
     } else {
