@@ -14154,7 +14154,10 @@
                 itemsArray.forEach((item, index) => {
                     if (!item) return;
                     let itemText = replaceCRMVars(item.text, dataVars);
-                    if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
+                    if (itemText) {
+                        itemText = itemText.replace(/^\s*\*?\s*paso\s*\d+\s*[:.\-]*\s*\*?\s*/i, '').trim();
+                        if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
+                    }
 
                     if (item.photo) {
                         const urls = item.photo.split(/[\r\n,;]+/)
@@ -14434,8 +14437,11 @@
                     extraText += '\n\n🚀 *DETALLES Y GUÍA:*';
                     itemsArray.forEach((item, index) => {
                         if (!item) return;
-                        const itemText = replaceCRMVars(item.text, dataVars);
-                        if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
+                        let itemText = replaceCRMVars(item.text, dataVars);
+                        if (itemText) {
+                            itemText = itemText.replace(/^\s*\*?\s*paso\s*\d+\s*[:.\-]*\s*\*?\s*/i, '').trim();
+                            if (itemText) extraText += `\n\n📌 *Paso ${index + 1}:* ${itemText}`;
+                        }
                         if (item.photo) {
                             const urls = item.photo.split(/[\r\n,;]+/).map(u => u.trim().replace(/^["']+|["']+$/g, '').trim()).filter(u => u && u.length > 3);
                             urls.forEach(url => {
