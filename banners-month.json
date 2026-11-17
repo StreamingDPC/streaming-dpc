@@ -9,6 +9,28 @@
   },
   {
     "badge": "Estreno 20 Nov",
+    "title": "Crear Es No Copiar",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/crear es no copiar.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "El Abogado De Dios",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/el abogado de dios.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
     "title": "El Camino Azul",
     "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
     "img": "",
@@ -25,6 +47,17 @@
     "img": "",
     "btnText": "Ver Video",
     "btnLink": "videos/20/hermanastras.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "La Noche Del Demonio",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/la noche del demonio.mp4",
     "day": 20,
     "month": "Noviembre",
     "monthAbbr": "Nov"
@@ -69,6 +102,28 @@
     "img": "",
     "btnText": "Ver Video",
     "btnLink": "videos/20/predicadores mediaticos.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Ravalear T1",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/ravalear t1.mp4",
+    "day": 20,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 20 Nov",
+    "title": "Super Mario Galaxy",
+    "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/20/super mario galaxy.mp4",
     "day": 20,
     "month": "Noviembre",
     "monthAbbr": "Nov"
