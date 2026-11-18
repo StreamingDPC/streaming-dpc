@@ -8,6 +8,17 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 22 Nov",
+    "title": "La Ultima Sena De Jesus",
+    "desc": "Estreno exclusivo del 22 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/22/la ultima sena de jesus.mp4",
+    "day": 22,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 20 Nov",
     "title": "Crear Es No Copiar",
     "desc": "Estreno exclusivo del 20 de Noviembre • Streaming DPC",
