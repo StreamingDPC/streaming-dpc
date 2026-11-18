@@ -11763,10 +11763,18 @@
                                     ${!isExpired ? `Vence en ${daysLeft} días` : 'Vencida'}
                                 </span>
                             </div>
-                            <div style="margin-bottom:0.5rem; display:flex;">
+                            <div style="margin-bottom:0.5rem; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                                 <button onclick="toggleSaleStatus('seller', '${safeSeller}', '${sale.id}', ${sale.isPaid === false ? 'true' : 'false'}, '${sale.clientPhone || ''}')" 
                                     style="padding:0.4rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid ${sale.isPaid === false ? '#f39c12' : '#4cd137'}; background: transparent; color:${sale.isPaid === false ? '#f39c12' : '#4cd137'}; font-size:0.75rem;">
                                     <i class="fa-solid ${sale.isPaid === false ? 'fa-square' : 'fa-check-square'}"></i> ${sale.isPaid === false ? 'Pago Pendiente (No Suma)' : 'Pagado (Contabilizada)'}
+                                </button>
+                                <button type="button" onclick="sendClientPinByWhatsapp('${sale.clientPhone || ''}', '${encodeURIComponent(safeClient)}')" 
+                                    style="background:rgba(241,196,15,0.14); color:#f1c40f; border:1px solid rgba(241,196,15,0.4); border-radius:8px; padding:0.4rem 0.65rem; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Enviar PIN de acceso por WhatsApp al cliente">
+                                    <i class="fa-solid fa-key"></i> Enviar PIN
+                                </button>
+                                <button type="button" onclick="showClientAnnualSummaryModal('${sale.clientPhone || ''}', '${encodeURIComponent(safeClient)}', '${safeSeller}')" 
+                                    style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:8px; padding:0.4rem 0.65rem; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Ver y enviar resumen anual de compras al cliente">
+                                    <i class="fa-solid fa-receipt"></i> Resumen de Compras
                                 </button>
                             </div>
                             <p style="font-size:0.8rem; color:#ccc; margin-bottom:0.8rem; line-height:1.4;">
