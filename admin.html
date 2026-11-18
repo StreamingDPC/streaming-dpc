@@ -11891,7 +11891,10 @@
             document.body.appendChild(overlay);
             overlay.querySelector('#qep-close').onclick = () => overlay.remove();
             overlay.querySelector('#qep-cancel').onclick = () => overlay.remove();
-            overlay.querySelector('#qep-save').onclick = () => {
+            const btnSave = overlay.querySelector('#qep-save');
+            btnSave.onclick = () => {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
                 overlay.querySelectorAll('.qep-row').forEach(rowEl => {
                     const itemIdx = parseInt(rowEl.getAttribute('data-item-idx'), 10);
                     const spIdx = parseInt(rowEl.getAttribute('data-sp-idx'), 10);
@@ -11899,20 +11902,37 @@
                     const newProf = (rowEl.querySelector('.qep-prof').value || '').trim();
                     const it = itemsArr[itemIdx];
                     if (!it) return;
-                    if (!it.specificEmails) it.specificEmails = [];
-                    const specs = Array.isArray(it.specificEmails) ? it.specificEmails : Object.values(it.specificEmails);
-                    if (!specs[spIdx]) specs[spIdx] = {};
+                    const specs = Array.isArray(it.specificEmails)
+                        ? it.specificEmails
+                        : (it.specificEmails && typeof it.specificEmails === 'object' ? Object.values(it.specificEmails) : []);
+                    if (!specs[spIdx] || typeof specs[spIdx] !== 'object') specs[spIdx] = {};
                     if (newPlat) specs[spIdx].platform = newPlat;
                     specs[spIdx].profile = newProf;
                     it.specificEmails = specs;
-                    if (specs.length === 1 && newPlat) it.name = newPlat;
+                    const platNames = specs.map(s => (s && s.platform ? String(s.platform).trim() : '')).filter(Boolean);
+                    if (platNames.length > 0 && !(it.category && String(it.category).startsWith('combos'))) {
+                        it.name = platNames.join(', ');
+                    }
                 });
-                sale.items = itemsArr;
-                db.ref(`sellerSales/${decSeller}/${saleId}`).update({ items: itemsArr }).then(() => {
+                const cleanItems = JSON.parse(JSON.stringify(itemsArr));
+                sale.items = cleanItems;
+                const updates = {};
+                updates[`sellerSales/${decSeller}/${saleId}/items`] = cleanItems;
+                const cleanPhone = typeof sanitizePhone === 'function' ? sanitizePhone(sale.clientPhone || '') : String(sale.clientPhone || '').replace(/\D/g, '');
+                if (cleanPhone && window.allClientSalesMap && window.allClientSalesMap[cleanPhone] && window.allClientSalesMap[cleanPhone][saleId]) {
+                    window.allClientSalesMap[cleanPhone][saleId].items = cleanItems;
+                    updates[`clientSales/${cleanPhone}/${saleId}/items`] = cleanItems;
+                }
+                db.ref('/').update(updates).then(() => {
                     overlay.remove();
                     fetchSellerSalesStats();
                     if (typeof buildMasterDatabaseRecords === 'function') buildMasterDatabaseRecords();
-                }).catch(err => alert('Error al guardar: ' + err.message));
+                    alert('✅ Plataformas actualizadas correctamente.');
+                }).catch(err => {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
+                    alert('Error al guardar: ' + err.message);
+                });
             };
         };
 
