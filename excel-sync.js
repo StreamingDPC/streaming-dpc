@@ -1207,7 +1207,8 @@ async function syncExcelToFirebase(customBuffer = null) {
                             sp.platform = cleanPlatformName(rec.platform);
                             if (screenCount === 1) {
                                 it.name = cleanPlatformName(rec.platform);
-                                if (!it.finalPrice || it.finalPrice === 0) {
+                                if (pInfo.id) it.id = pInfo.id;
+                                if (pInfo.price > 0) {
                                     it.finalPrice = pInfo.price;
                                 }
                             }
@@ -1359,10 +1360,13 @@ async function syncExcelToFirebase(customBuffer = null) {
             }
             sale.items = dedupedItems;
 
-            // Asegurar que el total de la venta esté correctamente registrado según precios de cliente/vendedor
+            // Asegurar que el total de la venta esté correctamente registrado según precios de cliente/vendedor (y meses)
+            const saleMonths = (sale.months && !isNaN(Number(sale.months)) && Number(sale.months) > 1)
+                ? Math.min(12, Math.round(Number(sale.months)))
+                : 1;
             const sumFinalPrices = dedupedItems.reduce((acc, it) => acc + (Number(it.finalPrice) || 0), 0);
             if (sumFinalPrices > 0) {
-                sale.total = sumFinalPrices;
+                sale.total = sumFinalPrices * saleMonths;
             }
 
             // Credenciales principales de la venta

@@ -11883,6 +11883,10 @@
                         `).join('')}
                     </div>
                     <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);padding:10px;border-radius:10px;">
+                        <div style="width:76px;">
+                            <label style="font-size:0.72rem;color:#93c5fd;display:block;margin-bottom:4px;font-weight:700;">Meses</label>
+                            <input type="number" id="qep-months" value="${Math.max(1, Math.round(Number(sale.months) || 1))}" min="1" max="12" style="width:100%;padding:8px;border-radius:8px;background:#1e293b;color:#93c5fd;font-weight:700;border:1px solid rgba(147,197,253,0.35);font-size:0.9rem;">
+                        </div>
                         <div style="flex:1;">
                             <label style="font-size:0.72rem;color:#6ee7b7;display:block;margin-bottom:4px;font-weight:700;">Valor pagado / Total Vendedor ($)</label>
                             <input type="number" id="qep-total" value="${Number(sale.total || 0)}" min="0" step="500" style="width:100%;padding:8px;border-radius:8px;background:#1e293b;color:#6ee7b7;font-weight:700;border:1px solid rgba(16,185,129,0.35);font-size:0.9rem;">
@@ -11900,6 +11904,7 @@
             document.body.appendChild(overlay);
             overlay.querySelector('#qep-close').onclick = () => overlay.remove();
             overlay.querySelector('#qep-cancel').onclick = () => overlay.remove();
+            const monthsInput = overlay.querySelector('#qep-months');
             const totalInput = overlay.querySelector('#qep-total');
             const normPlatName = (s) => String(s || '')
                 .toLowerCase()
@@ -11932,13 +11937,15 @@
                         matched++;
                     }
                 });
+                const mVal = Math.max(1, Math.min(12, Math.round(Number(monthsInput.value) || 1)));
                 if (matched === platInputs.length && sum > 0) {
-                    totalInput.value = sum;
+                    totalInput.value = sum * mVal;
                 } else if (showNotice) {
                     alert(`Solo se encontraron ${matched} de ${platInputs.length} plataformas en el catálogo. Ajusta el Valor pagado manualmente si lo necesitas.`);
                 }
             };
             overlay.querySelector('#qep-recalc').onclick = () => recalcTotal(true);
+            monthsInput.addEventListener('change', () => recalcTotal(false));
             overlay.querySelectorAll('.qep-plat').forEach(inp => {
                 inp.addEventListener('change', () => recalcTotal(false));
             });
@@ -11966,18 +11973,23 @@
                     }
                 });
                 const cleanItems = JSON.parse(JSON.stringify(itemsArr));
+                const newMonths = Math.max(1, Math.min(12, Math.round(Number(monthsInput.value) || 1)));
                 const parsedTotal = parseFloat(totalInput.value);
                 const newTotal = !isNaN(parsedTotal) && parsedTotal >= 0 ? Math.round(parsedTotal) : Number(sale.total || 0);
                 sale.items = cleanItems;
+                sale.months = newMonths;
                 sale.total = newTotal;
                 const updates = {};
                 updates[`sellerSales/${decSeller}/${saleId}/items`] = cleanItems;
+                updates[`sellerSales/${decSeller}/${saleId}/months`] = newMonths;
                 updates[`sellerSales/${decSeller}/${saleId}/total`] = newTotal;
                 const cleanPhone = typeof sanitizePhone === 'function' ? sanitizePhone(sale.clientPhone || '') : String(sale.clientPhone || '').replace(/\D/g, '');
                 if (cleanPhone && window.allClientSalesMap && window.allClientSalesMap[cleanPhone] && window.allClientSalesMap[cleanPhone][saleId]) {
                     window.allClientSalesMap[cleanPhone][saleId].items = cleanItems;
+                    window.allClientSalesMap[cleanPhone][saleId].months = newMonths;
                     window.allClientSalesMap[cleanPhone][saleId].total = newTotal;
                     updates[`clientSales/${cleanPhone}/${saleId}/items`] = cleanItems;
+                    updates[`clientSales/${cleanPhone}/${saleId}/months`] = newMonths;
                     updates[`clientSales/${cleanPhone}/${saleId}/total`] = newTotal;
                 }
                 db.ref('/').update(updates).then(() => {
