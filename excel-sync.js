@@ -730,13 +730,6 @@ function parseWorkbookFromBuffer(buffer) {
                     recordPlatform = 'HBO Max Privada';
                 }
             }
-            if (/mopv/i.test(pantallasCode)) {
-                recordPlatform = 'HBO Max Privada';
-            } else if (/nopv/i.test(pantallasCode)) {
-                recordPlatform = 'Netflix Privada';
-            } else if (/dopv/i.test(pantallasCode)) {
-                recordPlatform = 'Disney Privada';
-            }
 
             records.push({
                 sheet: actualName,
@@ -1203,7 +1196,7 @@ async function syncExcelToFirebase(customBuffer = null) {
                                 it.id = pInfo.id;
                                 it.finalPrice = pInfo.price;
                             }
-                        } else if ((rec.sheetMeta.key === 'MO' || /mopv|mpv/i.test(rec.pantallasCode)) && (rec.platform === 'HBO Max Privada' || /privad/i.test(spPlat) || /mopv|mpv/i.test(rec.pantallasCode) || /privad/i.test(rec.clientName))) {
+                        } else if (rec.sheetMeta.key === 'MO' && (rec.platform === 'HBO Max Privada' || /privad/i.test(spPlat) || /mopv|mpv/i.test(rec.pantallasCode) || /privad/i.test(rec.clientName))) {
                             sp.platform = 'HBO Max Privada';
                             if (screenCount === 1) {
                                 it.name = 'HBO Max Privada';
