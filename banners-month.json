@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 23 Nov",
+    "title": "Fargo",
+    "desc": "Estreno exclusivo del 23 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/23/fargo.mp4",
+    "day": 23,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 23 Nov",
+    "title": "Los Juicios De Karen Read",
+    "desc": "Estreno exclusivo del 23 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/23/los juicios de karen read.mp4",
+    "day": 23,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 23 Nov",
+    "title": "Plaza Sesamo",
+    "desc": "Estreno exclusivo del 23 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/23/plaza sesamo.mp4",
+    "day": 23,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 22 Nov",
     "title": "La Ultima Sena De Jesus",
     "desc": "Estreno exclusivo del 22 de Noviembre • Streaming DPC",
