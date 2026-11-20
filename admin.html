@@ -11806,7 +11806,7 @@
                                     <i class="fa-solid fa-right-left"></i> Cambio Cuenta
                                 </button>
 
-                                <button onclick="quickEditSalePlatforms('${safeSeller}', '${sale.id}')" 
+                                <button onclick="quickEditSalePlatforms('${safeSeller}', '${sale.id}', 'seller', '${sale.clientPhone || ''}')" 
                                     style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #38bdf8; background: rgba(56, 189, 248, 0.12); color:#38bdf8; font-size:0.8rem;" title="Editar Plataformas / Perfiles">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
@@ -11848,10 +11848,29 @@
             }
         }
 
-        window.quickEditSalePlatforms = function (sellerName, saleId) {
+        window.quickEditSalePlatforms = function (sellerName, saleId, sourceType, clientPhone) {
             const decSeller = safeDecode(decodeURIComponent(sellerName || ''));
-            const sale = window.globalSellerSalesDataStore && window.globalSellerSalesDataStore[decSeller] && window.globalSellerSalesDataStore[decSeller][saleId];
+            const cleanPhoneArg = typeof sanitizePhone === 'function' ? sanitizePhone(clientPhone || '') : String(clientPhone || '').replace(/\D/g, '');
+            const inSellerStore = window.globalSellerSalesDataStore && window.globalSellerSalesDataStore[decSeller] && window.globalSellerSalesDataStore[decSeller][saleId];
+            let resolvedPhone = cleanPhoneArg;
+            let inClientStore = resolvedPhone && window.allClientSalesMap && window.allClientSalesMap[resolvedPhone] && window.allClientSalesMap[resolvedPhone][saleId];
+            if (!inClientStore && window.allClientSalesMap) {
+                for (const ph of Object.keys(window.allClientSalesMap)) {
+                    if (window.allClientSalesMap[ph] && window.allClientSalesMap[ph][saleId]) {
+                        resolvedPhone = ph;
+                        inClientStore = window.allClientSalesMap[ph][saleId];
+                        break;
+                    }
+                }
+            }
+            const sale = (sourceType === 'client' ? (inClientStore || inSellerStore) : (inSellerStore || inClientStore));
             if (!sale) return alert('No se encontró la venta en memoria.');
+            if (!resolvedPhone && sale.clientPhone) {
+                resolvedPhone = typeof sanitizePhone === 'function' ? sanitizePhone(sale.clientPhone) : String(sale.clientPhone).replace(/\D/g, '');
+            }
+            const effectiveSeller = decSeller || (sale.sellerName || 'Página Web Oficial');
+            const defaultIsSeller = Boolean(inSellerStore && effectiveSeller && effectiveSeller !== 'Página Web Oficial' && effectiveSeller !== 'Admin' && effectiveSeller !== 'Directo');
+
             const itemsArr = Array.isArray(sale.items) ? sale.items : Object.values(sale.items || {});
             const rows = [];
             itemsArr.forEach((it, itemIdx) => {
@@ -11871,12 +11890,12 @@
             overlay.id = 'quick-edit-platforms-modal';
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(5px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;';
             overlay.innerHTML = `
-                <div style="width:100%;max-width:480px;background:#0f172a;border:1px solid rgba(56,189,248,0.35);border-radius:16px;padding:20px;color:#f8fafc;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+                <div style="width:100%;max-width:500px;background:#0f172a;border:1px solid rgba(56,189,248,0.35);border-radius:16px;padding:20px;color:#f8fafc;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
                         <h3 style="margin:0;font-size:1rem;color:#38bdf8;"><i class="fa-solid fa-pen"></i> Editar Plataformas — ${safeDecode(sale.clientName || '')}</h3>
                         <button type="button" id="qep-close" style="background:rgba(255,255,255,0.08);border:none;color:#cbd5e1;width:30px;height:30px;border-radius:50%;cursor:pointer;">&times;</button>
                     </div>
-                    <div id="qep-rows" style="display:grid;gap:10px;max-height:320px;overflow-y:auto;margin-bottom:14px;">
+                    <div id="qep-rows" style="display:grid;gap:10px;max-height:300px;overflow-y:auto;margin-bottom:12px;">
                         ${rows.map((r, idx) => `
                             <div class="qep-row" data-item-idx="${r.itemIdx}" data-sp-idx="${r.spIdx}" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(255,255,255,0.04);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);">
                                 <div>
@@ -11890,19 +11909,27 @@
                             </div>
                         `).join('')}
                     </div>
-                    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);padding:10px;border-radius:10px;">
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.72rem;color:#94a3b8;display:block;margin-bottom:4px;font-weight:700;">Tarifa para Recalcular</label>
+                        <select id="qep-price-mode" style="width:100%;padding:8px 10px;border-radius:8px;background:#1e293b;color:#f8fafc;border:1px solid rgba(56,189,248,0.3);font-size:0.84rem;font-weight:700;">
+                            <option value="client" ${!defaultIsSeller ? 'selected' : ''}>Precio Cliente Directo</option>
+                            <option value="seller" ${defaultIsSeller ? 'selected' : ''}>Precio Vendedor (Distribuidor)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);padding:10px;border-radius:10px;">
                         <div style="width:76px;">
                             <label style="font-size:0.72rem;color:#93c5fd;display:block;margin-bottom:4px;font-weight:700;">Meses</label>
                             <input type="number" id="qep-months" value="${Math.max(1, Math.round(Number(sale.months) || 1))}" min="1" max="12" style="width:100%;padding:8px;border-radius:8px;background:#1e293b;color:#93c5fd;font-weight:700;border:1px solid rgba(147,197,253,0.35);font-size:0.9rem;">
                         </div>
                         <div style="flex:1;">
-                            <label style="font-size:0.72rem;color:#6ee7b7;display:block;margin-bottom:4px;font-weight:700;">Valor pagado / Total Vendedor ($)</label>
+                            <label id="qep-total-label" style="font-size:0.72rem;color:#6ee7b7;display:block;margin-bottom:4px;font-weight:700;">Valor Total ($)</label>
                             <input type="number" id="qep-total" value="${Number(sale.total || 0)}" min="0" step="500" style="width:100%;padding:8px;border-radius:8px;background:#1e293b;color:#6ee7b7;font-weight:700;border:1px solid rgba(16,185,129,0.35);font-size:0.9rem;">
                         </div>
-                        <button type="button" id="qep-recalc" title="Recalcular según precios de vendedor del catálogo" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(56,189,248,0.4);background:rgba(56,189,248,0.12);color:#38bdf8;cursor:pointer;font-weight:700;font-size:0.8rem;white-space:nowrap;">
+                        <button type="button" id="qep-recalc" title="Recalcular según precios del catálogo (incluye combos)" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(56,189,248,0.4);background:rgba(56,189,248,0.12);color:#38bdf8;cursor:pointer;font-weight:700;font-size:0.8rem;white-space:nowrap;">
                             <i class="fa-solid fa-calculator"></i> Recalcular
                         </button>
                     </div>
+                    <div id="qep-calc-hint" style="font-size:0.74rem;color:#94a3b8;min-height:18px;margin-bottom:14px;"></div>
                     <div style="display:flex;gap:10px;justify-content:flex-end;">
                         <button type="button" id="qep-cancel" style="padding:9px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:#cbd5e1;cursor:pointer;font-weight:700;">Cancelar</button>
                         <button type="button" id="qep-save" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:#0f172a;cursor:pointer;font-weight:800;"><i class="fa-solid fa-save"></i> Guardar Cambios</button>
@@ -11914,45 +11941,84 @@
             overlay.querySelector('#qep-cancel').onclick = () => overlay.remove();
             const monthsInput = overlay.querySelector('#qep-months');
             const totalInput = overlay.querySelector('#qep-total');
+            const modeSelect = overlay.querySelector('#qep-price-mode');
+            const hintEl = overlay.querySelector('#qep-calc-hint');
             const normPlatName = (s) => String(s || '')
                 .toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/\bhbo\s*max\b/g, 'max')
                 .replace(/\bdisney\s*\+?\b/g, 'disney')
+                .replace(/\bprime(\s*video)?\b/g, 'prime video')
                 .replace(/\s+/g, ' ')
                 .trim();
-            const findSellerProductPrice = (platRaw) => {
+            const pickProductPrice = (prod, isSellerMode) => {
+                if (!prod) return 0;
+                const sPr = Number(prod.sellerPrice) || 0;
+                const cPr = Number(prod.price) || 0;
+                return isSellerMode ? (sPr > 0 ? sPr : cPr) : (cPr > 0 ? cPr : sPr);
+            };
+            const findProductEntry = (platRaw, isSellerMode) => {
                 const catalog = Array.isArray(dynamicProducts) ? dynamicProducts : [];
                 const target = normPlatName(platRaw);
                 if (!target) return null;
-                const singles = catalog.filter(p => p && p.name && !/\b[23]\s*mes/i.test(p.name));
+                const singles = catalog.filter(p => p && p.name && !/\b[23]\s*mes/i.test(p.name) && !String(p.name).includes('+'));
                 const exact = singles.find(p => normPlatName(p.name) === target);
-                if (exact) return Number(exact.sellerPrice > 0 ? exact.sellerPrice : exact.price) || 0;
+                if (exact) return { entry: exact, price: pickProductPrice(exact, isSellerMode) };
                 const partial = singles.find(p => {
                     const pn = normPlatName(p.name);
                     return pn.includes(target) || target.includes(pn);
                 });
-                return partial ? (Number(partial.sellerPrice > 0 ? partial.sellerPrice : partial.price) || 0) : null;
+                return partial ? { entry: partial, price: pickProductPrice(partial, isSellerMode) } : null;
+            };
+            const findComboEntry = (platList, isSellerMode) => {
+                if (!Array.isArray(platList) || platList.length < 2) return null;
+                const wantedKey = platList.map(normPlatName).filter(Boolean).sort().join('|');
+                if (!wantedKey) return null;
+                const pool = [
+                    ...(Array.isArray(dynamicProducts) ? dynamicProducts : []),
+                    ...(typeof dynamicCombos !== 'undefined' && Array.isArray(dynamicCombos) ? dynamicCombos : [])
+                ].filter(p => p && p.name && !/\b[23]\s*mes/i.test(p.name) && String(p.name).includes('+'));
+                for (const c of pool) {
+                    const partsKey = String(c.name).split('+').map(normPlatName).filter(Boolean).sort().join('|');
+                    if (partsKey === wantedKey) {
+                        const pr = pickProductPrice(c, isSellerMode);
+                        if (pr > 0) return { entry: c, price: pr };
+                    }
+                }
+                return null;
             };
             const recalcTotal = (showNotice) => {
-                let sum = 0;
+                const isSellerMode = modeSelect.value === 'seller';
+                const platInputs = Array.from(overlay.querySelectorAll('.qep-plat'));
+                const platVals = platInputs.map(inp => inp.value.trim()).filter(Boolean);
+                const mVal = Math.max(1, Math.min(12, Math.round(Number(monthsInput.value) || 1)));
+
+                const comboHit = findComboEntry(platVals, isSellerMode);
+                let indivSum = 0;
                 let matched = 0;
-                const platInputs = overlay.querySelectorAll('.qep-plat');
                 platInputs.forEach(inp => {
-                    const price = findSellerProductPrice(inp.value);
-                    if (price !== null && price > 0) {
-                        sum += price;
+                    const hit = findProductEntry(inp.value, isSellerMode);
+                    if (hit && hit.price > 0) {
+                        indivSum += hit.price;
                         matched++;
                     }
                 });
-                const mVal = Math.max(1, Math.min(12, Math.round(Number(monthsInput.value) || 1)));
-                if (matched === platInputs.length && sum > 0) {
-                    totalInput.value = sum * mVal;
-                } else if (showNotice) {
-                    alert(`Solo se encontraron ${matched} de ${platInputs.length} plataformas en el catálogo. Ajusta el Valor pagado manualmente si lo necesitas.`);
+
+                if (comboHit) {
+                    totalInput.value = comboHit.price * mVal;
+                    if (hintEl) hintEl.innerHTML = `<span style="color:#38bdf8;">✨ Combo detectado: <b>${comboHit.entry.name}</b> ($${comboHit.price.toLocaleString()} × ${mVal}m) · Individuales sumarían $${(indivSum * mVal).toLocaleString()}</span>`;
+                } else if (matched === platInputs.length && indivSum > 0) {
+                    totalInput.value = indivSum * mVal;
+                    if (hintEl) hintEl.innerHTML = `<span style="color:#6ee7b7;">✔ Suma individual (${matched}/${platInputs.length} plataformas × ${mVal}m)</span>`;
+                } else {
+                    if (hintEl) hintEl.innerHTML = `<span style="color:#fbbf24;">⚠️ Solo ${matched} de ${platInputs.length} plataformas encontradas en catálogo.</span>`;
+                    if (showNotice) {
+                        alert(`Solo se encontraron ${matched} de ${platInputs.length} plataformas en el catálogo. Ajusta el Valor Total manualmente si lo necesitas.`);
+                    }
                 }
             };
             overlay.querySelector('#qep-recalc').onclick = () => recalcTotal(true);
+            modeSelect.addEventListener('change', () => recalcTotal(false));
             monthsInput.addEventListener('change', () => recalcTotal(false));
             overlay.querySelectorAll('.qep-plat').forEach(inp => {
                 inp.addEventListener('change', () => recalcTotal(false));
@@ -11961,6 +12027,7 @@
             btnSave.onclick = () => {
                 btnSave.disabled = true;
                 btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+                const isSellerMode = modeSelect.value === 'seller';
                 overlay.querySelectorAll('.qep-row').forEach(rowEl => {
                     const itemIdx = parseInt(rowEl.getAttribute('data-item-idx'), 10);
                     const spIdx = parseInt(rowEl.getAttribute('data-sp-idx'), 10);
@@ -11978,6 +12045,13 @@
                     const platNames = specs.map(s => (s && s.platform ? String(s.platform).trim() : '')).filter(Boolean);
                     if (platNames.length > 0 && !(it.category && String(it.category).startsWith('combos'))) {
                         it.name = platNames.join(', ');
+                        if (platNames.length === 1) {
+                            const hit = findProductEntry(platNames[0], isSellerMode);
+                            if (hit && hit.entry) {
+                                if (hit.entry.id) it.id = hit.entry.id;
+                                if (hit.price > 0) it.finalPrice = hit.price;
+                            }
+                        }
                     }
                 });
                 const cleanItems = JSON.parse(JSON.stringify(itemsArr));
@@ -11988,23 +12062,29 @@
                 sale.months = newMonths;
                 sale.total = newTotal;
                 const updates = {};
-                updates[`sellerSales/${decSeller}/${saleId}/items`] = cleanItems;
-                updates[`sellerSales/${decSeller}/${saleId}/months`] = newMonths;
-                updates[`sellerSales/${decSeller}/${saleId}/total`] = newTotal;
-                const cleanPhone = typeof sanitizePhone === 'function' ? sanitizePhone(sale.clientPhone || '') : String(sale.clientPhone || '').replace(/\D/g, '');
-                if (cleanPhone && window.allClientSalesMap && window.allClientSalesMap[cleanPhone] && window.allClientSalesMap[cleanPhone][saleId]) {
-                    window.allClientSalesMap[cleanPhone][saleId].items = cleanItems;
-                    window.allClientSalesMap[cleanPhone][saleId].months = newMonths;
-                    window.allClientSalesMap[cleanPhone][saleId].total = newTotal;
-                    updates[`clientSales/${cleanPhone}/${saleId}/items`] = cleanItems;
-                    updates[`clientSales/${cleanPhone}/${saleId}/months`] = newMonths;
-                    updates[`clientSales/${cleanPhone}/${saleId}/total`] = newTotal;
+                if (inSellerStore && effectiveSeller) {
+                    inSellerStore.items = cleanItems;
+                    inSellerStore.months = newMonths;
+                    inSellerStore.total = newTotal;
+                    updates[`sellerSales/${effectiveSeller}/${saleId}/items`] = cleanItems;
+                    updates[`sellerSales/${effectiveSeller}/${saleId}/months`] = newMonths;
+                    updates[`sellerSales/${effectiveSeller}/${saleId}/total`] = newTotal;
+                }
+                if (resolvedPhone && window.allClientSalesMap && window.allClientSalesMap[resolvedPhone] && window.allClientSalesMap[resolvedPhone][saleId]) {
+                    window.allClientSalesMap[resolvedPhone][saleId].items = cleanItems;
+                    window.allClientSalesMap[resolvedPhone][saleId].months = newMonths;
+                    window.allClientSalesMap[resolvedPhone][saleId].total = newTotal;
+                    updates[`clientSales/${resolvedPhone}/${saleId}/items`] = cleanItems;
+                    updates[`clientSales/${resolvedPhone}/${saleId}/months`] = newMonths;
+                    updates[`clientSales/${resolvedPhone}/${saleId}/total`] = newTotal;
                 }
                 db.ref('/').update(updates).then(() => {
                     overlay.remove();
-                    fetchSellerSalesStats();
+                    if (typeof renderAllClientsList === 'function') renderAllClientsList();
+                    if (typeof fetchSellerSalesStats === 'function') fetchSellerSalesStats();
+                    if (typeof renderGlobalHistory === 'function') renderGlobalHistory();
                     if (typeof buildMasterDatabaseRecords === 'function') buildMasterDatabaseRecords();
-                    alert('✅ Plataformas actualizadas correctamente.');
+                    alert('✅ Plataformas y precio actualizados correctamente.');
                 }).catch(err => {
                     btnSave.disabled = false;
                     btnSave.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Cambios';
@@ -14937,6 +15017,11 @@
                         <i class="fa-solid fa-right-left"></i> Cambio Cuenta
                     </button>
 
+                    <button onclick="quickEditSalePlatforms('${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', '${sale.id}', '${isSellerSale ? 'seller' : 'client'}', '${clientObj.phone || ''}')" 
+                        style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #38bdf8; background: rgba(56, 189, 248, 0.12); color:#38bdf8; font-size:0.8rem;" title="Editar Plataformas y Recalcular Precio">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+
                     <button onclick="deleteClientSale('${clientObj.phone}', '${sale.id}')" 
                         style="padding:0.6rem 0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #ff4d4d; background: transparent; color:#ff4d4d; font-size:0.8rem;">
                         <i class="fa-solid fa-trash"></i>
@@ -15140,6 +15225,8 @@
                                 style="flex:1; padding:0.6rem; border-radius:8px; cursor:pointer; font-weight:bold; border:1px solid #f39c12; background: rgba(243, 156, 18, 0.1); color:#f39c12; font-size:0.8rem;">
                                 <i class="fa-brands fa-whatsapp"></i> Renovada
                             </button>
+                            <button onclick="quickEditSalePlatforms('${encodeURIComponent(sale.sellerName || 'Página Web Oficial')}', '${sale.id}', '${isSellerSale ? 'seller' : 'client'}', '${clientObj.phone || ''}')" 
+                                    style="padding:0.6rem; border-radius:8px; cursor:pointer; border:1px solid #38bdf8; background:rgba(56,189,248,0.12); color:#38bdf8;" title="Editar Plataformas y Recalcular Precio"><i class="fa-solid fa-pen"></i></button>
                             ${isSellerSale ? `
                             <button onclick="deleteSellerSale('${encodeURIComponent(sale.sellerName)}', '${sale.id}')" 
                                     style="padding:0.6rem; border-radius:8px; cursor:pointer; border:1px solid #555; background:transparent; color:#ff4d4d;" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
@@ -21622,6 +21709,9 @@
                             if (idx !== -1) {
                                 usedIndices.add(idx);
                                 const it = itemsArr[idx];
+                                if (rec.platform && !(it.category && String(it.category).startsWith('combos'))) {
+                                    it.name = rec.platform;
+                                }
                                 it.specificEmails = [{
                                     platform: rec.platform || it.name,
                                     email: rec.email || '',

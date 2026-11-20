@@ -1181,22 +1181,21 @@ async function syncExcelToFirebase(customBuffer = null) {
                     if (targetSlotIdx !== -1) {
                         const slotKey = `${itIdx}_${targetSlotIdx}`;
                         const sp = it.specificEmails[targetSlotIdx];
-                        const spPlat = sp.platform || guesses[targetSlotIdx] || it.name;
-                        if (rec.sheetMeta.key === 'NO' && (rec.platform === 'Netflix Privada' || /privad/i.test(spPlat) || /nopv|npv/i.test(rec.pantallasCode))) {
+                        if (rec.sheetMeta.key === 'NO' && (rec.platform === 'Netflix Privada' || /nopv|npv/i.test(rec.pantallasCode))) {
                             sp.platform = 'Netflix Privada';
                             if (screenCount === 1) {
                                 it.name = 'Netflix Privada';
                                 it.id = pInfo.id;
                                 it.finalPrice = pInfo.price;
                             }
-                        } else if (rec.sheetMeta.key === 'DO' && (rec.platform === 'Disney Privada' || /privad/i.test(spPlat) || /dopv|dpv/i.test(rec.pantallasCode))) {
+                        } else if (rec.sheetMeta.key === 'DO' && (rec.platform === 'Disney Privada' || /dopv|dpv/i.test(rec.pantallasCode))) {
                             sp.platform = 'Disney Privada';
                             if (screenCount === 1) {
                                 it.name = 'Disney Privada';
                                 it.id = pInfo.id;
                                 it.finalPrice = pInfo.price;
                             }
-                        } else if (rec.sheetMeta.key === 'MO' && (rec.platform === 'HBO Max Privada' || /privad/i.test(spPlat) || /mopv|mpv/i.test(rec.pantallasCode) || /privad/i.test(rec.clientName))) {
+                        } else if (rec.sheetMeta.key === 'MO' && (rec.platform === 'HBO Max Privada' || /mopv|mpv/i.test(rec.pantallasCode) || /privad/i.test(rec.clientName))) {
                             sp.platform = 'HBO Max Privada';
                             if (screenCount === 1) {
                                 it.name = 'HBO Max Privada';
@@ -1204,13 +1203,16 @@ async function syncExcelToFirebase(customBuffer = null) {
                                 it.finalPrice = pInfo.price;
                             }
                         } else {
-                            sp.platform = cleanPlatformName(rec.platform);
+                            const cleanRecPlat = cleanPlatformName(rec.platform);
+                            sp.platform = cleanRecPlat;
                             if (screenCount === 1) {
-                                it.name = cleanPlatformName(rec.platform);
+                                it.name = cleanRecPlat;
                                 if (pInfo.id) it.id = pInfo.id;
                                 if (pInfo.price > 0) {
                                     it.finalPrice = pInfo.price;
                                 }
+                            } else if (!(it.category && String(it.category).startsWith('combos'))) {
+                                it.name = cleanRecPlat;
                             }
                         }
                         sp.email = rec.email || sp.email || '';
