@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 24 Nov",
+    "title": "Nate Bargatze",
+    "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/24/nate bargatze.mp4",
+    "day": 24,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 24 Nov",
+    "title": "Rob Lowe",
+    "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/24/rob lowe.mp4",
+    "day": 24,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 24 Nov",
+    "title": "Un Ultimo Pedido",
+    "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/24/un ultimo pedido.mp4",
+    "day": 24,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 23 Nov",
     "title": "Fargo",
     "desc": "Estreno exclusivo del 23 de Noviembre • Streaming DPC",
