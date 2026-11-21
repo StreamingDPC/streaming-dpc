@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 25 Nov",
+    "title": "Blade Runner 2099",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/Blade Runner 2099.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
+    "title": "Rj Decker T2",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/rj decker t2.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
+    "title": "The Mosquito Bowl",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/the mosquito bowl.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 24 Nov",
     "title": "Nate Bargatze",
     "desc": "Estreno exclusivo del 24 de Noviembre • Streaming DPC",
