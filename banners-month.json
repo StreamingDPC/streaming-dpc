@@ -371,17 +371,6 @@
     "monthAbbr": "Nov"
   },
   {
-    "badge": "Estreno 14 Nov",
-    "title": "Sinterklass",
-    "desc": "Estreno exclusivo del 14 de Noviembre • Streaming DPC",
-    "img": "",
-    "btnText": "Ver Video",
-    "btnLink": "videos/14/sinterklass.mp4",
-    "day": 14,
-    "month": "Noviembre",
-    "monthAbbr": "Nov"
-  },
-  {
     "badge": "Estreno 2 Nov",
     "title": "Publi Streaming",
     "desc": "Estreno exclusivo del 2 de Noviembre • Streaming DPC",
