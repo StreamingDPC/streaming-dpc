@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 26 Nov",
+    "title": "El Secuestro De Toods",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/el secuestro de toods.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
+    "title": "El Show De Jlo",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/el show de jlo.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
+    "title": "Foolnigh",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/foolnigh.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 25 Nov",
     "title": "Blade Runner 2099",
     "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
