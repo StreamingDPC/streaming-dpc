@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 27 Nov",
+    "title": "El Niño",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/el niño.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
+    "title": "Quasimodo",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/quasimodo.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
+    "title": "Tyson Fury",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/tyson fury.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 26 Nov",
     "title": "El Secuestro De Toods",
     "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
