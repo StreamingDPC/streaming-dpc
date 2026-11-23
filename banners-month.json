@@ -97,6 +97,17 @@
   },
   {
     "badge": "Estreno 25 Nov",
+    "title": "Ganeday",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/ganeday.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
     "title": "Rj Decker T2",
     "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
     "img": "",
