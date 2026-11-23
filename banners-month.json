@@ -20,6 +20,17 @@
   },
   {
     "badge": "Estreno 27 Nov",
+    "title": "Los Siete Perros",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/los siete perros.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
     "title": "Quasimodo",
     "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
     "img": "",
