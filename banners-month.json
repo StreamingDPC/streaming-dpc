@@ -64,6 +64,17 @@
   },
   {
     "badge": "Estreno 26 Nov",
+    "title": "De Guardia",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/de guardia.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
     "title": "El Secuestro De Toods",
     "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
     "img": "",
