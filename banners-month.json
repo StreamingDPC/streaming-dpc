@@ -130,6 +130,17 @@
   },
   {
     "badge": "Estreno 25 Nov",
+    "title": "Aislados Con La Suegra",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/aislados con la suegra.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
     "title": "Amor Eterno",
     "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
     "img": "",
@@ -146,6 +157,17 @@
     "img": "",
     "btnText": "Ver Video",
     "btnLink": "videos/25/Blade Runner 2099.mp4",
+    "day": 25,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 25 Nov",
+    "title": "El Desafio Del Laberinto",
+    "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/25/el desafio del laberinto.mp4",
     "day": 25,
     "month": "Noviembre",
     "monthAbbr": "Nov"
