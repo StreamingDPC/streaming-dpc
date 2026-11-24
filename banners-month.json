@@ -141,6 +141,17 @@
   },
   {
     "badge": "Estreno 26 Nov",
+    "title": "Pesadilla En La Cocina",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/pesadilla en la cocina.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 26 Nov",
     "title": "The Hunting Wives",
     "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
     "img": "",
