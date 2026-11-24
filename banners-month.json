@@ -8,12 +8,56 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 28 Nov",
+    "title": "Los 12 Desafios Navideños De Salish",
+    "desc": "Estreno exclusivo del 28 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/28/los 12 desafios navideños de salish.mp4",
+    "day": 28,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 28 Nov",
+    "title": "Survivor",
+    "desc": "Estreno exclusivo del 28 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/28/survivor.mp4",
+    "day": 28,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 28 Nov",
+    "title": "Tarot",
+    "desc": "Estreno exclusivo del 28 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/28/tarot.mp4",
+    "day": 28,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 27 Nov",
     "title": "El Niño",
     "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
     "img": "",
     "btnText": "Ver Video",
     "btnLink": "videos/27/el niño.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
+    "title": "Fire Island",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/fire island.mp4",
     "day": 27,
     "month": "Noviembre",
     "monthAbbr": "Nov"
@@ -36,6 +80,17 @@
     "img": "",
     "btnText": "Ver Video",
     "btnLink": "videos/27/quasimodo.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
+    "title": "Spiderman Un Nuevo Dia",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/spiderman un nuevo dia.mp4",
     "day": 27,
     "month": "Noviembre",
     "monthAbbr": "Nov"
