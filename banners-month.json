@@ -118,6 +118,17 @@
     "monthAbbr": "Nov"
   },
   {
+    "badge": "Estreno 26 Nov",
+    "title": "The Hunting Wives",
+    "desc": "Estreno exclusivo del 26 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/26/the hunting wives.mp4",
+    "day": 26,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 25 Nov",
     "title": "Amor Eterno",
     "desc": "Estreno exclusivo del 25 de Noviembre • Streaming DPC",
