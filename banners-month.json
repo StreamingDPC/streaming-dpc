@@ -20,6 +20,17 @@
   },
   {
     "badge": "Estreno 27 Nov",
+    "title": "Expediente Linares",
+    "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/27/expediente linares.mp4",
+    "day": 27,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 27 Nov",
     "title": "Fire Island",
     "desc": "Estreno exclusivo del 27 de Noviembre • Streaming DPC",
     "img": "",
