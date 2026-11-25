@@ -8,6 +8,39 @@
     "title": "Premios Navideños"
   },
   {
+    "badge": "Estreno 30 Nov",
+    "title": "El Muchacho Del Robo Millonario",
+    "desc": "Estreno exclusivo del 30 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/30/el muchacho del robo millonario.mp4",
+    "day": 30,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 30 Nov",
+    "title": "Karters 1",
+    "desc": "Estreno exclusivo del 30 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/30/karters 1.mp4",
+    "day": 30,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
+    "badge": "Estreno 30 Nov",
+    "title": "Leyla T1",
+    "desc": "Estreno exclusivo del 30 de Noviembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/30/leyla t1.mp4",
+    "day": 30,
+    "month": "Noviembre",
+    "monthAbbr": "Nov"
+  },
+  {
     "badge": "Estreno 28 Nov",
     "title": "Los 12 Desafios Navideños De Salish",
     "desc": "Estreno exclusivo del 28 de Noviembre • Streaming DPC",
