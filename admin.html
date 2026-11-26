@@ -2085,18 +2085,32 @@
                             </label>
                         </div>
 
-                        <!-- Lapso de tiempo -->
+                        <!-- Lapso de tiempo variable (Anti-Bloqueo) -->
                         <div style="background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:12px; padding:12px;">
-                            <label style="font-weight:bold; font-size:0.85rem; color:#00d2d3; display:block; margin-bottom:6px;">
-                                <i class="fa-solid fa-hourglass-half"></i> Lapso entre Envíos (Segundos):
+                            <label for="mkt-delay-sequence" style="font-weight:bold; font-size:0.85rem; color:#00d2d3; display:block; margin-bottom:6px;">
+                                <i class="fa-solid fa-hourglass-half"></i> Tiempos Variables entre Envíos (seg):
                             </label>
-                            <div style="display:flex; gap:8px; align-items:center;">
-                                <input type="number" id="mkt-delay-seconds" value="15" min="5" max="120" style="flex:1; padding:8px 10px; border-radius:8px; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:white; font-size:1rem; font-weight:bold;">
-                                <span style="font-size:0.85rem; color:#aaa;">seg</span>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <input type="text" id="mkt-delay-sequence" value="30, 40, 50" placeholder="Ej: 30, 40, 50" oninput="syncMktDelayPreview()" style="flex:1; padding:8px 10px; border-radius:8px; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:white; font-size:0.95rem; font-weight:bold;">
+                                <input type="hidden" id="mkt-delay-seconds" value="30">
+                                <span style="font-size:0.82rem; color:#aaa;">seg</span>
                             </div>
-                            <label style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:#ccc; margin-top:8px; cursor:pointer;">
-                                <input type="checkbox" id="mkt-random-jitter" checked> Variación aleatoria humana (±3-5s)
+                            <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:6px;">
+                                <button type="button" onclick="setMktDelayPreset('30, 40, 50')" style="background:rgba(0,210,211,0.14); border:1px solid rgba(0,210,211,0.4); color:#00d2d3; border-radius:6px; padding:2px 7px; font-size:0.72rem; font-weight:bold; cursor:pointer;">30·40·50s</button>
+                                <button type="button" onclick="setMktDelayPreset('20, 35, 50')" style="background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#ccc; border-radius:6px; padding:2px 7px; font-size:0.72rem; cursor:pointer;">20·35·50s</button>
+                                <button type="button" onclick="setMktDelayPreset('40, 55, 70')" style="background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#ccc; border-radius:6px; padding:2px 7px; font-size:0.72rem; cursor:pointer;">40·55·70s</button>
+                            </div>
+                            <select id="mkt-delay-mode" onchange="syncMktDelayPreview()" style="width:100%; margin-top:7px; padding:6px 8px; border-radius:7px; background:rgba(0,0,0,0.65); border:1px solid var(--glass-border); color:#eee; font-size:0.78rem; cursor:pointer;">
+                                <option value="shuffle" selected>🔀 Intercalado aleatorio (nunca repite igual seguido)</option>
+                                <option value="sequence">🔁 Intercalado en orden (30s → 40s → 50s → ...)</option>
+                                <option value="range">🎲 Rango libre aleatorio (entre mínimo y máximo)</option>
+                            </select>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:0.76rem; color:#ccc; margin-top:7px; cursor:pointer;">
+                                <input type="checkbox" id="mkt-random-jitter" checked> Micro-variación humana extra (±2-4s)
                             </label>
+                            <div id="mkt-delay-preview" style="font-size:0.72rem; color:#4cd137; margin-top:5px;">
+                                ✅ Intercalando: 30s, 40s, 50s en cada envío
+                            </div>
                         </div>
 
                         <!-- Límite diario -->
@@ -19297,7 +19311,10 @@
             const promoText = document.getElementById('mkt-promo-text')?.value || '';
             const batchSize = parseInt(document.getElementById('mkt-batch-size')?.value) || 5;
             const pauseBatch = document.getElementById('mkt-pause-batch')?.checked ?? true;
-            const delaySeconds = parseInt(document.getElementById('mkt-delay-seconds')?.value) || 15;
+            const parsedDelays = parseMktDelayList();
+            const delaySequence = parsedDelays.join(', ');
+            const delayMode = document.getElementById('mkt-delay-mode')?.value || 'shuffle';
+            const delaySeconds = parsedDelays[0] || 30;
             const randomJitter = document.getElementById('mkt-random-jitter')?.checked ?? true;
             const dailyLimit = parseInt(document.getElementById('mkt-daily-limit')?.value) || 40;
             const rawPhotoUrlsText = document.getElementById('mkt-photo-urls-input')?.value || '';
@@ -19319,6 +19336,8 @@
             const settings = {
                 batchSize,
                 pauseBatch,
+                delaySequence,
+                delayMode,
                 delaySeconds,
                 randomJitter,
                 dailyLimit,
@@ -19391,12 +19410,19 @@
                     if (saved.pauseBatch !== undefined && document.getElementById('mkt-pause-batch')) {
                         document.getElementById('mkt-pause-batch').checked = saved.pauseBatch;
                     }
+                    if (saved.delaySequence && document.getElementById('mkt-delay-sequence')) {
+                        document.getElementById('mkt-delay-sequence').value = saved.delaySequence;
+                    }
+                    if (saved.delayMode && document.getElementById('mkt-delay-mode')) {
+                        document.getElementById('mkt-delay-mode').value = saved.delayMode;
+                    }
                     if (saved.delaySeconds && document.getElementById('mkt-delay-seconds')) {
                         document.getElementById('mkt-delay-seconds').value = saved.delaySeconds;
                     }
                     if (saved.randomJitter !== undefined && document.getElementById('mkt-random-jitter')) {
                         document.getElementById('mkt-random-jitter').checked = saved.randomJitter;
                     }
+                    syncMktDelayPreview();
                     if (saved.dailyLimit) {
                         if (document.getElementById('mkt-daily-limit')) document.getElementById('mkt-daily-limit').value = saved.dailyLimit;
                         if (document.getElementById('mkt-daily-limit-header')) document.getElementById('mkt-daily-limit-header').value = saved.dailyLimit;
@@ -19429,6 +19455,86 @@
                 console.warn('Error loading marketing settings:', err);
             }
         };
+
+        // Helpers de cadencia variable anti-bloqueo (ej. 30s, 40s, 50s intercalados)
+        function parseMktDelayList() {
+            const raw = (document.getElementById('mkt-delay-sequence')?.value || '').trim();
+            const nums = raw
+                .split(/[\s,;\/\-|]+/)
+                .map(s => parseInt(s, 10))
+                .filter(n => !isNaN(n) && n >= 5 && n <= 600);
+            return nums.length > 0 ? nums : [30, 40, 50];
+        }
+
+        window.setMktDelayPreset = function (presetStr) {
+            const el = document.getElementById('mkt-delay-sequence');
+            if (el) el.value = presetStr;
+            syncMktDelayPreview();
+        };
+
+        window.syncMktDelayPreview = function () {
+            const list = parseMktDelayList();
+            const mode = document.getElementById('mkt-delay-mode')?.value || 'shuffle';
+            const hiddenEl = document.getElementById('mkt-delay-seconds');
+            if (hiddenEl) hiddenEl.value = list[0];
+            const prevEl = document.getElementById('mkt-delay-preview');
+            if (!prevEl) return;
+            if (mode === 'range') {
+                const minV = Math.min(...list);
+                const maxV = Math.max(...list);
+                prevEl.textContent = `✅ Tiempo aleatorio libre entre ${minV}s y ${maxV}s en cada envío`;
+            } else if (mode === 'sequence') {
+                prevEl.textContent = `✅ Secuencia intercalada: ${list.map(n => n + 's').join(' → ')}`;
+            } else {
+                prevEl.textContent = `✅ Intercalado aleatorio sin repetir seguido: ${list.map(n => n + 's').join(', ')}`;
+            }
+        };
+
+        function computeNextMarketingDelay() {
+            const list = parseMktDelayList();
+            const mode = document.getElementById('mkt-delay-mode')?.value || 'shuffle';
+            const jitter = document.getElementById('mkt-random-jitter')?.checked ?? true;
+            let baseDelay = list[0];
+
+            if (mode === 'sequence') {
+                const idx = (_mktState.delayStepIndex || 0) % list.length;
+                baseDelay = list[idx];
+                _mktState.delayStepIndex = idx + 1;
+            } else if (mode === 'range') {
+                const minV = Math.min(...list);
+                const maxV = Math.max(...list);
+                if (maxV > minV) {
+                    let pick = minV + Math.floor(Math.random() * (maxV - minV + 1));
+                    if (pick === _mktState.lastDelayChosen) {
+                        pick = minV + ((pick - minV + 1) % (maxV - minV + 1));
+                    }
+                    baseDelay = pick;
+                } else {
+                    baseDelay = minV;
+                }
+            } else {
+                // 'shuffle': elegir aleatoriamente de la lista evitando repetir el mismo tiempo dos veces seguidas
+                const unique = Array.from(new Set(list));
+                const candidates = unique.length > 1
+                    ? unique.filter(v => v !== _mktState.lastDelayChosen)
+                    : unique;
+                baseDelay = candidates[Math.floor(Math.random() * candidates.length)];
+            }
+
+            _mktState.lastDelayChosen = baseDelay;
+            let finalDelay = baseDelay;
+            if (jitter) {
+                // Micro-variación humana entre -2 y +4 segundos
+                const offset = Math.floor(Math.random() * 7) - 2;
+                finalDelay = Math.max(5, baseDelay + offset);
+                // Evitar repetir exactamente el mismo segundo final que el envío anterior
+                if (finalDelay === _mktState.lastFinalDelay) {
+                    finalDelay += (finalDelay <= 10 ? 2 : -1);
+                }
+            }
+            _mktState.lastFinalDelay = finalDelay;
+            return { finalDelay, baseDelay, list, mode };
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // MOTOR DE EJECUCIÓN ANTI-BLOQUEO (CADENCIA, LOTES Y LÍMITES)
@@ -19483,6 +19589,9 @@
             _mktState.campaignQueue = targetList;
             _mktState.currentIndex = 0;
             _mktState.currentBatchCount = 0;
+            _mktState.delayStepIndex = 0;
+            _mktState.lastDelayChosen = null;
+            _mktState.lastFinalDelay = null;
             _mktState.isRunning = true;
             _mktState.isPaused = false;
             _mktState.isBatchPaused = false;
@@ -19658,18 +19767,14 @@
             updateMarketingProgressUI();
             renderMarketingAudienceList();
 
-            // Si quedan más mensajes, calcular tiempo de espera y arrancar cuenta regresiva
+            // Si quedan más mensajes, calcular tiempo variable anti-bloqueo y arrancar cuenta regresiva
             if (_mktState.currentIndex < _mktState.campaignQueue.length) {
-                let delay = parseInt(document.getElementById('mkt-delay-seconds')?.value) || 15;
-                const jitter = document.getElementById('mkt-random-jitter')?.checked ?? true;
-                if (jitter) {
-                    // Variación aleatoria entre -3 y +5 segundos
-                    const offset = Math.floor(Math.random() * 9) - 3;
-                    delay = Math.max(5, delay + offset);
-                }
+                const { finalDelay, baseDelay, list } = computeNextMarketingDelay();
+                const jitterNote = finalDelay !== baseDelay ? ` (base ${baseDelay}s + variación humana)` : '';
+                addMktLog(`⏱️ Próximo envío en ${finalDelay}s${jitterNote} · Cadencia variable [${list.join(' / ')}s]`);
 
-                startMktCountdown(delay);
-                _mktState.timerId = setTimeout(dispatchNextMarketingMessage, delay * 1000);
+                startMktCountdown(finalDelay);
+                _mktState.timerId = setTimeout(dispatchNextMarketingMessage, finalDelay * 1000);
             } else {
                 updateMarketingProgressUI();
                 _mktState.isRunning = false;
