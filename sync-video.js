@@ -70,113 +70,6 @@ async function run() {
     const localVideosDir = path.join(__dirname, 'videos');
     const bannersJsonPath = path.join(__dirname, 'banners-month.json');
 
-    // 1. Opcion para listar dias activos
-    if (args.includes('--list-days')) {
-        if (!fs.existsSync(bannersJsonPath)) {
-            console.log('   (No hay banners registrados aún)');
-            return;
-        }
-        try {
-            const currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
-            const days = Array.from(new Set(currentBanners.map(b => b.day).filter(Boolean)));
-            days.sort((a, b) => b - a);
-            console.log('   Días activos: ' + (days.length ? days.join(', ') : 'Ninguno'));
-        } catch (e) {
-            console.log('   Error leyendo banners-month.json');
-        }
-        return;
-    }
-
-    // 2. Opcion para eliminar dias especificos
-    const deleteIdx = args.findIndex(a => a === '--delete' || a === '-d');
-    if (deleteIdx !== -1 && args[deleteIdx + 1]) {
-        const daysToDelete = parseDaysList(args[deleteIdx + 1]);
-        if (daysToDelete.length === 0) {
-            console.log('❌ No se especificaron días válidos para eliminar.');
-            process.exit(1);
-        }
-
-        console.log(`\n🗑️ Solicitud de eliminación para los días: ${daysToDelete.join(', ')}...`);
-
-        let currentBanners = [];
-        if (fs.existsSync(bannersJsonPath)) {
-            try {
-                currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
-            } catch (e) {
-                currentBanners = [];
-            }
-        }
-
-        let deletedFiles = 0;
-        let totalMbFreed = 0;
-        const remainingBanners = [];
-
-        // 1. Eliminar carpetas completas del día si existen en videos/<d>/
-        daysToDelete.forEach(d => {
-            const dayDir = path.join(localVideosDir, String(d));
-            if (fs.existsSync(dayDir)) {
-                try {
-                    const files = fs.readdirSync(dayDir);
-                    files.forEach(f => {
-                        const fp = path.join(dayDir, f);
-                        try {
-                            const stat = fs.statSync(fp);
-                            const mb = stat.size / (1024 * 1024);
-                            totalMbFreed += mb;
-                            fs.unlinkSync(fp);
-                            console.log(`   🗑️ Video eliminado: ${d}/${f} (${mb.toFixed(2)} MB liberados)`);
-                            deletedFiles++;
-                        } catch (err) {
-                            console.warn(`   ⚠️ No se pudo eliminar ${d}/${f}: ${err.message}`);
-                        }
-                    });
-                    fs.rmdirSync(dayDir);
-                } catch (err) {
-                    console.warn(`   ⚠️ Error eliminando carpeta ${d}: ${err.message}`);
-                }
-            }
-        });
-
-        // 2. Eliminar cualquier archivo suelto legacy y actualizar banners restantes
-        currentBanners.forEach(b => {
-            if (b.day && daysToDelete.includes(Number(b.day))) {
-                if (b.btnLink && b.btnLink.startsWith('videos/')) {
-                    const filename = b.btnLink.replace(/^videos\//, '');
-                    const filePath = path.join(localVideosDir, filename);
-                    if (fs.existsSync(filePath)) {
-                        try {
-                            const stat = fs.statSync(filePath);
-                            const mb = stat.size / (1024 * 1024);
-                            totalMbFreed += mb;
-                            fs.unlinkSync(filePath);
-                            console.log(`   🗑️ Video legacy eliminado: ${filename} (${mb.toFixed(2)} MB liberados)`);
-                            deletedFiles++;
-                        } catch (err) {
-                            console.warn(`   ⚠️ No se pudo eliminar ${filename}: ${err.message}`);
-                        }
-                    }
-                }
-            } else {
-                remainingBanners.push(b);
-            }
-        });
-
-        fs.writeFileSync(bannersJsonPath, JSON.stringify(remainingBanners, null, 2), 'utf8');
-
-        console.log(`\n✅ Limpieza completada con éxito:`);
-        console.log(`   • Videos eliminados de videos/: ${deletedFiles}`);
-        console.log(`   • Espacio total liberado: ${totalMbFreed.toFixed(2)} MB`);
-        console.log(`   • Banners restantes en carrusel: ${remainingBanners.length}`);
-        console.log(`\n📋 Banners que quedaron activos:`);
-        remainingBanners.forEach((b, i) => {
-            console.log(`   ${i + 1}. [${b.badge}] ${b.title}`);
-        });
-        return;
-    }
-
-    const isAll = args.includes('--all') || args.includes('-a');
-    const isScanLocal = args.includes('--scan-local');
-
     const MONTH_NAMES = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -194,23 +87,162 @@ async function run() {
     let currentMonthName = defaultMonthName;
     const monthArgIdx = args.findIndex(a => a === '--month' || a === '-m');
     if (monthArgIdx !== -1 && args[monthArgIdx + 1]) {
-        currentMonthName = args[monthArgIdx + 1].trim();
-        currentMonthName = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1).toLowerCase();
+        const rawM = args[monthArgIdx + 1].trim();
+        currentMonthName = rawM.charAt(0).toUpperCase() + rawM.slice(1).toLowerCase();
     }
 
     const monthIndex = MONTH_NAMES.findIndex(m => m.toLowerCase() === currentMonthName.toLowerCase());
     const monthAbbr = monthIndex !== -1 ? MONTH_ABBRS[monthIndex] : currentMonthName.slice(0, 3);
     const todayDay = now.getDate();
+    const localMonthDir = path.join(localVideosDir, currentMonthName);
+
+    // 1. Opcion para listar dias activos
+    if (args.includes('--list-days')) {
+        console.log(`   📂 Carpeta activa: videos\\${currentMonthName}`);
+        if (!fs.existsSync(bannersJsonPath)) {
+            console.log('   (No hay banners registrados aún)');
+            return;
+        }
+        try {
+            const currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
+            const byMonth = {};
+            currentBanners.forEach(b => {
+                if (!b || !b.day) return;
+                const mKey = b.month || defaultMonthName;
+                if (!byMonth[mKey]) byMonth[mKey] = new Set();
+                byMonth[mKey].add(Number(b.day));
+            });
+            const monthsFound = Object.keys(byMonth);
+            if (monthsFound.length === 0) {
+                console.log('   Días activos: Ninguno');
+            } else {
+                monthsFound.forEach(mKey => {
+                    const ds = Array.from(byMonth[mKey]).sort((a, b) => b - a);
+                    console.log(`   • ${mKey} (videos\\${mKey}): días ${ds.join(', ')}`);
+                });
+            }
+        } catch (e) {
+            console.log('   Error leyendo banners-month.json');
+        }
+        return;
+    }
+
+    // 2. Opcion para eliminar dias especificos
+    const deleteIdx = args.findIndex(a => a === '--delete' || a === '-d');
+    if (deleteIdx !== -1 && args[deleteIdx + 1]) {
+        const daysToDelete = parseDaysList(args[deleteIdx + 1]);
+        if (daysToDelete.length === 0) {
+            console.log('❌ No se especificaron días válidos para eliminar.');
+            process.exit(1);
+        }
+
+        console.log(`\n📂 Carpeta activa: videos\\${currentMonthName}`);
+        console.log(`🗑️ Solicitud de eliminación para los días [${daysToDelete.join(', ')}] en ${currentMonthName}...`);
+
+        let currentBanners = [];
+        if (fs.existsSync(bannersJsonPath)) {
+            try {
+                currentBanners = JSON.parse(fs.readFileSync(bannersJsonPath, 'utf8') || '[]');
+            } catch (e) {
+                currentBanners = [];
+            }
+        }
+
+        let deletedFiles = 0;
+        let totalMbFreed = 0;
+        const remainingBanners = [];
+
+        // 1. Eliminar carpetas completas del día en videos/<Mes>/<d>/ (y también legacy videos/<d>/ si coincide)
+        daysToDelete.forEach(d => {
+            const dirsToCheck = [
+                { dir: path.join(localMonthDir, String(d)), label: `${currentMonthName}/${d}` },
+                { dir: path.join(localVideosDir, String(d)), label: `${d}` }
+            ];
+            dirsToCheck.forEach(({ dir, label }) => {
+                if (fs.existsSync(dir)) {
+                    try {
+                        const files = fs.readdirSync(dir);
+                        files.forEach(f => {
+                            const fp = path.join(dir, f);
+                            try {
+                                const stat = fs.statSync(fp);
+                                const mb = stat.size / (1024 * 1024);
+                                totalMbFreed += mb;
+                                fs.unlinkSync(fp);
+                                console.log(`   🗑️ Video eliminado: videos/${label}/${f} (${mb.toFixed(2)} MB liberados)`);
+                                deletedFiles++;
+                            } catch (err) {
+                                console.warn(`   ⚠️ No se pudo eliminar ${label}/${f}: ${err.message}`);
+                            }
+                        });
+                        fs.rmdirSync(dir);
+                    } catch (err) {
+                        console.warn(`   ⚠️ Error eliminando carpeta ${label}: ${err.message}`);
+                    }
+                }
+            });
+        });
+
+        // 2. Eliminar cualquier archivo suelto legacy y actualizar banners restantes
+        currentBanners.forEach(b => {
+            const sameMonth = !b.month || b.month.toLowerCase() === currentMonthName.toLowerCase();
+            if (b.day && sameMonth && daysToDelete.includes(Number(b.day))) {
+                if (b.btnLink && b.btnLink.startsWith('videos/')) {
+                    const rel = b.btnLink.replace(/^videos\//, '');
+                    const filePath = path.join(localVideosDir, rel);
+                    if (fs.existsSync(filePath)) {
+                        try {
+                            const stat = fs.statSync(filePath);
+                            const mb = stat.size / (1024 * 1024);
+                            totalMbFreed += mb;
+                            fs.unlinkSync(filePath);
+                            console.log(`   🗑️ Video eliminado: ${rel} (${mb.toFixed(2)} MB liberados)`);
+                            deletedFiles++;
+                        } catch (err) {
+                            console.warn(`   ⚠️ No se pudo eliminar ${rel}: ${err.message}`);
+                        }
+                    }
+                }
+            } else {
+                remainingBanners.push(b);
+            }
+        });
+
+        fs.writeFileSync(bannersJsonPath, JSON.stringify(remainingBanners, null, 2), 'utf8');
+
+        console.log(`\n✅ Limpieza completada con éxito en videos\\${currentMonthName}:`);
+        console.log(`   • Videos eliminados: ${deletedFiles}`);
+        console.log(`   • Espacio total liberado: ${totalMbFreed.toFixed(2)} MB`);
+        console.log(`   • Banners restantes en carrusel: ${remainingBanners.length}`);
+        console.log(`\n📋 Banners que quedaron activos:`);
+        remainingBanners.forEach((b, i) => {
+            console.log(`   ${i + 1}. [${b.badge}] ${b.title}`);
+        });
+        return;
+    }
+
+    const isAll = args.includes('--all') || args.includes('-a');
+    const isScanLocal = args.includes('--scan-local');
 
     const remoteBasePath = `D:\\Varios\\Netflix\\Netflix y Prime\\Enero 2024\\Proyectos\\Publicidad\\${currentYear}\\${currentMonthName}`;
-    const localMonthDir = path.join(localVideosDir, currentMonthName);
+
+    // Crear carpeta del mes en videos/<Mes>/ automáticamente
+    if (!fs.existsSync(localMonthDir)) {
+        fs.mkdirSync(localMonthDir, { recursive: true });
+        console.log(`📁 Carpeta del mes creada: ${localMonthDir}`);
+    }
+
+    console.log(`\n================================================================`);
+    console.log(`  📂 ESTAS EN LA CARPETA DEL MES: ${currentMonthName.toUpperCase()} (${currentYear})`);
+    console.log(`  📁 Destino local:  ${localMonthDir}`);
+    console.log(`================================================================`);
 
     let sourceDir = remoteBasePath;
     if (isScanLocal || (!fs.existsSync(remoteBasePath) && fs.existsSync(localMonthDir))) {
         sourceDir = localMonthDir;
-        console.log(`📁 Usando carpeta local: ${sourceDir}`);
+        console.log(`📁 Origen (local): ${sourceDir}`);
     } else {
-        console.log(`📁 Usando carpeta de origen: ${sourceDir}`);
+        console.log(`📁 Origen (D:\\):   ${sourceDir}`);
     }
 
     if (!fs.existsSync(sourceDir)) {
@@ -292,8 +324,8 @@ async function run() {
         const files = fs.readdirSync(dPath).filter(f => /\.(mp4|webm|mov)$/i.test(f));
         if (files.length === 0) return;
 
-        // Crear carpeta individual por día en videos/<d>/
-        const localDayDir = path.join(localVideosDir, String(d));
+        // Crear carpeta individual por mes y día en videos/<Mes>/<d>/
+        const localDayDir = path.join(localMonthDir, String(d));
         if (!fs.existsSync(localDayDir)) {
             fs.mkdirSync(localDayDir, { recursive: true });
         }
@@ -307,15 +339,15 @@ async function run() {
             const destFile = path.join(localDayDir, mainFile);
             const legacyLooseFile = path.join(localVideosDir, mainFile);
 
-            // Si la fuente es externa, copiar a videos/<d>/
-            if (sourceDir !== localVideosDir) {
+            // Si la fuente es externa, copiar a videos/<Mes>/<d>/
+            if (path.resolve(sourceDir) !== path.resolve(localMonthDir)) {
                 if (!fs.existsSync(destFile)) {
                     const stat = fs.statSync(srcFile);
                     const sizeMb = (stat.size / (1024 * 1024)).toFixed(2);
-                    console.log(`   📦 Copiando [Día ${d}] ${mainFile} (${sizeMb} MB)...`);
+                    console.log(`   📦 Copiando [${currentMonthName} · Día ${d}] ${mainFile} (${sizeMb} MB) -> videos/${currentMonthName}/${d}/`);
                     fs.copyFileSync(srcFile, destFile);
                 } else {
-                    console.log(`   ⚡ [Día ${d}] Ya existe en videos/${d}/: ${mainFile}`);
+                    console.log(`   ⚡ [${currentMonthName} · Día ${d}] Ya existe en videos/${currentMonthName}/${d}/: ${mainFile}`);
                 }
 
                 // Limpiar archivo suelto legacy si existía en la raíz de videos/
@@ -332,7 +364,7 @@ async function run() {
                 desc: `Estreno exclusivo del ${d} de ${currentMonthName} • Streaming DPC`,
                 img: '',
                 btnText: 'Ver Video',
-                btnLink: `videos/${d}/${mainFile}`,
+                btnLink: `videos/${currentMonthName}/${d}/${mainFile}`,
                 day: d,
                 month: currentMonthName,
                 monthAbbr: monthAbbr
@@ -342,14 +374,22 @@ async function run() {
 
     let finalBanners = [];
     if (!isAll && baseBanners.length > 0) {
-        // Filtrar los días procesados para reemplazarlos con la versión actualizada
+        // Filtrar solo los días procesados de ESTE mes para reemplazarlos sin borrar otros meses
         const daysSet = new Set(daysToProcess);
-        const keptBanners = baseBanners.filter(b => !daysSet.has(Number(b.day)));
+        const keptBanners = baseBanners.filter(b => {
+            const bMonth = (b.month || '').toLowerCase();
+            const isSameMonth = !bMonth || bMonth === currentMonthName.toLowerCase();
+            return !(isSameMonth && daysSet.has(Number(b.day)));
+        });
         // Preservar especiales
         const specials = keptBanners.filter(b => !b.day || (b.badge && b.badge.toLowerCase().includes('ruleta')));
         const dayBanners = keptBanners.filter(b => b.day && (!b.badge || !b.badge.toLowerCase().includes('ruleta')));
         dayBanners.push(...processedNewBanners);
-        dayBanners.sort((a, b) => (Number(b.day) || 0) - (Number(a.day) || 0));
+        const mOrder = (m) => {
+            const idx = MONTH_NAMES.findIndex(n => n.toLowerCase() === String(m || '').toLowerCase());
+            return idx >= 0 ? idx : -1;
+        };
+        dayBanners.sort((a, b) => (mOrder(b.month) - mOrder(a.month)) || ((Number(b.day) || 0) - (Number(a.day) || 0)));
         finalBanners = [...specials, ...dayBanners];
     } else {
         finalBanners = [...newBanners, ...processedNewBanners];

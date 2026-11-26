@@ -18,20 +18,29 @@ echo.
 echo ----------------------------------------------------------------
 echo  Presiona ENTER para usar el mes actual del calendario,
 set /p MES=" o escribe otro mes si deseas cambiarlo (ej: Diciembre): "
+if "%MES%"=="" (
+    for /f "delims=" %%m in ('node -e "const m=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];console.log(m[new Date().getMonth()])"') do set MES_ACTIVO=%%m
+) else (
+    for /f "delims=" %%m in ('node -e "const s=process.argv[1].trim();console.log(s.charAt(0).toUpperCase()+s.slice(1).toLowerCase())" "%MES%"') do set MES_ACTIVO=%%m
+)
+title Sincronizador de Estrenos - Carpeta: %MES_ACTIVO%
 echo.
-set /p DIA=" Ingresa el numero del dia (o ENTER para todo el mes): "
+echo ================================================================
+echo   ESTAS EN LA CARPETA: videos\%MES_ACTIVO%\
+echo ================================================================
+echo.
+set /p DIA=" Ingresa el numero del dia en %MES_ACTIVO% (o ENTER para todo el mes): "
 echo ----------------------------------------------------------------
 
-set MES_FLAG=
-if not "%MES%"=="" set MES_FLAG=--month %MES%
+set MES_FLAG=--month %MES_ACTIVO%
 
 if "%DIA%"=="" (
     echo.
-    echo Sincronizando todo el mes...
+    echo Sincronizando todo el mes en la carpeta videos\%MES_ACTIVO%\...
     node sync-video.js %MES_FLAG% --all
 ) else (
     echo.
-    echo Sincronizando dia %DIA%...
+    echo Sincronizando dia %DIA% en la carpeta videos\%MES_ACTIVO%\%DIA%\...
     node sync-video.js %MES_FLAG% %DIA%
 )
 goto SUBIR
@@ -39,7 +48,19 @@ goto SUBIR
 :ELIMINAR
 echo.
 echo ----------------------------------------------------------------
-node sync-video.js --list-days
+echo  Presiona ENTER para limpiar en el mes actual del calendario,
+set /p MES_DEL=" o escribe el mes de la carpeta a limpiar (ej: Diciembre): "
+if "%MES_DEL%"=="" (
+    for /f "delims=" %%m in ('node -e "const m=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];console.log(m[new Date().getMonth()])"') do set MES_ACTIVO=%%m
+) else (
+    for /f "delims=" %%m in ('node -e "const s=process.argv[1].trim();console.log(s.charAt(0).toUpperCase()+s.slice(1).toLowerCase())" "%MES_DEL%"') do set MES_ACTIVO=%%m
+)
+title Limpiador de Estrenos - Carpeta: %MES_ACTIVO%
+echo.
+echo ================================================================
+echo   ESTAS EN LA CARPETA: videos\%MES_ACTIVO%\
+echo ================================================================
+node sync-video.js --month %MES_ACTIVO% --list-days
 echo ----------------------------------------------------------------
 echo.
 echo Puedes escribir:
@@ -47,14 +68,14 @@ echo   - Un solo dia: 1
 echo   - Varios dias separados por coma: 1, 2, 3
 echo   - Un rango de dias: 1-5
 echo.
-set /p DEL_DIAS="Ingresa el dia o dias a eliminar: "
+set /p DEL_DIAS="Ingresa el dia o dias a eliminar de %MES_ACTIVO%: "
 if "%DEL_DIAS%"=="" (
     echo No ingresaste ningun dia. Cancelando operacion.
     pause
     exit /b 0
 )
 echo.
-node sync-video.js --delete %DEL_DIAS%
+node sync-video.js --month %MES_ACTIVO% --delete %DEL_DIAS%
 goto SUBIR
 
 :PUBLICAR_ESTADOS
@@ -155,15 +176,15 @@ if errorlevel 1 (
 )
 
 echo.
-echo Subiendo cambios a GitHub y Render...
+echo Subiendo cambios a GitHub y Render (Carpeta: videos\%MES_ACTIVO%)...
 if not "%DIA%"=="" (
-    echo Sincronizando especificamente el dia %DIA% en git...
-    git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html videos/%DIA%
-    git commit -m "chore: actualizar estrenos dia %DIA%" || echo No habia cambios pendientes.
+    echo Sincronizando especificamente %MES_ACTIVO% dia %DIA% en git...
+    git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html "videos/%MES_ACTIVO%/%DIA%"
+    git commit -m "chore: actualizar estrenos %MES_ACTIVO% dia %DIA%" || echo No habia cambios pendientes.
 ) else (
     echo Sincronizando cambios en git...
     git add banners-month.json sync-video.js actualizar-estrenos.bat post-status-cli.js admin.html videos
-    git commit -m "chore: actualizar y limpiar videos/banners" || echo No habia cambios pendientes.
+    git commit -m "chore: actualizar y limpiar videos/banners (%MES_ACTIVO%)" || echo No habia cambios pendientes.
 )
 git push origin main
 
