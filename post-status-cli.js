@@ -7,6 +7,17 @@
 const http = require('http');
 
 const args = process.argv.slice(2);
+const MONTH_NAMES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+let targetMonth = MONTH_NAMES[new Date().getMonth()];
+const monthIdx = args.findIndex(a => a === '--month' || a === '-m');
+if (monthIdx !== -1 && args[monthIdx + 1]) {
+    const rawM = args[monthIdx + 1].trim();
+    targetMonth = rawM.charAt(0).toUpperCase() + rawM.slice(1).toLowerCase();
+}
+
 let count = 'all';
 let targetDay = null;
 let fromDay = null;
@@ -66,7 +77,10 @@ if (dayIdx !== -1 && fromDay === null) {
 
 // 4. Cantidad numérica pura si no es rango ni día
 if (targetDay === null && fromDay === null) {
-    const singleNum = args.find(a => !isNaN(Number(a)) && a.trim() !== '');
+    const singleNum = args.find((a, idx) => {
+        if (idx > 0 && (args[idx - 1] === '--month' || args[idx - 1] === '-m' || args[idx - 1] === '--day' || args[idx - 1] === '-d' || args[idx - 1] === '--range' || args[idx - 1] === '-r')) return false;
+        return !isNaN(Number(a)) && a.trim() !== '';
+    });
     if (singleNum && !args.includes('--all') && !args.includes('all')) {
         count = Number(singleNum);
     }
@@ -133,19 +147,20 @@ async function run() {
     }
 
     console.log('✅ Robot de WhatsApp conectado y listo.');
-    let descTarget = 'TODOS los videos disponibles';
+    console.log(`📂 Carpeta de mes activa: ${targetMonth} (videos\\${targetMonth})`);
+    let descTarget = `TODOS los videos disponibles de ${targetMonth}`;
     if (fromDay !== null && toDay !== null) {
-        descTarget = `los videos del día ${Math.min(fromDay, toDay)} al día ${Math.max(fromDay, toDay)}`;
+        descTarget = `los videos de ${targetMonth} del día ${Math.min(fromDay, toDay)} al día ${Math.max(fromDay, toDay)}`;
     } else if (targetDay !== null) {
-        descTarget = `los videos del día ${targetDay}`;
+        descTarget = `los videos del día ${targetDay} de ${targetMonth}`;
     } else if (count !== 'all') {
-        descTarget = `${count} video(s)`;
+        descTarget = `${count} video(s) de ${targetMonth}`;
     }
 
     console.log(`📤 Solicitando subida de ${descTarget} a tus Estados de WhatsApp...`);
 
     try {
-        const payload = { count, day: targetDay, fromDay, toDay };
+        const payload = { count, month: targetMonth, day: targetDay, fromDay, toDay };
         if (fromDay !== null && toDay !== null) {
             payload.range = `${Math.min(fromDay, toDay)}-${Math.max(fromDay, toDay)}`;
         }
