@@ -163,6 +163,17 @@
   },
   {
     "badge": "Estreno 1 Dic",
+    "title": "The Fault In Our Stars",
+    "desc": "Estreno exclusivo del 1 de Diciembre • Streaming DPC",
+    "img": "",
+    "btnText": "Ver Video",
+    "btnLink": "videos/Diciembre/1/the fault in our stars.mp4",
+    "day": 1,
+    "month": "Diciembre",
+    "monthAbbr": "Dic"
+  },
+  {
+    "badge": "Estreno 1 Dic",
     "title": "Trampa De Seduccion",
     "desc": "Estreno exclusivo del 1 de Diciembre • Streaming DPC",
     "img": "",
