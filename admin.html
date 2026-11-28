@@ -1968,6 +1968,13 @@
                             <button type="button" onclick="toggleMktNonClientsBulkBox()" style="padding:8px 14px; border-radius:8px; background:rgba(255,255,255,0.08); color:#ffb703; border:1px solid rgba(255, 183, 3, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
                                 <i class="fa-solid fa-paste"></i> Pegar Lista Masiva
                             </button>
+                            <button type="button" id="btn-mkt-nc-robot" onclick="importMktNonClientsFromRobot()" style="padding:8px 14px; border-radius:8px; background:linear-gradient(135deg, rgba(46,204,113,0.22), rgba(0,210,211,0.18)); color:#2ecc71; border:1px solid rgba(46, 204, 113, 0.5); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Descarga automáticamente todos tus contactos y chats desde tu Robot Local de WhatsApp (F:\CMR Whatsapp), excluyendo a quienes ya compraron">
+                                <i class="fa-solid fa-robot"></i> Importar desde Robot WhatsApp
+                            </button>
+                            <input type="file" id="mkt-nc-file-input" accept=".csv,.vcf,.txt" style="display:none;" onchange="handleMktNonClientsFileUpload(this)">
+                            <button type="button" onclick="document.getElementById('mkt-nc-file-input').click()" style="padding:8px 14px; border-radius:8px; background:rgba(52, 152, 219, 0.16); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Sube tu archivo exportado de Google Contacts (.csv o .vcf)">
+                                <i class="fa-solid fa-file-arrow-up"></i> Subir .CSV / .VCF (Google Contacts)
+                            </button>
                         </div>
                         <div id="mkt-nc-bulk-box" style="display:none; border-top:1px dashed rgba(255,183,3,0.3); padding-top:10px;">
                             <label for="mkt-nc-bulk-textarea" style="display:block; font-size:0.78rem; color:#ccc; margin-bottom:6px;">
@@ -19037,6 +19044,245 @@
             if (ta) ta.value = '';
             setMarketingSegment('nonclients', false);
             alert(`✅ Importación a "No Clientes" completada:\n\n• Nuevos agregados: ${added}\n• Omitidos porque YA son clientes con compras: ${skippedBuyers}\n• Duplicados omitidos: ${skippedDup}`);
+        };
+
+        function mergeContactsIntoMktNonClients(contactEntries) {
+            _mktState.allAudience = getMarketingAudience();
+            const buyerPhones = getAllBuyerPhonesSet();
+            if (!Array.isArray(_mktState.nonClients)) _mktState.nonClients = [];
+            const existingSet = new Set(_mktState.nonClients.map(c => normalizeMktPhone(c.phone)));
+
+            let added = 0;
+            let skippedBuyers = 0;
+            let skippedDup = 0;
+            let skippedExcluded = 0;
+
+            (contactEntries || []).forEach(entry => {
+                const phone = normalizeMktPhone(entry && entry.phone);
+                if (!phone || phone.length < 10 || phone.length > 15) return;
+                if (buyerPhones.has(phone)) { skippedBuyers++; return; }
+                if (isMktPhoneExcluded(phone)) { skippedExcluded++; return; }
+                if (existingSet.has(phone)) { skippedDup++; return; }
+
+                const name = String((entry && entry.name) || '').replace(/\s+/g, ' ').trim() || 'Contacto WhatsApp';
+                _mktState.nonClients.push({ phone, name, addedAt: Date.now() });
+                existingSet.add(phone);
+                added++;
+            });
+
+            if (added > 0) {
+                persistMktNonClients();
+            }
+            setMarketingSegment('nonclients', false);
+            return { added, skippedBuyers, skippedDup, skippedExcluded, totalInput: (contactEntries || []).length };
+        }
+
+        window.importMktNonClientsFromRobot = async function () {
+            const btn = document.getElementById('btn-mkt-nc-robot');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Leyendo WhatsApp...';
+            }
+            try {
+                let res = null;
+                let lastErr = null;
+                for (const url of ['http://localhost:3088/api/contacts', 'http://127.0.0.1:3088/api/contacts']) {
+                    try {
+                        res = await fetch(url, { mode: 'cors' });
+                        if (res) break;
+                    } catch (e) {
+                        lastErr = e;
+                    }
+                }
+                if (!res) {
+                    throw new Error('No se pudo conectar con tu Robot Local (puerto 3088). Asegúrate de tener abierto "Arrancar_Robot.bat" en F:\\CMR Whatsapp (y si ya estaba abierto, reinícialo una vez para activar esta función).');
+                }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || `Error HTTP ${res.status} del Robot Local.`);
+                }
+
+                const stats = mergeContactsIntoMktNonClients(data.contacts || []);
+                alert(
+                    `🤖 ¡Importación desde tu Robot WhatsApp completada!\n\n` +
+                    `• Contactos/chats leídos en WhatsApp: ${stats.totalInput}\n` +
+                    `• ✅ Nuevos agregados a "No Clientes": ${stats.added}\n` +
+                    `• 🛒 Omitidos (ya son compradores): ${stats.skippedBuyers}\n` +
+                    `• 🔁 Ya existían en No Clientes: ${stats.skippedDup}\n` +
+                    `• 🚫 Omitidos (están en Excluidos): ${stats.skippedExcluded}`
+                );
+            } catch (err) {
+                alert(`⚠️ ${err.message}`);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+            }
+        };
+
+        function decodeVCardQuotedPrintable(str) {
+            if (!str || !str.includes('=')) return str;
+            try {
+                const unfolded = str.replace(/=\r?\n/g, '');
+                const bytes = [];
+                for (let i = 0; i < unfolded.length; i++) {
+                    if (unfolded[i] === '=' && /^[0-9A-Fa-f]{2}$/.test(unfolded.slice(i + 1, i + 3))) {
+                        bytes.push(parseInt(unfolded.slice(i + 1, i + 3), 16));
+                        i += 2;
+                    } else {
+                        bytes.push(unfolded.charCodeAt(i));
+                    }
+                }
+                return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+            } catch (_) {
+                return str;
+            }
+        }
+
+        function parseVcfContacts(content) {
+            const unfolded = String(content || '').replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+            const cards = unfolded.split(/BEGIN:VCARD/i).slice(1);
+            const results = [];
+            cards.forEach(card => {
+                const lines = card.split(/\r?\n/);
+                let fn = '';
+                let nName = '';
+                const phones = [];
+                lines.forEach(line => {
+                    const colonIdx = line.indexOf(':');
+                    if (colonIdx === -1) return;
+                    const keyPart = line.slice(0, colonIdx).toUpperCase();
+                    let valPart = line.slice(colonIdx + 1).trim();
+                    if (!valPart) return;
+                    if (keyPart.includes('QUOTED-PRINTABLE')) {
+                        valPart = decodeVCardQuotedPrintable(valPart);
+                    }
+                    if (keyPart === 'FN' || keyPart.startsWith('FN;')) {
+                        fn = valPart;
+                    } else if ((keyPart === 'N' || keyPart.startsWith('N;')) && !nName) {
+                        const parts = valPart.split(';').map(s => s.trim()).filter(Boolean);
+                        if (parts.length > 0) nName = parts.reverse().join(' ');
+                    } else if (keyPart === 'TEL' || keyPart.startsWith('TEL;')) {
+                        phones.push(valPart);
+                    }
+                });
+                const bestName = (fn || nName || 'Contacto WhatsApp').trim();
+                phones.forEach(ph => results.push({ name: bestName, phone: ph }));
+            });
+            return results;
+        }
+
+        function parseCsvLine(line, sep) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+                    else inQuotes = !inQuotes;
+                } else if (ch === sep && !inQuotes) {
+                    out.push(cur.trim());
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            out.push(cur.trim());
+            return out;
+        }
+
+        function parseCsvContacts(content) {
+            const lines = String(content || '').replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+            if (lines.length === 0) return [];
+            const firstLine = lines[0];
+            const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+            const headers = parseCsvLine(firstLine, sep).map(h => h.toLowerCase());
+
+            const phoneCols = [];
+            headers.forEach((h, idx) => {
+                if (/phone|tel[eé]fono|celular|m[oó]vil|whatsapp|mobile|value/.test(h) && !/type|label/.test(h)) {
+                    phoneCols.push(idx);
+                }
+            });
+            const firstIdx = headers.findIndex(h => h === 'first name' || h === 'nombre' || h === 'given name');
+            const midIdx = headers.findIndex(h => h === 'middle name' || h === 'additional name');
+            const lastIdx = headers.findIndex(h => h === 'last name' || h === 'apellido' || h === 'family name');
+            const fullIdx = headers.findIndex(h => h === 'name' || h === 'nombre completo' || h === 'full name' || h === 'display name');
+
+            const hasHeaderRow = phoneCols.length > 0 || firstIdx !== -1 || fullIdx !== -1;
+            const startRow = hasHeaderRow ? 1 : 0;
+            const results = [];
+
+            for (let r = startRow; r < lines.length; r++) {
+                const cols = parseCsvLine(lines[r], sep);
+                let name = '';
+                if (fullIdx !== -1 && cols[fullIdx]) {
+                    name = cols[fullIdx];
+                } else if (firstIdx !== -1 || lastIdx !== -1) {
+                    name = [firstIdx !== -1 ? cols[firstIdx] : '', midIdx !== -1 ? cols[midIdx] : '', lastIdx !== -1 ? cols[lastIdx] : '']
+                        .filter(Boolean).join(' ').trim();
+                }
+
+                const rowPhones = [];
+                if (phoneCols.length > 0) {
+                    phoneCols.forEach(idx => {
+                        if (!cols[idx]) return;
+                        // Google Contacts a veces junta 2 números con " ::: "
+                        cols[idx].split(/:::/).forEach(part => {
+                            const digits = part.replace(/\D/g, '');
+                            if (digits.length >= 10) rowPhones.push(part);
+                        });
+                    });
+                } else {
+                    // Fallback genérico: buscar columnas con números de teléfono
+                    cols.forEach(val => {
+                        const m = String(val || '').match(/(?:\+?\d[\d\s\-()]{8,17}\d)/);
+                        if (m) rowPhones.push(m[0]);
+                        else if (!name && /[a-zA-ZáéíóúñÁÉÍÓÚÑ]{2,}/.test(val)) name = val;
+                    });
+                }
+
+                rowPhones.forEach(ph => results.push({ name: name || 'Contacto WhatsApp', phone: ph }));
+            }
+            return results;
+        }
+
+        window.handleMktNonClientsFileUpload = function (fileInput) {
+            const file = fileInput && fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const text = String(e.target.result || '');
+                    const lowerName = (file.name || '').toLowerCase();
+                    let parsed = [];
+                    if (lowerName.endsWith('.vcf') || /BEGIN:VCARD/i.test(text)) {
+                        parsed = parseVcfContacts(text);
+                    } else {
+                        parsed = parseCsvContacts(text);
+                    }
+                    if (parsed.length === 0) {
+                        return alert('⚠️ No se encontraron números de teléfono válidos en ese archivo. Asegúrate de exportarlo desde Google Contacts en formato CSV o vCard (.vcf).');
+                    }
+                    const stats = mergeContactsIntoMktNonClients(parsed);
+                    alert(
+                        `📂 ¡Archivo "${file.name}" importado a "No Clientes"!\n\n` +
+                        `• Números leídos del archivo: ${stats.totalInput}\n` +
+                        `• ✅ Nuevos agregados a "No Clientes": ${stats.added}\n` +
+                        `• 🛒 Omitidos (ya son compradores): ${stats.skippedBuyers}\n` +
+                        `• 🔁 Duplicados omitidos: ${stats.skippedDup}\n` +
+                        `• 🚫 Omitidos (Excluidos): ${stats.skippedExcluded}`
+                    );
+                } catch (err) {
+                    alert('❌ Error leyendo archivo: ' + err.message);
+                } finally {
+                    fileInput.value = '';
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
         };
 
         window.removeMktNonClient = function (phone, name) {
