@@ -1868,8 +1868,10 @@
                                 onchange="onMktDailyLimitChanged(this.value)"
                                 style="width:72px; text-align:center; padding:3px 6px; border-radius:6px; background:rgba(0,0,0,0.8); border:1px solid #00d2d3; color:#00d2d3; font-weight:bold; font-size:0.88rem; outline:none;"
                                 title="Escribe aquí directamente el número de envíos que deseas permitir hoy y presiona Enter">
+                            <button type="button" onclick="setQuickMktDailyLimit(20)" class="mkt-pill-limit-btn" data-limit="20">20</button>
                             <button type="button" onclick="setQuickMktDailyLimit(40)" class="mkt-pill-limit-btn" data-limit="40">40</button>
                             <button type="button" onclick="setQuickMktDailyLimit(80)" class="mkt-pill-limit-btn" data-limit="80">80</button>
+                            <button type="button" onclick="setQuickMktDailyLimit(100)" class="mkt-pill-limit-btn" data-limit="100">100</button>
                             <button type="button" onclick="setQuickMktDailyLimit(150)" class="mkt-pill-limit-btn" data-limit="150">150</button>
                             <button type="button" onclick="setQuickMktDailyLimit(300)" class="mkt-pill-limit-btn" data-limit="300">300</button>
                             <button type="button" onclick="setQuickMktDailyLimit(500)" class="mkt-pill-limit-btn" data-limit="500">500</button>
@@ -1939,6 +1941,13 @@
                             </div>
                             <p id="mkt-sub-nonclients" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Contactos de tu WhatsApp que nunca han comprado. No se mezclan; al comprarte pasan solos a compras.</p>
                         </div>
+                        <div class="mkt-seg-card" id="mkt-seg-sent" onclick="setMarketingSegment('sent')">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong id="mkt-lbl-sent" style="color:#38bdf8;"><i class="fa-solid fa-paper-plane"></i> Publicidad Enviada</strong>
+                                <span class="mkt-badge" id="mkt-count-sent" style="background:#38bdf8; color:#111;">0</span>
+                            </div>
+                            <p id="mkt-sub-sent" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Historial permanente anti-duplicados. No vuelven a aparecer para envío hasta que los resetees por bloques o tipo.</p>
+                        </div>
                         <div class="mkt-seg-card" id="mkt-seg-excluded" onclick="setMarketingSegment('excluded')">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <strong id="mkt-lbl-excluded" style="color:#e056fd;"><i class="fa-solid fa-ban"></i> Desactivados / Excluidos</strong>
@@ -1946,6 +1955,46 @@
                             </div>
                             <p id="mkt-sub-excluded" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Números que no quieren mensajes o no existen. Excluidos de envíos.</p>
                         </div>
+                    </div>
+
+                    <!-- Panel dedicado de "Publicidad Enviada" (reseteo por bloques de 20 en 20 o por tipo de cliente) -->
+                    <div id="mkt-sent-history-panel" style="display:none; background:rgba(56, 189, 248, 0.06); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:12px; margin-bottom:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                            <strong style="color:#38bdf8; font-size:0.92rem; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Historial de Publicidad Enviada &amp; Reseteo por Bloques
+                            </strong>
+                            <span style="font-size:0.76rem; color:#d0e7f5;">
+                                🛡️ <em>Quienes están aquí NO aparecerán en nuevos envíos al día siguiente hasta que resetees su bloque o contacto.</em>
+                            </span>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <label for="mkt-sent-type-filter" style="font-size:0.8rem; color:#ccc; margin:0; font-weight:bold;">Tipo:</label>
+                                <select id="mkt-sent-type-filter" onchange="renderMarketingAudienceList()" style="padding:7px 10px; border-radius:8px; background:rgba(0,0,0,0.75); border:1px solid rgba(56,189,248,0.45); color:white; font-size:0.82rem; font-weight:bold; cursor:pointer;">
+                                    <option value="all">📋 Todos los Tipos</option>
+                                    <option value="nonclients">💬 No Clientes (WhatsApp)</option>
+                                    <option value="active">✅ Clientes (Pantallas Activas)</option>
+                                    <option value="inactive">⏸️ No Compras / Inactivos</option>
+                                    <option value="sellers">💼 Vendedores</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <label for="mkt-sent-block-size" style="font-size:0.8rem; color:#ccc; margin:0; font-weight:bold;">Agrupar bloques de:</label>
+                                <select id="mkt-sent-block-size" onchange="renderMarketingAudienceList()" style="padding:7px 10px; border-radius:8px; background:rgba(0,0,0,0.75); border:1px solid rgba(56,189,248,0.45); color:#38bdf8; font-size:0.82rem; font-weight:bold; cursor:pointer;">
+                                    <option value="20" selected>20 en 20</option>
+                                    <option value="30">30 en 30</option>
+                                    <option value="50">50 en 50</option>
+                                    <option value="100">100 en 100</option>
+                                </select>
+                            </div>
+                            <button type="button" onclick="resetOldestMktSentHistory()" style="padding:7px 13px; border-radius:8px; background:linear-gradient(135deg, rgba(56,189,248,0.24), rgba(0,210,211,0.18)); color:#38bdf8; border:1px solid rgba(56,189,248,0.5); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Devuelve los primeros N más antiguos del filtro actual para volver a enviarles publicidad">
+                                <i class="fa-solid fa-rotate-left"></i> Resetear primeros <span id="mkt-sent-reset-oldest-qty">20</span> más antiguos
+                            </button>
+                            <button type="button" onclick="resetAllFilteredMktSentHistory()" style="padding:7px 13px; border-radius:8px; background:rgba(255, 107, 107, 0.14); color:#ff6b6b; border:1px solid rgba(255, 107, 107, 0.4); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Resetea todos los contactos que coincidan con el tipo/búsqueda actual">
+                                <i class="fa-solid fa-arrows-rotate"></i> Resetear TODOS del filtro
+                            </button>
+                        </div>
+                        <div id="mkt-sent-blocks-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(215px, 1fr)); gap:8px;"></div>
                     </div>
 
                     <!-- Panel dedicado para agregar contactos de WhatsApp a "No Clientes" (visible al seleccionar la pestaña No Clientes) -->
@@ -1974,6 +2023,12 @@
                             <input type="file" id="mkt-nc-file-input" accept=".csv,.vcf,.txt" style="display:none;" onchange="handleMktNonClientsFileUpload(this)">
                             <button type="button" onclick="document.getElementById('mkt-nc-file-input').click()" style="padding:8px 14px; border-radius:8px; background:rgba(52, 152, 219, 0.16); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Sube tu archivo exportado de Google Contacts (.csv o .vcf)">
                                 <i class="fa-solid fa-file-arrow-up"></i> Subir .CSV / .VCF (Google Contacts)
+                            </button>
+                            <button type="button" onclick="cleanDuplicateMktNonClients()" style="padding:8px 14px; border-radius:8px; background:rgba(243, 156, 18, 0.16); color:#f39c12; border:1px solid rgba(243, 156, 18, 0.48); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Detecta y elimina números repetidos, contactos con el mismo nombre duplicado (conservando el celular real +57) e IDs internos largos de WhatsApp">
+                                <i class="fa-solid fa-broom"></i> Eliminar Duplicados
+                            </button>
+                            <button type="button" onclick="clearAllMktNonClients()" style="padding:8px 14px; border-radius:8px; background:rgba(255, 77, 77, 0.15); color:#ff6b6b; border:1px solid rgba(255, 77, 77, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Vacía por completo la lista de No Clientes (no afecta a tus clientes compradores)">
+                                <i class="fa-solid fa-trash-can"></i> Eliminar Todos
                             </button>
                         </div>
                         <div id="mkt-nc-bulk-box" style="display:none; border-top:1px dashed rgba(255,183,3,0.3); padding-top:10px;">
@@ -18155,13 +18210,15 @@
         };
 
         window._mktState = {
-            currentSegment: 'active', // 'active' | 'inactive' | 'all' | 'excluded'
+            currentSegment: 'active', // 'active' | 'inactive' | 'all' | 'nonclients' | 'sent' | 'excluded'
             activeTemplateKey: 'clients', // 'clients' | 'sellers'
             templates: {
                 clients: null,
                 sellers: null
             },
             allAudience: [],
+            nonClients: [],
+            sentHistory: {}, // Mapa persistente por teléfono normalizado -> { phone, name, segmentType, sentAt, dateStr, timeStr }
             selectedPhones: new Set(),
             excludedPhones: new Set(),
             photos: [],
@@ -18449,7 +18506,7 @@
         }
 
         window.resetDailyMktCounter = function () {
-            if (confirm('¿Deseas reiniciar el contador de envíos y el registro de clientes enviados hoy a 0?\n\nEsto reactivará nuevamente las casillas de selección para hoy.')) {
+            if (confirm('¿Deseas reiniciar únicamente el contador de cupo diario de hoy a 0?\n\nNota: El historial permanente de "Publicidad Enviada" NO se borra aquí; para reenviar a contactos ya enviados usa los bloques en la pestaña "Publicidad Enviada".')) {
                 const key = getMktTodayDateKey();
                 localStorage.setItem(key, 0);
                 localStorage.removeItem(getMktTodaySentPhonesKey());
@@ -18878,11 +18935,254 @@
             try {
                 localStorage.setItem('streaming_dpc_mkt_non_clients', JSON.stringify(cleanList));
             } catch (e) {}
+            if (typeof storeConfig !== 'undefined' && storeConfig) {
+                if (!storeConfig.marketingSettings) storeConfig.marketingSettings = {};
+                storeConfig.marketingSettings.nonClients = cleanList;
+            }
             if (typeof db !== 'undefined' && db.ref) {
                 db.ref('storeConfig/marketingSettings/nonClients').set(cleanList).catch(err => {
                     console.warn('Error saving nonClients to Firebase:', err);
                 });
             }
+        }
+
+        // =========================================================================
+        // HISTORIAL PERMANENTE "PUBLICIDAD ENVIADA" (ANTI-DUPLICADOS MULTI-DÍA)
+        // Evita repetir envíos al día siguiente hasta que el usuario resetee bloques
+        // =========================================================================
+        function persistMktSentHistory() {
+            const map = (_mktState.sentHistory && typeof _mktState.sentHistory === 'object') ? _mktState.sentHistory : {};
+            try {
+                localStorage.setItem('streaming_dpc_mkt_sent_history', JSON.stringify(map));
+            } catch (e) {}
+            if (typeof storeConfig !== 'undefined' && storeConfig) {
+                if (!storeConfig.marketingSettings) storeConfig.marketingSettings = {};
+                storeConfig.marketingSettings.sentHistory = map;
+            }
+            if (typeof db !== 'undefined' && db.ref) {
+                db.ref('storeConfig/marketingSettings/sentHistory').set(map).catch(err => {
+                    console.warn('Error saving sentHistory to Firebase:', err);
+                });
+            }
+        }
+
+        function isPhoneInSentHistory(phone) {
+            const p = normalizeMktPhone(phone);
+            if (!p || !_mktState.sentHistory) return false;
+            return !!_mktState.sentHistory[p];
+        }
+
+        function resolveMktSentSegmentType(target) {
+            if (!target) return 'inactive';
+            if (target.isNonClient || target.status === 'nonclient') return 'nonclients';
+            if (target.isSellerSelf) return 'sellers';
+            if (target.status === 'active') return 'active';
+            return 'inactive';
+        }
+
+        function markPhoneInSentHistory(target) {
+            const p = normalizeMktPhone(target && target.phone);
+            if (!p) return;
+            if (!_mktState.sentHistory || typeof _mktState.sentHistory !== 'object') _mktState.sentHistory = {};
+            const now = new Date();
+            _mktState.sentHistory[p] = {
+                phone: p,
+                name: String((target && target.name) || 'Contacto').trim() || 'Contacto',
+                segmentType: resolveMktSentSegmentType(target),
+                sentAt: now.getTime(),
+                dateStr: getMktTodayDateString(),
+                timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            persistMktSentHistory();
+        }
+
+        function getMktSentTypeMeta(segmentType) {
+            if (segmentType === 'nonclients') {
+                return { label: 'No Cliente', icon: 'fa-brands fa-whatsapp', color: '#ffb703', bg: 'rgba(255,183,3,0.14)', border: 'rgba(255,183,3,0.35)' };
+            }
+            if (segmentType === 'active') {
+                return { label: 'Cliente Activo', icon: 'fa-solid fa-circle-check', color: '#4cd137', bg: 'rgba(76,209,55,0.14)', border: 'rgba(76,209,55,0.35)' };
+            }
+            if (segmentType === 'sellers') {
+                return { label: 'Vendedor', icon: 'fa-solid fa-user-tie', color: '#c48dfc', bg: 'rgba(196,141,252,0.15)', border: 'rgba(196,141,252,0.35)' };
+            }
+            return { label: 'No Compras / Inactivo', icon: 'fa-solid fa-circle-pause', color: '#ff6b6b', bg: 'rgba(255,107,107,0.14)', border: 'rgba(255,107,107,0.35)' };
+        }
+
+        function getFilteredSentHistoryList(searchTerm) {
+            const typeFilter = document.getElementById('mkt-sent-type-filter')?.value || 'all';
+            const q = (searchTerm || '').toLowerCase().trim();
+            const map = (_mktState.sentHistory && typeof _mktState.sentHistory === 'object') ? _mktState.sentHistory : {};
+            let entries = Object.keys(map).map(k => {
+                const rec = map[k] || {};
+                const phone = normalizeMktPhone(rec.phone || k);
+                return {
+                    phone,
+                    name: String(rec.name || 'Contacto').trim() || 'Contacto',
+                    segmentType: rec.segmentType || 'inactive',
+                    sentAt: Number(rec.sentAt) || 0,
+                    dateStr: rec.dateStr || '',
+                    timeStr: rec.timeStr || ''
+                };
+            }).filter(item => item.phone);
+
+            if (typeFilter !== 'all') {
+                entries = entries.filter(item => item.segmentType === typeFilter);
+            }
+            if (q) {
+                entries = entries.filter(item => item.name.toLowerCase().includes(q) || item.phone.includes(q) || item.dateStr.includes(q));
+            }
+
+            // Orden cronológico (más antiguos primero) para que Bloque 1 = 1–20, Bloque 2 = 21–40, etc.
+            entries.sort((a, b) => (a.sentAt - b.sentAt) || a.name.localeCompare(b.name));
+            return entries;
+        }
+
+        function renderMktSentBlocksUI(filteredEntries) {
+            const grid = document.getElementById('mkt-sent-blocks-grid');
+            const blockSize = parseInt(document.getElementById('mkt-sent-block-size')?.value, 10) || 20;
+            const qtySpan = document.getElementById('mkt-sent-reset-oldest-qty');
+            if (qtySpan) qtySpan.innerText = blockSize;
+            if (!grid) return;
+
+            if (!filteredEntries || filteredEntries.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; color:#8fb7cc; font-size:0.8rem; padding:6px 2px;">No hay contactos enviados en este filtro para agrupar en bloques.</div>';
+                return;
+            }
+
+            const totalBlocks = Math.ceil(filteredEntries.length / blockSize);
+            let html = '';
+            for (let b = 0; b < totalBlocks; b++) {
+                const start = b * blockSize;
+                const slice = filteredEntries.slice(start, start + blockSize);
+                const fromNum = start + 1;
+                const toNum = start + slice.length;
+                const firstDate = slice[0]?.dateStr || '';
+                const lastDate = slice[slice.length - 1]?.dateStr || '';
+                const dateRange = firstDate
+                    ? (firstDate === lastDate ? firstDate : `${firstDate} → ${lastDate}`)
+                    : 'Sin fecha';
+
+                html += `
+                    <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(56,189,248,0.28); border-radius:10px; padding:9px 10px; display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                            <strong style="color:#fff; font-size:0.84rem;">📦 Bloque ${b + 1} <span style="color:#38bdf8; font-weight:normal;">(#${fromNum}–${toNum})</span></strong>
+                            <span style="background:rgba(56,189,248,0.2); color:#38bdf8; border-radius:999px; padding:1px 8px; font-size:0.74rem; font-weight:bold;">${slice.length}</span>
+                        </div>
+                        <div style="font-size:0.73rem; color:#9fb8c7;">📅 ${dateRange}</div>
+                        <button type="button" onclick="resetMktSentBlock(${b})" style="width:100%; padding:6px 8px; border-radius:7px; background:linear-gradient(135deg, rgba(56,189,248,0.22), rgba(0,210,211,0.16)); border:1px solid rgba(56,189,248,0.5); color:#7dd3fc; font-weight:bold; font-size:0.78rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;">
+                            <i class="fa-solid fa-rotate-left"></i> Resetear Bloque ${b + 1} (${slice.length})
+                        </button>
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        function resetMktSentPhones(phonesList, confirmMsg) {
+            const cleanPhones = Array.from(new Set((phonesList || []).map(p => normalizeMktPhone(p)).filter(Boolean)));
+            if (cleanPhones.length === 0) {
+                alert('ℹ️ No hay contactos seleccionados en este bloque/filtro para resetear.');
+                return 0;
+            }
+            if (confirmMsg && !confirm(confirmMsg)) return 0;
+
+            if (!_mktState.sentHistory || typeof _mktState.sentHistory !== 'object') _mktState.sentHistory = {};
+            const todayKey = getMktTodaySentPhonesKey();
+            const todayMap = getMktTodaySentPhones();
+            let removed = 0;
+
+            cleanPhones.forEach(p => {
+                if (_mktState.sentHistory[p]) {
+                    delete _mktState.sentHistory[p];
+                    removed++;
+                }
+                if (todayMap[p]) {
+                    delete todayMap[p];
+                }
+            });
+
+            try {
+                localStorage.setItem(todayKey, JSON.stringify(todayMap));
+            } catch (e) {}
+
+            persistMktSentHistory();
+            setMarketingSegment(_mktState.currentSegment || 'sent', false);
+            if (typeof showDbToast === 'function') {
+                showDbToast(`🔄 ${removed} contacto(s) reseteados y disponibles nuevamente para envío.`);
+            }
+            return removed;
+        }
+
+        window.resetMktSentBlock = function (blockIdx) {
+            const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
+            const blockSize = parseInt(document.getElementById('mkt-sent-block-size')?.value, 10) || 20;
+            const list = getFilteredSentHistoryList(searchTerm);
+            const start = blockIdx * blockSize;
+            const slice = list.slice(start, start + blockSize);
+            if (slice.length === 0) return;
+
+            const typeLabel = document.getElementById('mkt-sent-type-filter')?.selectedOptions?.[0]?.text || 'Todos';
+            const msg = `¿Resetear el Bloque ${blockIdx + 1} (#${start + 1}–#${start + slice.length} · ${slice.length} contactos) de "${typeLabel}"?\n\nVolverán a aparecer disponibles para reenvío en su pestaña original (Clientes, No Compras o No Clientes).`;
+            resetMktSentPhones(slice.map(x => x.phone), msg);
+        };
+
+        window.resetOldestMktSentHistory = function () {
+            const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
+            const blockSize = parseInt(document.getElementById('mkt-sent-block-size')?.value, 10) || 20;
+            const list = getFilteredSentHistoryList(searchTerm);
+            const slice = list.slice(0, blockSize);
+            if (slice.length === 0) return alert('ℹ️ No hay contactos en el filtro actual para resetear.');
+
+            const typeLabel = document.getElementById('mkt-sent-type-filter')?.selectedOptions?.[0]?.text || 'Todos';
+            const msg = `¿Resetear los primeros ${slice.length} contactos más antiguos de "${typeLabel}"?\n\nSolo esos ${slice.length} volverán a aparecer disponibles para nuevo envío.`;
+            resetMktSentPhones(slice.map(x => x.phone), msg);
+        };
+
+        window.resetAllFilteredMktSentHistory = function () {
+            const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
+            const list = getFilteredSentHistoryList(searchTerm);
+            if (list.length === 0) return alert('ℹ️ No hay contactos en el filtro actual para resetear.');
+
+            const typeLabel = document.getElementById('mkt-sent-type-filter')?.selectedOptions?.[0]?.text || 'Todos';
+            const msg = `⚠️ ¿Resetear TODOS los ${list.length} contactos que aparecen en "${typeLabel}"?\n\nTodos ellos volverán a aparecer disponibles para recibir publicidad nuevamente.`;
+            resetMktSentPhones(list.map(x => x.phone), msg);
+        };
+
+        window.resetSingleMktSentPhone = function (phone, name) {
+            const p = normalizeMktPhone(phone);
+            const msg = `¿Resetear a "${name || p}" (+${p}) para permitir enviarle publicidad nuevamente?`;
+            resetMktSentPhones([p], msg);
+        };
+
+        function refreshMktSegmentCounters() {
+            const currentOriginAudience = getAudienceFilteredByOrigin();
+            const activeCount = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone)).length;
+            const inactiveCount = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone)).length;
+            const totalCount = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone)).length;
+            const nonClientsList = syncAndGetMktNonClients();
+            const nonClientsCount = nonClientsList.length;
+            const sentHistoryCount = _mktState.sentHistory ? Object.keys(_mktState.sentHistory).length : 0;
+
+            const excludedInOrigin = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone)).length;
+            const totalExcluded = _mktState.excludedPhones ? _mktState.excludedPhones.size : 0;
+            const excludedCount = Math.max(excludedInOrigin, totalExcluded);
+
+            const badgeActive = document.getElementById('mkt-count-active');
+            const badgeInactive = document.getElementById('mkt-count-inactive');
+            const badgeAll = document.getElementById('mkt-count-all');
+            const badgeNonClients = document.getElementById('mkt-count-nonclients');
+            const badgeSent = document.getElementById('mkt-count-sent');
+            const badgeExcluded = document.getElementById('mkt-count-excluded');
+
+            if (badgeActive) badgeActive.innerText = activeCount;
+            if (badgeInactive) badgeInactive.innerText = inactiveCount;
+            if (badgeAll) badgeAll.innerText = totalCount;
+            if (badgeNonClients) badgeNonClients.innerText = nonClientsCount;
+            if (badgeSent) badgeSent.innerText = sentHistoryCount;
+            if (badgeExcluded) badgeExcluded.innerText = excludedCount;
+
+            return { currentOriginAudience, nonClientsList };
         }
 
         function syncAndGetMktNonClients() {
@@ -18928,7 +19228,7 @@
             }
 
             return kept
-                .filter(c => !isMktPhoneExcluded(c.phone))
+                .filter(c => !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone))
                 .map(c => ({
                     phone: c.phone,
                     name: c.name,
@@ -19059,7 +19359,7 @@
 
             (contactEntries || []).forEach(entry => {
                 const phone = normalizeMktPhone(entry && entry.phone);
-                if (!phone || phone.length < 10 || phone.length > 15) return;
+                if (!phone || phone.length < 10 || phone.length > 13) return;
                 if (buyerPhones.has(phone)) { skippedBuyers++; return; }
                 if (isMktPhoneExcluded(phone)) { skippedExcluded++; return; }
                 if (existingSet.has(phone)) { skippedDup++; return; }
@@ -19294,6 +19594,131 @@
             setMarketingSegment('nonclients', true);
         };
 
+        function scoreMktNonClientPhoneQuality(phone, name) {
+            const p = normalizeMktPhone(phone);
+            let score = 0;
+            if (/^573\d{9}$/.test(p)) score += 100; // Celular Colombia válido (+57 3XX...)
+            else if (p.length >= 10 && p.length <= 12) score += 70; // Teléfono internacional estándar
+            else if (p.length === 13) score += 35;
+            else score += 5; // ID interno largo de WhatsApp (@lid de 14-15 dígitos)
+
+            const cleanName = String(name || '').trim();
+            if (cleanName && cleanName.toLowerCase() !== 'contacto whatsapp' && !/^\+?\d[\d\s\-()]+$/.test(cleanName)) {
+                score += 10;
+            }
+            return score;
+        }
+
+        window.cleanDuplicateMktNonClients = function () {
+            const list = Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [];
+            if (list.length === 0) {
+                return alert('ℹ️ Tu lista de "No Clientes" está vacía.');
+            }
+
+            // Paso 1: Deduplicar por número exacto o últimos 10 dígitos (ej. 3135191959 vs 573135191959)
+            const byPhoneKey = new Map();
+            let dupByPhone = 0;
+            list.forEach(item => {
+                if (!item) return;
+                const phone = normalizeMktPhone(item.phone);
+                if (!phone || phone.length < 10) { dupByPhone++; return; }
+                const name = String(item.name || 'Contacto WhatsApp').replace(/\s+/g, ' ').trim() || 'Contacto WhatsApp';
+                const key = (phone.length >= 10 && phone.length <= 12) ? phone.slice(-10) : phone;
+                const cand = { phone, name, addedAt: item.addedAt || Date.now() };
+
+                if (!byPhoneKey.has(key)) {
+                    byPhoneKey.set(key, cand);
+                } else {
+                    dupByPhone++;
+                    const prev = byPhoneKey.get(key);
+                    if (scoreMktNonClientPhoneQuality(cand.phone, cand.name) > scoreMktNonClientPhoneQuality(prev.phone, prev.name)) {
+                        byPhoneKey.set(key, cand);
+                    } else if (prev.name === 'Contacto WhatsApp' && cand.name !== 'Contacto WhatsApp') {
+                        prev.name = cand.name;
+                    }
+                }
+            });
+
+            // Paso 2: Deduplicar por nombre repetido (conservando el celular real ej. +57 y eliminando el LID/duplicado)
+            const afterPhone = Array.from(byPhoneKey.values());
+            const byNameKey = new Map();
+            const unnamedOrGeneric = [];
+            let dupByName = 0;
+
+            afterPhone.forEach(item => {
+                const nameKey = item.name.toLowerCase().replace(/\s+/g, ' ').trim();
+                const isGeneric = !nameKey || nameKey === 'contacto whatsapp' || /^\+?\d[\d\s\-()]+$/.test(nameKey);
+                if (isGeneric) {
+                    unnamedOrGeneric.push(item);
+                    return;
+                }
+                if (!byNameKey.has(nameKey)) {
+                    byNameKey.set(nameKey, item);
+                } else {
+                    dupByName++;
+                    const prev = byNameKey.get(nameKey);
+                    if (scoreMktNonClientPhoneQuality(item.phone, item.name) > scoreMktNonClientPhoneQuality(prev.phone, prev.name)) {
+                        byNameKey.set(nameKey, item);
+                    }
+                }
+            });
+
+            // Paso 3: Detectar IDs internos largos de WhatsApp (@lid de 14-15 dígitos que no son celulares reales)
+            const merged = Array.from(byNameKey.values()).concat(unnamedOrGeneric);
+            const cleaned = [];
+            let invalidLidCount = 0;
+            merged.forEach(item => {
+                if (item.phone.length >= 14) {
+                    invalidLidCount++;
+                } else {
+                    cleaned.push(item);
+                }
+            });
+
+            const totalToRemove = dupByPhone + dupByName + invalidLidCount;
+            if (totalToRemove === 0) {
+                return alert(`✅ ¡Tu lista de "No Clientes" (${list.length} contactos) ya está limpia! No se encontraron duplicados ni IDs inválidos.`);
+            }
+
+            const confirmMsg =
+                `🧹 Se encontraron ${totalToRemove} registro(s) para limpiar en "No Clientes":\n\n` +
+                `• Teléfonos repetidos: ${dupByPhone}\n` +
+                `• Contactos con nombre duplicado (se conserva el número real +57): ${dupByName}\n` +
+                `• IDs internos inválidos de WhatsApp (14–15 dígitos): ${invalidLidCount}\n\n` +
+                `Quedarán ${cleaned.length} contactos reales y únicos.\n\n¿Deseas eliminar los duplicados ahora?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            _mktState.nonClients = cleaned;
+            _mktState.selectedPhones.clear();
+            persistMktNonClients();
+            setMarketingSegment('nonclients', false);
+            if (typeof showDbToast === 'function') {
+                showDbToast(`🧹 ¡Limpieza lista! Se eliminaron ${totalToRemove} duplicado(s)/IDs inválidos. Quedan ${cleaned.length}.`);
+            }
+        };
+
+        window.clearAllMktNonClients = function () {
+            const list = Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [];
+            if (list.length === 0) {
+                return alert('ℹ️ Tu lista de "No Clientes" ya está vacía.');
+            }
+            const ok = confirm(
+                `⚠️ ¿Seguro que deseas ELIMINAR TODOS los ${list.length} contactos de "No Clientes"?\n\n` +
+                `• Esta acción vacía la lista de "No Clientes" en tu panel y en la nube.\n` +
+                `• Tus clientes compradores (Pantallas Activas / Sin Compras) NO se verán afectados.`
+            );
+            if (!ok) return;
+
+            _mktState.nonClients = [];
+            _mktState.selectedPhones.clear();
+            persistMktNonClients();
+            setMarketingSegment('nonclients', false);
+            if (typeof showDbToast === 'function') {
+                showDbToast(`🗑️ Se eliminaron todos los ${list.length} contactos de "No Clientes".`);
+            }
+        };
+
         window.initMarketingPanel = function () {
             _mktState.allAudience = getMarketingAudience();
 
@@ -19313,48 +19738,28 @@
             updateMarketingSegmentLabels(originFilter);
             updateMarketingTemplateUI(_mktState.activeTemplateKey || (originFilter === 'sellers_only' ? 'sellers' : 'clients'));
 
-            // Siempre recargar la audiencia fresca
+            // Siempre recargar la audiencia fresca y refrescar contadores descontando excluidos y ya enviados
             _mktState.allAudience = getMarketingAudience();
+            const { currentOriginAudience, nonClientsList } = refreshMktSegmentCounters();
 
-            const currentOriginAudience = getAudienceFilteredByOrigin();
-
-            // Actualizar contadores de las tarjetas de segmento según el origen seleccionado (descontando excluidos)
-            const activeCount = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone)).length;
-            const inactiveCount = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone)).length;
-            const totalCount = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone)).length;
-            const nonClientsList = syncAndGetMktNonClients();
-            const nonClientsCount = nonClientsList.length;
-
-            const excludedInOrigin = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone)).length;
-            const totalExcluded = _mktState.excludedPhones ? _mktState.excludedPhones.size : 0;
-            const excludedCount = Math.max(excludedInOrigin, totalExcluded);
-
-            const badgeActive = document.getElementById('mkt-count-active');
-            const badgeInactive = document.getElementById('mkt-count-inactive');
-            const badgeAll = document.getElementById('mkt-count-all');
-            const badgeNonClients = document.getElementById('mkt-count-nonclients');
-            const badgeExcluded = document.getElementById('mkt-count-excluded');
-
-            if (badgeActive) badgeActive.innerText = activeCount;
-            if (badgeInactive) badgeInactive.innerText = inactiveCount;
-            if (badgeAll) badgeAll.innerText = totalCount;
-            if (badgeNonClients) badgeNonClients.innerText = nonClientsCount;
-            if (badgeExcluded) badgeExcluded.innerText = excludedCount;
-
-            // Mostrar/ocultar panel de carga rápida de "No Clientes"
+            // Mostrar/ocultar paneles dedicados según pestaña
             const ncPanel = document.getElementById('mkt-nonclients-panel');
             if (ncPanel) ncPanel.style.display = (segment === 'nonclients') ? 'block' : 'none';
+            const sentPanel = document.getElementById('mkt-sent-history-panel');
+            if (sentPanel) sentPanel.style.display = (segment === 'sent') ? 'block' : 'none';
 
             // Actualizar clases de tarjetas
-            ['active', 'inactive', 'all', 'nonclients', 'excluded'].forEach(s => {
+            ['active', 'inactive', 'all', 'nonclients', 'sent', 'excluded'].forEach(s => {
                 const el = document.getElementById('mkt-seg-' + s);
                 if (el) el.classList.toggle('active', s === segment);
             });
 
-            // Filtrar clientes dentro del origen actual (No Clientes NUNCA se mezcla con Clientes)
+            // Filtrar clientes dentro del origen actual (No Clientes NUNCA se mezcla; Publicidad Enviada no aparece en pendientes)
             let filtered = [];
             if (segment === 'nonclients') {
                 filtered = nonClientsList;
+            } else if (segment === 'sent') {
+                filtered = [];
             } else if (segment === 'excluded') {
                 filtered = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone));
                 const knownPhones = new Set(currentOriginAudience.map(c => c.phone));
@@ -19375,20 +19780,20 @@
                     }
                 });
             } else if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else {
-                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             }
 
-            // Si no mantenemos selección previa, seleccionamos todos por defecto (excepto los ya enviados hoy y excluidos)
+            // Si no mantenemos selección previa, seleccionamos todos por defecto (excepto excluidos, historial enviado y ya enviados hoy)
             if (!keepSelection) {
                 _mktState.selectedPhones.clear();
-                if (segment !== 'excluded') {
+                if (segment !== 'excluded' && segment !== 'sent') {
                     const sentTodayMap = getMktTodaySentPhones();
                     filtered.forEach(c => {
-                        if (!sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone)) {
+                        if (!sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone)) {
                             _mktState.selectedPhones.add(c.phone);
                         }
                     });
@@ -19404,6 +19809,76 @@
 
             const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
             const segment = _mktState.currentSegment;
+
+            const totalFilteredEl = document.getElementById('mkt-total-filtered');
+            const selectedCountEl = document.getElementById('mkt-selected-count');
+            const btnCountEl = document.getElementById('mkt-btn-count');
+            const alreadySentBadge = document.getElementById('mkt-already-sent-today-badge');
+            const alreadySentCountEl = document.getElementById('mkt-already-sent-today-count');
+
+            // VISTA DEDICADA: PUBLICIDAD ENVIADA (bloques de 20 en 20 + filtro por tipo + reseteo)
+            if (segment === 'sent') {
+                const sentList = getFilteredSentHistoryList(searchTerm);
+                renderMktSentBlocksUI(sentList);
+
+                if (alreadySentBadge) alreadySentBadge.style.display = 'none';
+                if (totalFilteredEl) totalFilteredEl.innerText = sentList.length;
+                if (selectedCountEl) selectedCountEl.innerText = 0;
+                if (btnCountEl) btnCountEl.innerText = 0;
+
+                if (sentList.length === 0) {
+                    listDiv.innerHTML = '<p style="color:#777; font-size:0.85rem; text-align:center; padding:1.5rem;">Aún no hay contactos en el historial de Publicidad Enviada para este filtro. Cada envío que realices se guardará automáticamente aquí para no repetirse al día siguiente.</p>';
+                    return;
+                }
+
+                const blockSize = parseInt(document.getElementById('mkt-sent-block-size')?.value, 10) || 20;
+                listDiv.innerHTML = '';
+                const frag = document.createDocumentFragment();
+                sentList.forEach((rec, idx) => {
+                    const blockNum = Math.floor(idx / blockSize) + 1;
+                    const typeMeta = getMktSentTypeMeta(rec.segmentType);
+                    const safeName = (rec.name || 'Contacto').replace(/'/g, "\\'");
+
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.alignItems = 'center';
+                    item.style.justifyContent = 'space-between';
+                    item.style.padding = '8px 12px';
+                    item.style.borderRadius = '8px';
+                    item.style.gap = '10px';
+                    item.style.background = 'rgba(56, 189, 248, 0.05)';
+                    item.style.border = '1px solid rgba(56, 189, 248, 0.22)';
+
+                    const dateLabel = [rec.dateStr, rec.timeStr].filter(Boolean).join(' · ') || 'Enviado';
+
+                    item.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                            <span style="font-size:0.72rem; color:#7dd3fc; background:rgba(56,189,248,0.16); border:1px solid rgba(56,189,248,0.35); padding:2px 7px; border-radius:6px; font-weight:bold; white-space:nowrap;" title="Pertenece al Bloque ${blockNum} (posición #${idx + 1})">
+                                Bloque ${blockNum} · #${idx + 1}
+                            </span>
+                            <div style="min-width:0;">
+                                <strong style="color:#fff; font-size:0.88rem;">${rec.name}</strong>
+                                <span style="font-size:0.8rem; color:#8899a6; margin-left:8px;">📱 +${rec.phone}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <span style="font-size:0.74rem; color:${typeMeta.color}; background:${typeMeta.bg}; border:1px solid ${typeMeta.border}; padding:2px 8px; border-radius:10px; font-weight:bold;">
+                                <i class="${typeMeta.icon}"></i> ${typeMeta.label}
+                            </span>
+                            <span style="font-size:0.74rem; color:#9fb8c7; background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:10px;">
+                                <i class="fa-regular fa-calendar-check"></i> ${dateLabel}
+                            </span>
+                            <button type="button" class="btn-icon" onclick="resetSingleMktSentPhone('${rec.phone}', '${safeName}')" style="width:auto; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; background:rgba(56, 189, 248, 0.16); border:1px solid rgba(56, 189, 248, 0.45); color:#7dd3fc; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Resetear este contacto para permitir reenvío">
+                                <i class="fa-solid fa-rotate-left"></i> Resetear
+                            </button>
+                        </div>
+                    `;
+                    frag.appendChild(item);
+                });
+                listDiv.appendChild(frag);
+                return;
+            }
+
             const currentOriginAudience = getAudienceFilteredByOrigin();
 
             let filtered = [];
@@ -19429,11 +19904,11 @@
                     }
                 });
             } else if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else {
-                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             }
 
             if (searchTerm) {
@@ -19442,12 +19917,6 @@
 
             const sentTodayMap = getMktTodaySentPhones();
             const sentTodayCountInList = filtered.filter(c => sentTodayMap[c.phone]).length;
-
-            const totalFilteredEl = document.getElementById('mkt-total-filtered');
-            const selectedCountEl = document.getElementById('mkt-selected-count');
-            const btnCountEl = document.getElementById('mkt-btn-count');
-            const alreadySentBadge = document.getElementById('mkt-already-sent-today-badge');
-            const alreadySentCountEl = document.getElementById('mkt-already-sent-today-count');
 
             if (alreadySentBadge && alreadySentCountEl) {
                 if (sentTodayCountInList > 0) {
@@ -19458,9 +19927,9 @@
                 }
             }
 
-            // Asegurar que ningún cliente ya enviado hoy o excluido quede en selectedPhones
+            // Asegurar que ningún cliente ya enviado o excluido quede en selectedPhones
             filtered.forEach(c => {
-                if ((sentTodayMap[c.phone] || isMktPhoneExcluded(c.phone)) && _mktState.selectedPhones.has(c.phone)) {
+                if ((sentTodayMap[c.phone] || isPhoneInSentHistory(c.phone) || isMktPhoneExcluded(c.phone)) && _mktState.selectedPhones.has(c.phone)) {
                     _mktState.selectedPhones.delete(c.phone);
                 }
             });
@@ -19473,13 +19942,14 @@
                 const emptyMsg = (segment === 'excluded')
                     ? 'No hay números desactivados. Todos tus clientes están disponibles para recibir mensajes.'
                     : (segment === 'nonclients')
-                    ? 'Aún no tienes contactos en "No Clientes". Usa el formulario amarillo de arriba para agregar contactos de tu WhatsApp (individual o lista masiva).'
-                    : 'No se encontraron destinatarios para este segmento o filtro de origen.';
+                    ? 'No hay contactos pendientes en "No Clientes". Agrega nuevos arriba o resetea un bloque desde "Publicidad Enviada".'
+                    : 'No hay destinatarios pendientes en este segmento (los ya enviados están protegidos en "Publicidad Enviada").';
                 listDiv.innerHTML = `<p style="color:#777; font-size:0.85rem; text-align:center; padding:1.5rem;">${emptyMsg}</p>`;
                 return;
             }
 
             listDiv.innerHTML = '';
+            const frag = document.createDocumentFragment();
             filtered.forEach(c => {
                 const isExcluded = isMktPhoneExcluded(c.phone) || segment === 'excluded';
                 const isSentToday = !isExcluded && !!sentTodayMap[c.phone];
@@ -19592,12 +20062,13 @@
                         ${actionBtnHtml}
                     </div>
                 `;
-                listDiv.appendChild(item);
+                frag.appendChild(item);
             });
+            listDiv.appendChild(frag);
         };
 
         window.onMarketingClientCheckboxChange = function (phone, isChecked) {
-            if (isMktPhoneExcluded(phone)) {
+            if (isMktPhoneExcluded(phone) || isPhoneInSentHistory(phone)) {
                 _mktState.selectedPhones.delete(phone);
                 renderMarketingAudienceList();
                 return;
@@ -19621,8 +20092,8 @@
         window.toggleSelectAllMarketing = function (shouldSelectAll) {
             const searchTerm = (document.getElementById('mkt-filter-search')?.value || '').toLowerCase().trim();
             const segment = _mktState.currentSegment;
-            if (segment === 'excluded') {
-                return; // En el segmento de excluidos no se marcan para enviar
+            if (segment === 'excluded' || segment === 'sent') {
+                return; // En excluidos y en publicidad enviada no se marcan para enviar
             }
             const currentOriginAudience = getAudienceFilteredByOrigin();
             const sentTodayMap = getMktTodaySentPhones();
@@ -19631,11 +20102,11 @@
             if (segment === 'nonclients') {
                 filtered = syncAndGetMktNonClients();
             } else if (segment === 'active') {
-                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else if (segment === 'inactive') {
-                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             } else {
-                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone));
+                filtered = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone) && !isPhoneInSentHistory(c.phone));
             }
 
             if (searchTerm) {
@@ -19643,8 +20114,8 @@
             }
 
             filtered.forEach(c => {
-                if (isMktPhoneExcluded(c.phone) || sentTodayMap[c.phone]) {
-                    // Si ya fue enviado hoy o está desactivado, jamás se selecciona
+                if (isMktPhoneExcluded(c.phone) || sentTodayMap[c.phone] || isPhoneInSentHistory(c.phone)) {
+                    // Si ya fue enviado o está desactivado, jamás se selecciona
                     _mktState.selectedPhones.delete(c.phone);
                     return;
                 }
@@ -19888,6 +20359,7 @@
                 dailyLimit,
                 excludedPhones: Array.from(_mktState.excludedPhones || []),
                 nonClients: Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [],
+                sentHistory: (_mktState.sentHistory && typeof _mktState.sentHistory === 'object') ? _mktState.sentHistory : {},
                 templates: {
                     clients: _mktState.templates.clients,
                     sellers: _mktState.templates.sellers
@@ -19981,6 +20453,21 @@
                     if (Array.isArray(saved.nonClients)) {
                         _mktState.nonClients = saved.nonClients;
                     }
+                    if (saved.sentHistory && typeof saved.sentHistory === 'object' && !Array.isArray(saved.sentHistory)) {
+                        _mktState.sentHistory = saved.sentHistory;
+                    }
+                }
+
+                if (!_mktState.sentHistory || Object.keys(_mktState.sentHistory).length === 0) {
+                    try {
+                        const localSent = localStorage.getItem('streaming_dpc_mkt_sent_history');
+                        if (localSent) {
+                            const parsedSent = JSON.parse(localSent);
+                            if (parsedSent && typeof parsedSent === 'object' && !Array.isArray(parsedSent)) {
+                                _mktState.sentHistory = parsedSent;
+                            }
+                        }
+                    } catch (e) {}
                 }
 
                 if (!_mktState.nonClients || _mktState.nonClients.length === 0) {
@@ -20103,6 +20590,10 @@
                 return alert('⚠️ Ya hay una campaña de marketing en ejecución. Puedes pausarla o detenerla.');
             }
 
+            if (_mktState.currentSegment === 'sent') {
+                return alert('ℹ️ Estás viendo el historial de "Publicidad Enviada".\n\nPara reenviarles, primero resetea un bloque (de 20 en 20) o el contacto deseado y luego selecciona la pestaña correspondiente (Pantallas Activas, Sin Compras o No Clientes).');
+            }
+
             if (_mktState.selectedPhones.size === 0) {
                 return alert('⚠️ Por favor selecciona al menos un cliente en la lista para enviar.');
             }
@@ -20142,10 +20633,10 @@
                 ? syncAndGetMktNonClients()
                 : getAudienceFilteredByOrigin();
             const sentTodayMap = getMktTodaySentPhones();
-            const targetList = sourcePool.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone));
+            const targetList = sourcePool.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone] && !isPhoneInSentHistory(c.phone) && !isMktPhoneExcluded(c.phone));
 
             if (targetList.length === 0) {
-                return alert('⚠️ No hay clientes disponibles para enviar.\n\nTodos los seleccionados ya recibieron mensaje hoy o no seleccionaste ninguno.');
+                return alert('⚠️ No hay clientes disponibles para enviar.\n\nTodos los seleccionados ya figuran en "Publicidad Enviada" o no seleccionaste ninguno.');
             }
             _mktState.campaignQueue = targetList;
             _mktState.currentIndex = 0;
@@ -20315,17 +20806,19 @@
                 window.openWhatsapp(waPhone, personalizedText);
             }
 
-            // Incrementar contadores y registrar cliente enviado hoy
+            // Incrementar contadores, registrar enviado hoy y guardar en historial permanente "Publicidad Enviada"
             incrementSentTodayCount();
             markPhoneSentToday(target.phone, target.name);
+            markPhoneInSentHistory(target);
             _mktState.selectedPhones.delete(target.phone);
 
             _mktState.currentIndex++;
             _mktState.currentBatchCount++;
             _mktState.sentCountSession++;
 
-            addMktLog(`✅ Enviado a: ${target.name} (+${target.phone})`, true);
+            addMktLog(`✅ Enviado a: ${target.name} (+${target.phone}) · Guardado en Publicidad Enviada`, true);
             updateMarketingProgressUI();
+            refreshMktSegmentCounters();
             renderMarketingAudienceList();
 
             // Si quedan más mensajes, calcular tiempo variable anti-bloqueo y arrancar cuenta regresiva
