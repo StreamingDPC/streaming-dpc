@@ -1932,6 +1932,13 @@
                             </div>
                             <p id="mkt-sub-all" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Base completa de clientes registrados en el sistema.</p>
                         </div>
+                        <div class="mkt-seg-card" id="mkt-seg-nonclients" onclick="setMarketingSegment('nonclients')">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <strong id="mkt-lbl-nonclients" style="color:#ffb703;"><i class="fa-brands fa-whatsapp"></i> No Clientes</strong>
+                                <span class="mkt-badge" id="mkt-count-nonclients" style="background:#ffb703; color:#111;">0</span>
+                            </div>
+                            <p id="mkt-sub-nonclients" style="font-size:0.75rem; color:#aaa; margin:6px 0 0 0;">Contactos de tu WhatsApp que nunca han comprado. No se mezclan; al comprarte pasan solos a compras.</p>
+                        </div>
                         <div class="mkt-seg-card" id="mkt-seg-excluded" onclick="setMarketingSegment('excluded')">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <strong id="mkt-lbl-excluded" style="color:#e056fd;"><i class="fa-solid fa-ban"></i> Desactivados / Excluidos</strong>
@@ -1941,11 +1948,48 @@
                         </div>
                     </div>
 
+                    <!-- Panel dedicado para agregar contactos de WhatsApp a "No Clientes" (visible al seleccionar la pestaña No Clientes) -->
+                    <div id="mkt-nonclients-panel" style="display:none; background:rgba(255, 183, 3, 0.06); border:1px solid rgba(255, 183, 3, 0.35); border-radius:12px; padding:12px; margin-bottom:1rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                            <strong style="color:#ffb703; font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-brands fa-whatsapp"></i> Agregar Contactos de WhatsApp a "No Clientes"
+                            </strong>
+                            <span style="font-size:0.76rem; color:#ddd;">
+                                ✨ <em>Separados de tus compradores. Cuando alguno te compre una pantalla, saldrá de aquí y aparecerá automáticamente en Pantallas Activas.</em>
+                            </span>
+                        </div>
+                        <div id="mkt-nc-graduated-banner" style="display:none; background:rgba(76, 209, 55, 0.14); border:1px solid rgba(76, 209, 55, 0.4); color:#4cd137; border-radius:8px; padding:6px 10px; font-size:0.8rem; font-weight:bold; margin-bottom:10px;"></div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                            <input type="text" id="mkt-nc-name" placeholder="Nombre del contacto (Ej: Carlos Pérez)" style="flex:1; min-width:180px; margin:0; padding:8px 12px; border-radius:8px; background:rgba(0,0,0,0.55); border:1px solid var(--glass-border); color:white; font-size:0.85rem;">
+                            <input type="text" id="mkt-nc-phone" placeholder="Celular WhatsApp (Ej: 3155182545)" style="width:210px; margin:0; padding:8px 12px; border-radius:8px; background:rgba(0,0,0,0.55); border:1px solid var(--glass-border); color:white; font-size:0.85rem;">
+                            <button type="button" onclick="addSingleMktNonClient()" style="padding:8px 16px; border-radius:8px; background:linear-gradient(135deg, #ffb703, #f39c12); color:#111; border:none; font-weight:bold; font-size:0.84rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-user-plus"></i> Agregar 1 Contacto
+                            </button>
+                            <button type="button" onclick="toggleMktNonClientsBulkBox()" style="padding:8px 14px; border-radius:8px; background:rgba(255,255,255,0.08); color:#ffb703; border:1px solid rgba(255, 183, 3, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-paste"></i> Pegar Lista Masiva
+                            </button>
+                        </div>
+                        <div id="mkt-nc-bulk-box" style="display:none; border-top:1px dashed rgba(255,183,3,0.3); padding-top:10px;">
+                            <label for="mkt-nc-bulk-textarea" style="display:block; font-size:0.78rem; color:#ccc; margin-bottom:6px;">
+                                Pega varios contactos de WhatsApp (uno por línea — acepta <code>Nombre, Celular</code>, <code>Celular - Nombre</code> o solo el número):
+                            </label>
+                            <textarea id="mkt-nc-bulk-textarea" rows="4" placeholder="Carlos Pérez, 3151234567&#10;3009876543 - María Gómez&#10;3205551122" style="width:100%; border-radius:8px; padding:9px 11px; background:rgba(0,0,0,0.6); border:1px solid var(--glass-border); color:white; font-size:0.84rem; font-family:monospace;"></textarea>
+                            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                                <button type="button" onclick="importBulkMktNonClients()" style="padding:8px 16px; border-radius:8px; background:linear-gradient(135deg, #2ecc71, #00d2d3); color:#111; border:none; font-weight:bold; font-size:0.84rem; cursor:pointer;">
+                                    <i class="fa-solid fa-file-import"></i> Importar Lista a No Clientes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Buscador y selección rápida -->
                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:0.8rem;">
                         <div style="flex:1; min-width:220px; position:relative;">
                             <input type="text" id="mkt-filter-search" placeholder="🔍 Filtrar por nombre o celular..." oninput="renderMarketingAudienceList()" style="width:100%; margin:0; padding:10px 14px; border-radius:10px; background:rgba(0,0,0,0.5); border:1px solid var(--glass-border); color:white;">
                         </div>
+                        <button type="button" class="btn-icon" onclick="openAddMktNonClientTab()" style="width:auto; padding:8px 14px; border-radius:8px; font-size:0.85rem; background:rgba(255, 183, 3, 0.14); border:1px solid rgba(255, 183, 3, 0.45); color:#ffb703; font-weight:bold;" title="Agregar contactos de WhatsApp que nunca han comprado">
+                            <i class="fa-brands fa-whatsapp"></i> + Agregar No Clientes
+                        </button>
                         <button type="button" class="btn-icon" onclick="toggleSelectAllMarketing(true)" style="width:auto; padding:8px 14px; border-radius:8px; font-size:0.85rem; background:rgba(255,255,255,0.08); color:white;">
                             <i class="fa-solid fa-check-double"></i> Marcar Todos
                         </button>
@@ -18312,8 +18356,12 @@
             // Botón de iniciar campaña
             const destLabel = document.getElementById('mkt-btn-dest-label');
             if (destLabel) {
-                const originFilter = document.getElementById('mkt-origin-filter')?.value || 'direct';
-                destLabel.innerText = (originFilter === 'sellers_only') ? 'VENDEDORES' : 'CLIENTES';
+                if (_mktState.currentSegment === 'nonclients') {
+                    destLabel.innerText = 'NO CLIENTES';
+                } else {
+                    const originFilter = document.getElementById('mkt-origin-filter')?.value || 'direct';
+                    destLabel.innerText = (originFilter === 'sellers_only') ? 'VENDEDORES' : 'CLIENTES';
+                }
             }
         }
 
@@ -18797,6 +18845,209 @@
             }
         }
 
+        // =========================================================================
+        // GESTIÓN DE "NO CLIENTES" (CONTACTOS DE WHATSAPP QUE NUNCA HAN COMPRADO)
+        // Separados 100% de compradores/inactivos; al comprar pasan solos a compras
+        // =========================================================================
+        function normalizeMktPhone(raw) {
+            let p = String(raw || '').replace(/\D/g, '');
+            if (!p) return '';
+            if (p.length === 10 && p.startsWith('3')) p = '57' + p;
+            return p;
+        }
+
+        function getAllBuyerPhonesSet() {
+            const set = new Set();
+            (_mktState.allAudience || []).forEach(c => {
+                if (c && c.phone && Array.isArray(c.sales) && c.sales.length > 0) {
+                    set.add(c.phone);
+                }
+            });
+            return set;
+        }
+
+        function persistMktNonClients() {
+            const cleanList = Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [];
+            try {
+                localStorage.setItem('streaming_dpc_mkt_non_clients', JSON.stringify(cleanList));
+            } catch (e) {}
+            if (typeof db !== 'undefined' && db.ref) {
+                db.ref('storeConfig/marketingSettings/nonClients').set(cleanList).catch(err => {
+                    console.warn('Error saving nonClients to Firebase:', err);
+                });
+            }
+        }
+
+        function syncAndGetMktNonClients() {
+            if (!Array.isArray(_mktState.nonClients)) _mktState.nonClients = [];
+            const buyerPhones = getAllBuyerPhonesSet();
+            const graduatedNames = [];
+            const kept = [];
+            const seen = new Set();
+
+            _mktState.nonClients.forEach(item => {
+                if (!item) return;
+                const p = normalizeMktPhone(item.phone);
+                if (!p || p.length < 7 || seen.has(p)) return;
+                seen.add(p);
+
+                // Si este contacto YA compró en el sistema, graduarlo automáticamente fuera de "No Clientes"
+                if (buyerPhones.has(p)) {
+                    graduatedNames.push(item.name || p);
+                    return;
+                }
+                kept.push({
+                    phone: p,
+                    name: String(item.name || 'Contacto WhatsApp').trim() || 'Contacto WhatsApp',
+                    addedAt: item.addedAt || Date.now()
+                });
+            });
+
+            if (graduatedNames.length > 0) {
+                _mktState.nonClients = kept;
+                _mktState.lastGraduatedNonClients = (_mktState.lastGraduatedNonClients || []).concat(graduatedNames);
+                persistMktNonClients();
+            }
+
+            const banner = document.getElementById('mkt-nc-graduated-banner');
+            if (banner) {
+                const grad = _mktState.lastGraduatedNonClients || [];
+                if (grad.length > 0) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `🎉 ¡${grad.length} contacto(s) de No Clientes ya compraron (${grad.slice(0, 4).join(', ')}${grad.length > 4 ? '...' : ''}) y pasaron automáticamente al listado de Pantallas Activas!`;
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+
+            return kept
+                .filter(c => !isMktPhoneExcluded(c.phone))
+                .map(c => ({
+                    phone: c.phone,
+                    name: c.name,
+                    sales: [],
+                    activeCount: 0,
+                    expiredCount: 0,
+                    status: 'nonclient',
+                    isNonClient: true,
+                    isSellerClient: false,
+                    sellerName: 'Lista WhatsApp',
+                    platforms: ['pantallas de streaming']
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        window.openAddMktNonClientTab = function () {
+            setMarketingSegment('nonclients', false);
+            const panel = document.getElementById('mkt-nonclients-panel');
+            if (panel) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => document.getElementById('mkt-nc-name')?.focus(), 200);
+            }
+        };
+
+        window.toggleMktNonClientsBulkBox = function () {
+            const box = document.getElementById('mkt-nc-bulk-box');
+            if (!box) return;
+            const show = box.style.display === 'none' || !box.style.display;
+            box.style.display = show ? 'block' : 'none';
+            if (show) setTimeout(() => document.getElementById('mkt-nc-bulk-textarea')?.focus(), 100);
+        };
+
+        window.addSingleMktNonClient = function () {
+            const nameEl = document.getElementById('mkt-nc-name');
+            const phoneEl = document.getElementById('mkt-nc-phone');
+            const rawPhone = (phoneEl?.value || '').trim();
+            const phone = normalizeMktPhone(rawPhone);
+            if (!phone || phone.length < 10) {
+                return alert('⚠️ Ingresa un número de WhatsApp válido (mínimo 10 dígitos, ej: 3155182545).');
+            }
+            const name = (nameEl?.value || '').trim() || 'Contacto WhatsApp';
+
+            _mktState.allAudience = getMarketingAudience();
+            if (getAllBuyerPhonesSet().has(phone)) {
+                return alert(`ℹ️ El número +${phone} YA tiene compras registradas.\n\nAparece en tu listado de clientes (Pantallas Activas / Sin Compras), por lo que no se agrega a "No Clientes".`);
+            }
+
+            if (!Array.isArray(_mktState.nonClients)) _mktState.nonClients = [];
+            const exists = _mktState.nonClients.find(c => normalizeMktPhone(c.phone) === phone);
+            if (exists) {
+                exists.name = name;
+                persistMktNonClients();
+                if (nameEl) nameEl.value = '';
+                if (phoneEl) phoneEl.value = '';
+                setMarketingSegment('nonclients', false);
+                return alert(`✅ Contacto actualizado en No Clientes: ${name} (+${phone})`);
+            }
+
+            _mktState.nonClients.push({ phone, name, addedAt: Date.now() });
+            persistMktNonClients();
+            if (nameEl) nameEl.value = '';
+            if (phoneEl) phoneEl.value = '';
+            setMarketingSegment('nonclients', false);
+        };
+
+        window.importBulkMktNonClients = function () {
+            const ta = document.getElementById('mkt-nc-bulk-textarea');
+            const raw = (ta?.value || '').trim();
+            if (!raw) return alert('⚠️ Pega al menos un número de WhatsApp para importar.');
+
+            _mktState.allAudience = getMarketingAudience();
+            const buyerPhones = getAllBuyerPhonesSet();
+            if (!Array.isArray(_mktState.nonClients)) _mktState.nonClients = [];
+            const existingSet = new Set(_mktState.nonClients.map(c => normalizeMktPhone(c.phone)));
+
+            let added = 0;
+            let skippedBuyers = 0;
+            let skippedDup = 0;
+
+            raw.split(/\r?\n/).forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+                // Extraer secuencia de dígitos de teléfono (soporta +57 315 518 2545, 315-518-2545, etc.)
+                const phoneMatch = trimmed.match(/(?:\+?\d[\d\s\-()]{8,17}\d)/);
+                if (!phoneMatch) return;
+                const phone = normalizeMktPhone(phoneMatch[0]);
+                if (!phone || phone.length < 10) return;
+
+                if (buyerPhones.has(phone)) {
+                    skippedBuyers++;
+                    return;
+                }
+                if (existingSet.has(phone)) {
+                    skippedDup++;
+                    return;
+                }
+
+                let name = trimmed
+                    .replace(phoneMatch[0], '')
+                    .replace(/^[\s,;:\-–—|•]+|[\s,;:\-–—|•]+$/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!name) name = 'Contacto WhatsApp';
+
+                _mktState.nonClients.push({ phone, name, addedAt: Date.now() });
+                existingSet.add(phone);
+                added++;
+            });
+
+            if (added > 0) {
+                persistMktNonClients();
+            }
+            if (ta) ta.value = '';
+            setMarketingSegment('nonclients', false);
+            alert(`✅ Importación a "No Clientes" completada:\n\n• Nuevos agregados: ${added}\n• Omitidos porque YA son clientes con compras: ${skippedBuyers}\n• Duplicados omitidos: ${skippedDup}`);
+        };
+
+        window.removeMktNonClient = function (phone, name) {
+            const p = normalizeMktPhone(phone);
+            if (!confirm(`¿Quitar a "${name || p}" (+${p}) de tu lista de No Clientes?`)) return;
+            _mktState.nonClients = (_mktState.nonClients || []).filter(c => normalizeMktPhone(c.phone) !== p);
+            _mktState.selectedPhones.delete(p);
+            persistMktNonClients();
+            setMarketingSegment('nonclients', true);
+        };
+
         window.initMarketingPanel = function () {
             _mktState.allAudience = getMarketingAudience();
 
@@ -18825,6 +19076,8 @@
             const activeCount = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone)).length;
             const inactiveCount = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone)).length;
             const totalCount = currentOriginAudience.filter(c => !isMktPhoneExcluded(c.phone)).length;
+            const nonClientsList = syncAndGetMktNonClients();
+            const nonClientsCount = nonClientsList.length;
 
             const excludedInOrigin = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone)).length;
             const totalExcluded = _mktState.excludedPhones ? _mktState.excludedPhones.size : 0;
@@ -18833,29 +19086,38 @@
             const badgeActive = document.getElementById('mkt-count-active');
             const badgeInactive = document.getElementById('mkt-count-inactive');
             const badgeAll = document.getElementById('mkt-count-all');
+            const badgeNonClients = document.getElementById('mkt-count-nonclients');
             const badgeExcluded = document.getElementById('mkt-count-excluded');
 
             if (badgeActive) badgeActive.innerText = activeCount;
             if (badgeInactive) badgeInactive.innerText = inactiveCount;
             if (badgeAll) badgeAll.innerText = totalCount;
+            if (badgeNonClients) badgeNonClients.innerText = nonClientsCount;
             if (badgeExcluded) badgeExcluded.innerText = excludedCount;
 
+            // Mostrar/ocultar panel de carga rápida de "No Clientes"
+            const ncPanel = document.getElementById('mkt-nonclients-panel');
+            if (ncPanel) ncPanel.style.display = (segment === 'nonclients') ? 'block' : 'none';
+
             // Actualizar clases de tarjetas
-            ['active', 'inactive', 'all', 'excluded'].forEach(s => {
+            ['active', 'inactive', 'all', 'nonclients', 'excluded'].forEach(s => {
                 const el = document.getElementById('mkt-seg-' + s);
                 if (el) el.classList.toggle('active', s === segment);
             });
 
-            // Filtrar clientes dentro del origen actual
+            // Filtrar clientes dentro del origen actual (No Clientes NUNCA se mezcla con Clientes)
             let filtered = [];
-            if (segment === 'excluded') {
+            if (segment === 'nonclients') {
+                filtered = nonClientsList;
+            } else if (segment === 'excluded') {
                 filtered = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone));
                 const knownPhones = new Set(currentOriginAudience.map(c => c.phone));
                 (_mktState.excludedPhones || []).forEach(p => {
                     if (!knownPhones.has(p)) {
+                        const ncMatch = (_mktState.nonClients || []).find(nc => normalizeMktPhone(nc.phone) === p);
                         filtered.push({
                             phone: p,
-                            name: 'Número Manual Desactivado',
+                            name: ncMatch ? `${ncMatch.name} (No Cliente)` : 'Número Manual Desactivado',
                             sales: [],
                             activeCount: 0,
                             expiredCount: 0,
@@ -18899,14 +19161,17 @@
             const currentOriginAudience = getAudienceFilteredByOrigin();
 
             let filtered = [];
-            if (segment === 'excluded') {
+            if (segment === 'nonclients') {
+                filtered = syncAndGetMktNonClients();
+            } else if (segment === 'excluded') {
                 filtered = currentOriginAudience.filter(c => isMktPhoneExcluded(c.phone));
                 const knownPhones = new Set(currentOriginAudience.map(c => c.phone));
                 (_mktState.excludedPhones || []).forEach(p => {
                     if (!knownPhones.has(p)) {
+                        const ncMatch = (_mktState.nonClients || []).find(nc => normalizeMktPhone(nc.phone) === p);
                         filtered.push({
                             phone: p,
-                            name: 'Número Manual Desactivado',
+                            name: ncMatch ? `${ncMatch.name} (No Cliente)` : 'Número Manual Desactivado',
                             sales: [],
                             activeCount: 0,
                             expiredCount: 0,
@@ -18961,6 +19226,8 @@
             if (filtered.length === 0) {
                 const emptyMsg = (segment === 'excluded')
                     ? 'No hay números desactivados. Todos tus clientes están disponibles para recibir mensajes.'
+                    : (segment === 'nonclients')
+                    ? 'Aún no tienes contactos en "No Clientes". Usa el formulario amarillo de arriba para agregar contactos de tu WhatsApp (individual o lista masiva).'
                     : 'No se encontraron destinatarios para este segmento o filtro de origen.';
                 listDiv.innerHTML = `<p style="color:#777; font-size:0.85rem; text-align:center; padding:1.5rem;">${emptyMsg}</p>`;
                 return;
@@ -19001,7 +19268,9 @@
                 }
 
                 let originBadge = '';
-                if (c.isSellerSelf) {
+                if (c.isNonClient) {
+                    originBadge = `<span style="font-size:0.75rem; color:#ffb703; background:rgba(255,183,3,0.14); border:1px solid rgba(255,183,3,0.35); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-brands fa-whatsapp"></i> Lista WhatsApp</span>`;
+                } else if (c.isSellerSelf) {
                     originBadge = `<span style="font-size:0.75rem; color:#c48dfc; background:rgba(196,141,252,0.15); border:1px solid rgba(196,141,252,0.3); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-user-tie"></i> Vendedor Registrado</span>`;
                 } else if (c.isSellerClient) {
                     originBadge = `<span style="font-size:0.75rem; color:#f39c12; background:rgba(243,156,18,0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-user-tie"></i> Vendedor: ${c.sellerName}</span>`;
@@ -19012,6 +19281,8 @@
                 let statusBadge = '';
                 if (isExcluded) {
                     statusBadge = `<span style="font-size:0.75rem; color:#e056fd; background:rgba(224, 86, 253, 0.15); border:1px solid rgba(224, 86, 253, 0.35); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-ban"></i> Desactivado de Difusión</span>`;
+                } else if (c.isNonClient) {
+                    statusBadge = `<span style="font-size:0.75rem; color:#ffb703; background:rgba(255, 183, 3, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-user-tag"></i> No Cliente (Nunca ha comprado)</span>`;
                 } else if (c.isSellerSelf) {
                     if (c.status === 'active') {
                         statusBadge = `<span style="font-size:0.75rem; color:#4cd137; background:rgba(76, 209, 55, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-chart-line"></i> ${c.activeCount} ventas activas</span>`;
@@ -19050,6 +19321,9 @@
                 let actionBtnHtml = '';
                 if (isExcluded) {
                     actionBtnHtml = `<button type="button" class="btn-icon" onclick="toggleMktPhoneExclusion('${c.phone}', false, '${safeName}')" style="width:auto; padding:3px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; background:rgba(46, 204, 113, 0.15); border:1px solid rgba(46, 204, 113, 0.4); color:#2ecc71; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;" title="Reactivar número para permitir envíos de difusión"><i class="fa-solid fa-bell"></i> Activar</button>`;
+                } else if (c.isNonClient) {
+                    actionBtnHtml = `<button type="button" class="btn-icon" onclick="toggleMktPhoneExclusion('${c.phone}', true, '${safeName}')" style="width:auto; padding:3px 8px; border-radius:6px; font-size:0.72rem; background:rgba(255, 107, 107, 0.08); border:1px solid rgba(255, 107, 107, 0.25); color:#ff6b6b; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Desactivar número"><i class="fa-solid fa-ban"></i></button>
+                    <button type="button" class="btn-icon" onclick="removeMktNonClient('${c.phone}', '${safeName}')" style="width:auto; padding:3px 8px; border-radius:6px; font-size:0.72rem; background:rgba(255, 255, 255, 0.06); border:1px solid rgba(255,255,255,0.18); color:#ccc; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Eliminar de la lista No Clientes"><i class="fa-solid fa-trash"></i> Quitar</button>`;
                 } else {
                     actionBtnHtml = `<button type="button" class="btn-icon" onclick="toggleMktPhoneExclusion('${c.phone}', true, '${safeName}')" style="width:auto; padding:3px 8px; border-radius:6px; font-size:0.72rem; background:rgba(255, 107, 107, 0.08); border:1px solid rgba(255, 107, 107, 0.25); color:#ff6b6b; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s;" title="Desactivar número (cliente no desea mensajes o no existe)"><i class="fa-solid fa-ban"></i> Desactivar</button>`;
                 }
@@ -19108,7 +19382,9 @@
             const sentTodayMap = getMktTodaySentPhones();
 
             let filtered = [];
-            if (segment === 'active') {
+            if (segment === 'nonclients') {
+                filtered = syncAndGetMktNonClients();
+            } else if (segment === 'active') {
                 filtered = currentOriginAudience.filter(c => c.status === 'active' && !isMktPhoneExcluded(c.phone));
             } else if (segment === 'inactive') {
                 filtered = currentOriginAudience.filter(c => (c.status === 'inactive' || c.status === 'prospect') && !isMktPhoneExcluded(c.phone));
@@ -19365,6 +19641,7 @@
                 randomJitter,
                 dailyLimit,
                 excludedPhones: Array.from(_mktState.excludedPhones || []),
+                nonClients: Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [],
                 templates: {
                     clients: _mktState.templates.clients,
                     sellers: _mktState.templates.sellers
@@ -19455,6 +19732,19 @@
                     if (Array.isArray(saved.excludedPhones)) {
                         _mktState.excludedPhones = new Set(saved.excludedPhones.map(p => p.toString().replace(/\D/g, '')).filter(Boolean));
                     }
+                    if (Array.isArray(saved.nonClients)) {
+                        _mktState.nonClients = saved.nonClients;
+                    }
+                }
+
+                if (!_mktState.nonClients || _mktState.nonClients.length === 0) {
+                    try {
+                        const localNc = localStorage.getItem('streaming_dpc_mkt_non_clients');
+                        if (localNc) {
+                            const parsedNc = JSON.parse(localNc);
+                            if (Array.isArray(parsedNc)) _mktState.nonClients = parsedNc;
+                        }
+                    } catch (e) {}
                 }
 
                 if (!_mktState.excludedPhones || _mktState.excludedPhones.size === 0) {
@@ -19601,10 +19891,12 @@
                 }
             }
 
-            // Construir la cola de clientes a enviar (respetando la selección, filtro de origen y sin duplicados de hoy ni excluidos)
-            const currentOriginAudience = getAudienceFilteredByOrigin();
+            // Construir la cola de destinatarios (si está en "No Clientes", usar exclusivamente esa lista sin mezclar clientes)
+            const sourcePool = (_mktState.currentSegment === 'nonclients')
+                ? syncAndGetMktNonClients()
+                : getAudienceFilteredByOrigin();
             const sentTodayMap = getMktTodaySentPhones();
-            const targetList = currentOriginAudience.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone));
+            const targetList = sourcePool.filter(c => _mktState.selectedPhones.has(c.phone) && !sentTodayMap[c.phone] && !isMktPhoneExcluded(c.phone));
 
             if (targetList.length === 0) {
                 return alert('⚠️ No hay clientes disponibles para enviar.\n\nTodos los seleccionados ya recibieron mensaje hoy o no seleccionaste ninguno.');
