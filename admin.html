@@ -8384,8 +8384,8 @@
             { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\b(disney\+?|dixney)\b/i, negativeRe: /(?:disney|dixney)\s*privad/i },
             { id: 'disney_privada', name: 'Disney Privada', icon: '<i class="fa-solid fa-shield-halved"></i>', re: /(?:disney|dixney)\s*privad/i },
             { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
-            { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i, negativeRe: /\b(?:max|hbo)\b.*?\bprivad/i },
-            { id: 'max_privada', name: 'HBO Max Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /\b(?:max|hbo)\b.*?\bprivad/i },
+            { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i, negativeRe: /\b(?:hbo\s*max|max|hbo)\s*privad/i },
+            { id: 'max_privada', name: 'HBO Max Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /\b(?:hbo\s*max|max|hbo)\s*privad/i },
             { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
             { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
             { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
@@ -8395,8 +8395,33 @@
         ];
         var ADMIN_SMART_PLATFORMS = window.ADMIN_SMART_PLATFORMS;
 
+        function matchesAdminPlatformText(text, plat) {
+            const s = String(text || '').toLowerCase();
+            if (plat.negativeRe && plat.negativeRe.test(s)) return false;
+            return plat.re.test(s);
+        }
+
+        function getAdminProductDetectedPlatformIds(product) {
+            if (!product) return [];
+            const nameText = String(product.name || '').toLowerCase();
+            const inName = ADMIN_SMART_PLATFORMS.filter(p => matchesAdminPlatformText(nameText, p)).map(p => p.id);
+            if (inName.length > 0) return inName;
+            const fallbackText = ((product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+            return ADMIN_SMART_PLATFORMS.filter(p => matchesAdminPlatformText(fallbackText, p)).map(p => p.id);
+        }
+        window.getAdminProductDetectedPlatformIds = getAdminProductDetectedPlatformIds;
+
         function getAdminProductScreenCount(product) {
             if (!product) return 1;
+            // 1. Detectar siempre la cantidad real de plataformas en el nombre (evita que un combo nuevo en 'individual' o 'promociones' se cuente como 1)
+            const detectedIds = getAdminProductDetectedPlatformIds(product);
+            const cleanName = String(product.name || '')
+                .replace(/\([^)]*\)/g, '')
+                .replace(/\b(disney|paramount|vix|apple\s*tv)\+/gi, '$1Plus');
+            const plusParts = cleanName.split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+            const nameCount = Math.max(detectedIds.length, plusParts.length);
+            if (nameCount >= 2) return nameCount;
+
             if (product.category === 'individual') return 1;
             if (product.category === 'combos2') return 2;
             if (product.category === 'combos3') return 3;
@@ -8407,18 +8432,32 @@
             if (screenMatch) {
                 return parseInt(screenMatch[1], 10);
             }
-            const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
-            const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
-            return Math.max(1, parts.length);
+            return Math.max(1, nameCount);
         }
         window.getAdminProductScreenCount = getAdminProductScreenCount;
 
         function matchesAdminPlatformItem(product, plat) {
+            const nameText = String(product.name || '').toLowerCase();
+            const nameHasAnyPlatform = ADMIN_SMART_PLATFORMS.some(p => matchesAdminPlatformText(nameText, p));
+            if (nameHasAnyPlatform) {
+                return matchesAdminPlatformText(nameText, plat);
+            }
             const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
-            if (plat.negativeRe && plat.negativeRe.test(text)) return false;
-            return plat.re.test(text);
+            return matchesAdminPlatformText(text, plat);
         }
         window.matchesAdminPlatformItem = matchesAdminPlatformItem;
+
+        function matchesExactAdminPlatforms(product, selectedPlatObjs) {
+            const N = selectedPlatObjs.length;
+            if (N === 0) return true;
+            if (!selectedPlatObjs.every(plat => matchesAdminPlatformItem(product, plat))) return false;
+            const selectedIds = new Set(selectedPlatObjs.map(p => p.id));
+            const productIds = getAdminProductDetectedPlatformIds(product);
+            if (productIds.length > 0 && productIds.some(id => !selectedIds.has(id))) return false;
+            const sc = getAdminProductScreenCount(product);
+            return N >= 5 ? sc >= 5 : sc === N;
+        }
+        window.matchesExactAdminPlatforms = matchesExactAdminPlatforms;
 
         function matchesAdminDuration(product, months) {
             if (months === 'all') return true;
@@ -8655,15 +8694,12 @@
                     if (!matchesAdminDuration(p, _adminProductSearchState.selectedMonths)) return;
                 }
 
-                // Filtro por plataformas del Buscador Inteligente
+                // Filtro por plataformas del Buscador Inteligente (coincidencia exacta: solo lo seleccionado, sin mezclar combos con plataformas extra)
                 if (N > 0) {
-                    const matchesAllPlats = selectedPlatObjs.every(plat => matchesAdminPlatformItem(p, plat));
-                    if (!matchesAllPlats) return;
-
-                    if (filterCat === 'all' && hasExactSizeMatch) {
-                        const sc = getAdminProductScreenCount(p);
-                        const matchesSize = N >= 5 ? sc >= 5 : sc === N;
-                        if (!matchesSize) return;
+                    if (filterCat === 'all') {
+                        if (!matchesExactAdminPlatforms(p, selectedPlatObjs)) return;
+                    } else {
+                        if (!selectedPlatObjs.every(plat => matchesAdminPlatformItem(p, plat))) return;
                     }
                 }
 
@@ -17201,20 +17237,7 @@
             const N = selectedPlatObjs.length;
 
             if (N > 0) {
-                const allMatches = baseList.filter(prod => {
-                    return selectedPlatObjs.every(plat => matchesAdminPlatformItem(prod, plat));
-                });
-
-                const exactSizeMatches = allMatches.filter(prod => {
-                    const sc = getAdminProductScreenCount(prod);
-                    return N >= 5 ? sc >= 5 : sc === N;
-                });
-
-                if (exactSizeMatches.length > 0) {
-                    matchedProducts = exactSizeMatches;
-                } else {
-                    matchedProducts = [];
-                }
+                matchedProducts = baseList.filter(prod => matchesExactAdminPlatforms(prod, selectedPlatObjs));
             } else {
                 matchedProducts = baseList;
             }

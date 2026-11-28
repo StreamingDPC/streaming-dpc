@@ -1123,8 +1123,8 @@ const SMART_PLATFORMS = [
     { id: 'disney', name: 'Disney+', icon: '<i class="fa-solid fa-wand-magic-sparkles"></i>', re: /\b(disney\+?|dixney)\b/i, negativeRe: /(?:disney|dixney)\s*privad/i },
     { id: 'disney_privada', name: 'Disney Privada', icon: '<i class="fa-solid fa-shield-halved"></i>', re: /(?:disney|dixney)\s*privad/i },
     { id: 'prime', name: 'Prime Video', icon: '<i class="fa-brands fa-amazon"></i>', re: /\b(prime|amazon)\b/i },
-    { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i, negativeRe: /\b(?:max|hbo)\b.*?\bprivad/i },
-    { id: 'max_privada', name: 'HBO Max Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /\b(?:max|hbo)\b.*?\bprivad/i },
+    { id: 'max', name: 'Max / HBO', icon: '<i class="fa-solid fa-film"></i>', re: /\b(max|hbo)\b/i, negativeRe: /\b(?:hbo\s*max|max|hbo)\s*privad/i },
+    { id: 'max_privada', name: 'HBO Max Privada', icon: '<i class="fa-solid fa-lock"></i>', re: /\b(?:hbo\s*max|max|hbo)\s*privad/i },
     { id: 'paramount', name: 'Paramount+', icon: '<i class="fa-solid fa-mountain"></i>', re: /\bparamount\+?\b/i },
     { id: 'vix', name: 'ViX', icon: '<i class="fa-solid fa-tv"></i>', re: /\bvix\b/i },
     { id: 'crunchyroll', name: 'Crunchyroll', icon: '<i class="fa-solid fa-fire"></i>', re: /\bcrunchy(roll)?\b/i },
@@ -1251,11 +1251,31 @@ function resetSmartSearch(silent) {
     }
 }
 
-function matchesPlatformItem(product, plat) {
-    const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
-    if (!plat.re.test(text)) return false;
-    if (plat.negativeRe && plat.negativeRe.test(text)) return false;
+function matchesPlatformText(text, plat) {
+    const s = String(text || '').toLowerCase();
+    if (!plat.re.test(s)) return false;
+    if (plat.negativeRe && plat.negativeRe.test(s)) return false;
     return true;
+}
+
+function getProductDetectedPlatformIds(product) {
+    if (!product) return [];
+    const nameText = String(product.name || '').toLowerCase();
+    const inName = SMART_PLATFORMS.filter(p => matchesPlatformText(nameText, p)).map(p => p.id);
+    if (inName.length > 0) return inName;
+    const fallbackText = ((product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+    return SMART_PLATFORMS.filter(p => matchesPlatformText(fallbackText, p)).map(p => p.id);
+}
+
+function matchesPlatformItem(product, plat) {
+    const nameText = String(product.name || '').toLowerCase();
+    // Si el nombre ya identifica plataformas explícitamente, comparar solo contra el nombre para evitar falsos positivos en desc
+    const nameHasAnyPlatform = SMART_PLATFORMS.some(p => matchesPlatformText(nameText, p));
+    if (nameHasAnyPlatform) {
+        return matchesPlatformText(nameText, plat);
+    }
+    const text = ((product.name || '') + ' ' + (product.brand || '') + ' ' + (product.desc || '')).toLowerCase();
+    return matchesPlatformText(text, plat);
 }
 
 function matchesDuration(product, months) {
@@ -1277,6 +1297,15 @@ function matchesDuration(product, months) {
 
 function getProductScreenCount(product) {
     if (!product) return 1;
+    // 1. Detectar siempre la cantidad real de plataformas en el nombre (evita que un combo nuevo en categoría 'individual' o 'promociones' se cuente como 1)
+    const detectedIds = getProductDetectedPlatformIds(product);
+    const cleanName = String(product.name || '')
+        .replace(/\([^)]*\)/g, '')
+        .replace(/\b(disney|paramount|vix|apple\s*tv)\+/gi, '$1Plus');
+    const plusParts = cleanName.split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const nameCount = Math.max(detectedIds.length, plusParts.length);
+    if (nameCount >= 2) return nameCount;
+
     if (product.category === 'individual') return 1;
     if (product.category === 'combos2') return 2;
     if (product.category === 'combos3') return 3;
@@ -1288,9 +1317,21 @@ function getProductScreenCount(product) {
     if (screenMatch) {
         return parseInt(screenMatch[1], 10);
     }
-    const cleanName = (product.name || '').replace(/\([^)]*\)/g, '');
-    const parts = cleanName.split('+').map(s => s.trim()).filter(Boolean);
-    return Math.max(1, parts.length);
+    return Math.max(1, nameCount);
+}
+
+function matchesExactSelectedPlatforms(product, selectedPlatObjs) {
+    const N = selectedPlatObjs.length;
+    if (N === 0) return true;
+    // 1. Debe contener TODAS las plataformas seleccionadas
+    if (!selectedPlatObjs.every(plat => matchesPlatformItem(product, plat))) return false;
+    // 2. NO debe contener plataformas extra que no fueron seleccionadas (ej: Netflix + Disney+ + Spotify NO sale al elegir solo Netflix)
+    const selectedIds = new Set(selectedPlatObjs.map(p => p.id));
+    const productIds = getProductDetectedPlatformIds(product);
+    if (productIds.length > 0 && productIds.some(id => !selectedIds.has(id))) return false;
+    // 3. El número de pantallas/plataformas debe coincidir con N
+    const sc = getProductScreenCount(product);
+    return N >= 5 ? sc >= 5 : sc === N;
 }
 
 function applySmartSearch() {
@@ -1368,29 +1409,8 @@ function applySmartSearch() {
     const N = selectedPlatObjs.length;
 
     if (N > 0) {
-        // 1. Coincidencia estricta: productos que contienen TODAS las plataformas seleccionadas
-        const allMatches = baseList.filter(prod => {
-            return selectedPlatObjs.every(plat => matchesPlatformItem(prod, plat));
-        });
-
-        // 2. Filtrar exactamente por el número de pantallas seleccionadas:
-        // 1 selección -> Individual (1 pantalla)
-        // 2 selecciones -> Combos de 2 pantallas
-        // 3 selecciones -> Combos de 3 pantallas
-        // 4 selecciones -> Combos de 4 pantallas
-        // 5 o más -> Combos de 5 o más pantallas
-        const exactSizeMatches = allMatches.filter(prod => {
-            const sc = getProductScreenCount(prod);
-            return N >= 5 ? sc >= 5 : sc === N;
-        });
-
-        if (exactSizeMatches.length > 0) {
-            matchedProducts = exactSizeMatches;
-        } else {
-            // Si el cliente eligió plataformas salteadas y NO existe el combo de ese tamaño,
-            // no mostramos nada para que no se confunda y busque las que sí existen.
-            matchedProducts = [];
-        }
+        // Coincidencia exacta: contiene TODAS las seleccionadas, CERO plataformas extra no seleccionadas y tamaño exacto N
+        matchedProducts = baseList.filter(prod => matchesExactSelectedPlatforms(prod, selectedPlatObjs));
     } else {
         matchedProducts = baseList;
     }
