@@ -2024,12 +2024,28 @@
                             <button type="button" onclick="document.getElementById('mkt-nc-file-input').click()" style="padding:8px 14px; border-radius:8px; background:rgba(52, 152, 219, 0.16); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Sube tu archivo exportado de Google Contacts (.csv o .vcf)">
                                 <i class="fa-solid fa-file-arrow-up"></i> Subir .CSV / .VCF (Google Contacts)
                             </button>
+                            <button type="button" id="btn-mkt-nc-verify-wa" onclick="verifyMktNonClientsWhatsApp()" style="padding:8px 14px; border-radius:8px; background:linear-gradient(135deg, rgba(0,210,211,0.22), rgba(56,189,248,0.18)); color:#00d2d3; border:1px solid rgba(0, 210, 211, 0.5); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Consulta con tu Robot Local qué números tienen WhatsApp activo y depura automáticamente los que ya no existen o no tienen WhatsApp">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i> Verificar WhatsApp Activos
+                            </button>
                             <button type="button" onclick="cleanDuplicateMktNonClients()" style="padding:8px 14px; border-radius:8px; background:rgba(243, 156, 18, 0.16); color:#f39c12; border:1px solid rgba(243, 156, 18, 0.48); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Detecta y elimina números repetidos, contactos con el mismo nombre duplicado (conservando el celular real +57) e IDs internos largos de WhatsApp">
                                 <i class="fa-solid fa-broom"></i> Eliminar Duplicados
                             </button>
                             <button type="button" onclick="clearAllMktNonClients()" style="padding:8px 14px; border-radius:8px; background:rgba(255, 77, 77, 0.15); color:#ff6b6b; border:1px solid rgba(255, 77, 77, 0.45); font-weight:bold; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;" title="Vacía por completo la lista de No Clientes (no afecta a tus clientes compradores)">
                                 <i class="fa-solid fa-trash-can"></i> Eliminar Todos
                             </button>
+                        </div>
+                        <div id="mkt-nc-verify-progress" style="display:none; background:rgba(0, 210, 211, 0.08); border:1px solid rgba(0, 210, 211, 0.35); border-radius:10px; padding:10px 12px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                                <span id="mkt-nc-verify-status" style="font-size:0.82rem; color:#e6ffff; font-weight:bold;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="color:#00d2d3;"></i> Verificando números con tu Robot Local...
+                                </span>
+                                <button type="button" onclick="stopMktNonClientsWaVerify()" style="padding:4px 10px; border-radius:6px; background:rgba(255,77,77,0.2); border:1px solid rgba(255,77,77,0.5); color:#ff6b6b; font-size:0.76rem; font-weight:bold; cursor:pointer;">
+                                    <i class="fa-solid fa-stop"></i> Detener
+                                </button>
+                            </div>
+                            <div style="width:100%; height:8px; background:rgba(0,0,0,0.45); border-radius:999px; overflow:hidden;">
+                                <div id="mkt-nc-verify-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #00d2d3, #2ecc71); transition:width 0.25s ease;"></div>
+                            </div>
                         </div>
                         <div id="mkt-nc-bulk-box" style="display:none; border-top:1px dashed rgba(255,183,3,0.3); padding-top:10px;">
                             <label for="mkt-nc-bulk-textarea" style="display:block; font-size:0.78rem; color:#ccc; margin-bottom:6px;">
@@ -19206,7 +19222,8 @@
                 kept.push({
                     phone: p,
                     name: String(item.name || 'Contacto WhatsApp').trim() || 'Contacto WhatsApp',
-                    addedAt: item.addedAt || Date.now()
+                    addedAt: item.addedAt || Date.now(),
+                    waVerified: Boolean(item.waVerified)
                 });
             });
 
@@ -19237,6 +19254,7 @@
                     expiredCount: 0,
                     status: 'nonclient',
                     isNonClient: true,
+                    waVerified: Boolean(c.waVerified),
                     isSellerClient: false,
                     sellerName: 'Lista WhatsApp',
                     platforms: ['pantallas de streaming']
@@ -19624,7 +19642,7 @@
                 if (!phone || phone.length < 10) { dupByPhone++; return; }
                 const name = String(item.name || 'Contacto WhatsApp').replace(/\s+/g, ' ').trim() || 'Contacto WhatsApp';
                 const key = (phone.length >= 10 && phone.length <= 12) ? phone.slice(-10) : phone;
-                const cand = { phone, name, addedAt: item.addedAt || Date.now() };
+                const cand = { phone, name, addedAt: item.addedAt || Date.now(), waVerified: Boolean(item.waVerified) };
 
                 if (!byPhoneKey.has(key)) {
                     byPhoneKey.set(key, cand);
@@ -19632,9 +19650,13 @@
                     dupByPhone++;
                     const prev = byPhoneKey.get(key);
                     if (scoreMktNonClientPhoneQuality(cand.phone, cand.name) > scoreMktNonClientPhoneQuality(prev.phone, prev.name)) {
+                        cand.waVerified = cand.waVerified || prev.waVerified;
                         byPhoneKey.set(key, cand);
-                    } else if (prev.name === 'Contacto WhatsApp' && cand.name !== 'Contacto WhatsApp') {
-                        prev.name = cand.name;
+                    } else {
+                        if (prev.name === 'Contacto WhatsApp' && cand.name !== 'Contacto WhatsApp') {
+                            prev.name = cand.name;
+                        }
+                        if (cand.waVerified) prev.waVerified = true;
                     }
                 }
             });
@@ -19716,6 +19738,177 @@
             setMarketingSegment('nonclients', false);
             if (typeof showDbToast === 'function') {
                 showDbToast(`🗑️ Se eliminaron todos los ${list.length} contactos de "No Clientes".`);
+            }
+        };
+
+        window._mktWaVerifyStopRequested = false;
+
+        window.stopMktNonClientsWaVerify = function () {
+            window._mktWaVerifyStopRequested = true;
+            const statusEl = document.getElementById('mkt-nc-verify-status');
+            if (statusEl) {
+                statusEl.innerHTML = '<i class="fa-solid fa-hand"></i> Deteniendo al finalizar el lote actual (lo ya verificado queda guardado)...';
+            }
+        };
+
+        window.verifyMktNonClientsWhatsApp = async function () {
+            const list = Array.isArray(_mktState.nonClients) ? _mktState.nonClients : [];
+            if (list.length === 0) {
+                return alert('ℹ️ Tu lista de "No Clientes" está vacía. Primero importa o agrega contactos.');
+            }
+
+            // Filtrar primero los que aún no han sido verificados y están pendientes (no excluidos / no enviados)
+            let candidates = list.filter(c => {
+                const p = normalizeMktPhone(c && c.phone);
+                return p && !isMktPhoneExcluded(p) && !isPhoneInSentHistory(p) && !c.waVerified;
+            });
+
+            if (candidates.length === 0) {
+                const recheck = confirm('✅ Todos los contactos pendientes en "No Clientes" ya fueron verificados como WhatsApp activos.\n\n¿Deseas volver a verificarlos nuevamente?');
+                if (!recheck) return;
+                candidates = list.filter(c => {
+                    const p = normalizeMktPhone(c && c.phone);
+                    return p && !isMktPhoneExcluded(p) && !isPhoneInSentHistory(p);
+                });
+                if (candidates.length === 0) return alert('ℹ️ No hay contactos pendientes en "No Clientes" para verificar.');
+            }
+
+            const defaultBatch = Math.min(100, candidates.length);
+            const rawQty = prompt(
+                `🔍 Verificador de WhatsApp Activos (via Robot Local)\n\n` +
+                `• Contactos sin verificar disponibles: ${candidates.length}\n` +
+                `• Recomendación anti-bloqueo: verificar en bloques de 100 o 200.\n` +
+                `• Los que NO tengan WhatsApp se eliminarán de "No Clientes" y pasarán a "Excluidos".\n\n` +
+                `¿Cuántos contactos deseas verificar en esta pasada? (1 a ${candidates.length}):`,
+                String(defaultBatch)
+            );
+            if (rawQty === null) return;
+            const maxToCheck = Math.min(candidates.length, Math.max(1, parseInt(rawQty, 10) || defaultBatch));
+            const targetList = candidates.slice(0, maxToCheck);
+
+            const btn = document.getElementById('btn-mkt-nc-verify-wa');
+            const progressBox = document.getElementById('mkt-nc-verify-progress');
+            const statusEl = document.getElementById('mkt-nc-verify-status');
+            const barEl = document.getElementById('mkt-nc-verify-bar');
+            const oldBtnHtml = btn ? btn.innerHTML : '';
+
+            window._mktWaVerifyStopRequested = false;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+            }
+            if (progressBox) progressBox.style.display = 'block';
+            if (barEl) barEl.style.width = '2%';
+
+            const CHUNK_SIZE = 20;
+            let checked = 0;
+            let totalValid = 0;
+            let totalInvalid = 0;
+            let totalErrors = 0;
+            const invalidPhonesSet = new Set();
+            const validPhonesSet = new Set();
+            let activeEndpoint = null;
+
+            const postCheckChunk = async (phonesChunk) => {
+                const urls = activeEndpoint ? [activeEndpoint] : ['http://localhost:3088/api/check-whatsapp', 'http://127.0.0.1:3088/api/check-whatsapp'];
+                let res = null;
+                for (const url of urls) {
+                    try {
+                        res = await fetch(url, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ phones: phonesChunk })
+                        });
+                        if (res) {
+                            activeEndpoint = url;
+                            break;
+                        }
+                    } catch (_) {}
+                }
+                if (!res) {
+                    throw new Error('No se pudo conectar con tu Robot Local (puerto 3088). Asegúrate de reiniciar "Arrancar_Robot.bat" en F:\\CMR Whatsapp para activar /api/check-whatsapp.');
+                }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || `Error HTTP ${res.status} del Robot Local (reinicia Arrancar_Robot.bat si recién se actualizó).`);
+                }
+                return data;
+            };
+
+            try {
+                for (let offset = 0; offset < targetList.length; offset += CHUNK_SIZE) {
+                    if (window._mktWaVerifyStopRequested) break;
+                    const chunkItems = targetList.slice(offset, offset + CHUNK_SIZE);
+                    const chunkPhones = chunkItems.map(c => normalizeMktPhone(c.phone));
+
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#00d2d3;"></i> Verificando ${Math.min(offset + chunkPhones.length, targetList.length)} / ${targetList.length} · ✅ ${totalValid} con WhatsApp · ❌ ${totalInvalid} sin WhatsApp...`;
+                    }
+
+                    const data = await postCheckChunk(chunkPhones);
+                    (data.results || []).forEach(r => {
+                        const p = normalizeMktPhone(r && r.phone);
+                        if (!p) return;
+                        if (r.valid === true) {
+                            validPhonesSet.add(p);
+                            totalValid++;
+                        } else if (r.valid === false) {
+                            invalidPhonesSet.add(p);
+                            totalInvalid++;
+                        } else {
+                            totalErrors++;
+                        }
+                    });
+
+                    // Aplicar y guardar progreso inmediatamente tras cada bloque de 20
+                    if (validPhonesSet.size > 0 || invalidPhonesSet.size > 0) {
+                        if (!_mktState.excludedPhones) _mktState.excludedPhones = new Set();
+                        _mktState.nonClients = (_mktState.nonClients || []).filter(item => {
+                            const p = normalizeMktPhone(item && item.phone);
+                            if (invalidPhonesSet.has(p)) {
+                                _mktState.excludedPhones.add(p);
+                                _mktState.selectedPhones.delete(p);
+                                return false;
+                            }
+                            if (validPhonesSet.has(p)) {
+                                item.waVerified = true;
+                            }
+                            return true;
+                        });
+                        persistMktNonClients();
+                        if (invalidPhonesSet.size > 0) {
+                            saveMarketingExcludedPhones();
+                        }
+                    }
+
+                    checked += chunkItems.length;
+                    const pct = Math.min(100, Math.round((checked / targetList.length) * 100));
+                    if (barEl) barEl.style.width = `${pct}%`;
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#2ecc71;"></i> Progreso: ${checked} / ${targetList.length} (${pct}%) · ✅ ${totalValid} con WhatsApp · ❌ ${totalInvalid} sin WhatsApp depurados`;
+                    }
+                }
+
+                setMarketingSegment('nonclients', false);
+                alert(
+                    `🔍 ¡Verificación de WhatsApp ${window._mktWaVerifyStopRequested ? 'detenida (progreso guardado)' : 'completada'}!\n\n` +
+                    `• Números revisados: ${checked}\n` +
+                    `• ✅ Con WhatsApp activo (marcados como verificados): ${totalValid}\n` +
+                    `• ❌ Sin WhatsApp (eliminados de No Clientes y movidos a Excluidos): ${totalInvalid}\n` +
+                    `• ⚠️ Errores temporales (conservados para revisar luego): ${totalErrors}`
+                );
+            } catch (err) {
+                setMarketingSegment('nonclients', false);
+                alert(`⚠️ ${err.message}`);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldBtnHtml;
+                }
+                if (progressBox) {
+                    setTimeout(() => { progressBox.style.display = 'none'; }, 2500);
+                }
             }
         };
 
@@ -19998,7 +20191,10 @@
                 if (isExcluded) {
                     statusBadge = `<span style="font-size:0.75rem; color:#e056fd; background:rgba(224, 86, 253, 0.15); border:1px solid rgba(224, 86, 253, 0.35); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-ban"></i> Desactivado de Difusión</span>`;
                 } else if (c.isNonClient) {
-                    statusBadge = `<span style="font-size:0.75rem; color:#ffb703; background:rgba(255, 183, 3, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-user-tag"></i> No Cliente (Nunca ha comprado)</span>`;
+                    const waBadge = c.waVerified
+                        ? ` <span style="font-size:0.72rem; color:#2ecc71; background:rgba(46,204,113,0.14); border:1px solid rgba(46,204,113,0.35); padding:2px 7px; border-radius:10px; font-weight:bold;" title="Confirmado con cuenta activa de WhatsApp"><i class="fa-solid fa-check-double"></i> WA Activo</span>`
+                        : '';
+                    statusBadge = `<span style="font-size:0.75rem; color:#ffb703; background:rgba(255, 183, 3, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-user-tag"></i> No Cliente (Nunca ha comprado)</span>${waBadge}`;
                 } else if (c.isSellerSelf) {
                     if (c.status === 'active') {
                         statusBadge = `<span style="font-size:0.75rem; color:#4cd137; background:rgba(76, 209, 55, 0.12); padding:2px 8px; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-chart-line"></i> ${c.activeCount} ventas activas</span>`;
